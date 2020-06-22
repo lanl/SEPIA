@@ -18,6 +18,7 @@ After cloning git repo, use the following command from this directory to install
 
  I recommend doing this inside a python conda environment.
  The packages installed in the development environment are listed in `environment.yml`.
+Use `conda env create -f environment.yml` to create the environment, then activate as `source activate sepia` before installing sepia.
 
 ---
 
