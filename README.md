@@ -22,7 +22,7 @@ Use `conda env create -f environment.yml` to create the environment, then activa
 
 ### Documentation
 You can build it locally if you wish following docs/README.md, or view version on
-[Read the Docs](sepia-lanl.readthedocs.io).
+[Read the Docs](http://sepia-lanl.readthedocs.io).
 
 ---
 
