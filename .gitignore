@@ -1,0 +1,15 @@
+.idea/*
+*.cprof
+*.profile
+*.png
+*.mat
+*.pdf
+*.pyc
+.vscode/*
+*.m~
+*.pkl
+sepia/dev_test/data/
+*.DS_Store
+sepia.egg-info/
+build/
+dist/

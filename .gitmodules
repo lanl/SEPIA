@@ -1,0 +1,3 @@
+[submodule "sepia/dev_test/GPMSAmatlab"]
+	path = sepia/dev_test/GPMSAmatlab
+	url = git@git.lanl.gov:stattools/gpmsa.git
