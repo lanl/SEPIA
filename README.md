@@ -20,6 +20,10 @@ After cloning git repo, use the following command from this directory to install
  The packages installed in the development environment are listed in `environment.yml`.
 Use `conda env create -f environment.yml` to create the environment, then activate as `source activate sepia` before installing sepia.
 
+### Documentation
+You can build it locally if you wish following docs/README.md, or view version on
+[Read the Docs](sepia-lanl.readthedocs.io).
+
 ---
 
 Approved by LANL/NNSA for software release: C19159 SEPIA 
