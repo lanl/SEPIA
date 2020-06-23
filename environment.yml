@@ -2,6 +2,7 @@ name: sepia
 channels:
   - defaults
 dependencies:
+  - jupyter=1.0.0
   - matplotlib=3.2.1
   - numpy=1.16.4
   - pip=20.1.1
