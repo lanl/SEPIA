@@ -12,13 +12,14 @@ Basic usage is demonstrated in the Examples directory.
 Follow one of these examples but plugging in your own data.
 
 ### Install package locally
-After cloning git repo, use the following command from this directory to install locally.
-
-`pip install -e .[sepia]`
-
  I recommend doing this inside a python conda environment.
  The packages installed in the development environment are listed in `environment.yml`.
 Use `conda env create -f environment.yml` to create the environment, then activate as `source activate sepia` before installing sepia.
+
+Then use the following command from this directory to install sepia locally.
+
+`pip install -e .[sepia]`
+
 
 ### Documentation
 You can build it locally if you wish following docs/README.md, or view version on
