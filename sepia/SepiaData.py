@@ -113,6 +113,7 @@ class SepiaData(object):
             b_vec = b * np.ones_like(x_min)
             xmm = x_max - x_min
             # If min/max are equal, don't want to transform
+            x_min = x_min.copy()
             x_min[xmm == 0] = 0
             a_vec[xmm == 0] = 0
             b_vec[xmm == 0] = 1
