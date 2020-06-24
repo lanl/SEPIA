@@ -118,11 +118,19 @@ class SepiaData(object):
             b_vec[xmm == 0] = 1
             xmm[xmm == 0] = 1
             return (x - x_min) / xmm * (b_vec - a_vec) + a_vec
-        self.sim_data.x_trans = trans(self.sim_data.x, xt_min, xt_max, np.min(self.sim_data.x, 0), np.max(self.sim_data.x, 0))
+        self.sim_data.orig_x_min = np.min(self.sim_data.x, 0)
+        self.sim_data.orig_x_max = np.max(self.sim_data.x, 0)
+        self.sim_data.x_trans = trans(self.sim_data.x, xt_min, xt_max, self.sim_data.orig_x_min, self.sim_data.orig_x_max)
         if self.sim_data.t is not None:
-            self.sim_data.t_trans = trans(self.sim_data.t, xt_min, xt_max, np.min(self.sim_data.t, 0), np.max(self.sim_data.t, 0))
+            self.sim_data.orig_t_min = np.min(self.sim_data.t, 0)
+            self.sim_data.orig_t_max = np.max(self.sim_data.t, 0)
+            self.sim_data.t_trans = trans(self.sim_data.t, xt_min, xt_max, self.sim_data.orig_t_min, self.sim_data.orig_t_max)
         if not self.sim_only:
-            self.obs_data.x_trans = trans(self.obs_data.x, xt_min, xt_max, np.min(self.sim_data.x, 0), np.max(self.sim_data.x, 0))
+            self.obs_data.orig_x_min = self.sim_data.orig_x_min
+            self.obs_data.orig_x_max = self.sim_data.orig_x_max
+            self.obs_data.orig_t_min = self.sim_data.orig_t_min
+            self.obs_data.orig_t_max = self.sim_data.orig_t_max
+            self.obs_data.x_trans = trans(self.obs_data.x, xt_min, xt_max, self.obs_data.orig_x_min, self.obs_data.orig_x_max)
 
     def standardize_y(self, center=True, scale='scalar'):
         """
@@ -132,27 +140,27 @@ class SepiaData(object):
         :param scale: 'scalar', 'columnwise', or False, how to rescale the data
         """
         if center:
-            self.sim_data.y_mean = np.mean(self.sim_data.y, 0)
+            self.sim_data.orig_y_mean = np.mean(self.sim_data.y, 0)
         else:
-            self.sim_data.y_mean = 0.
-        y_dm = self.sim_data.y - self.sim_data.y_mean
+            self.sim_data.orig_y_mean = 0.
+        y_dm = self.sim_data.y - self.sim_data.orig_y_mean
         if scale == 'scalar':
-            self.sim_data.y_sd = np.std(y_dm, ddof=1)
+            self.sim_data.orig_y_sd = np.std(y_dm, ddof=1)
         elif scale == 'columnwise':
-            self.sim_data.y_sd = np.std(y_dm, ddof=1, axis=0)
+            self.sim_data.orig_y_sd = np.std(y_dm, ddof=1, axis=0)
         else:
-            self.sim_data.y_sd = 1.
-        self.sim_data.y_std = y_dm/self.sim_data.y_sd
+            self.sim_data.orig_y_sd = 1.
+        self.sim_data.y_std = y_dm/self.sim_data.orig_y_sd
         if not self.sim_only:
-            if not self.scalar_out and not np.isscalar(self.sim_data.y_mean):
-                self.obs_data.y_mean = np.interp(self.obs_data.y_ind.squeeze(), self.sim_data.y_ind.squeeze(), self.sim_data.y_mean)
+            if not self.scalar_out and not np.isscalar(self.sim_data.orig_y_mean):
+                self.obs_data.orig_y_mean = np.interp(self.obs_data.y_ind.squeeze(), self.sim_data.y_ind.squeeze(), self.sim_data.orig_y_mean)
             else:
-                self.obs_data.y_mean = self.sim_data.y_mean
-            if not self.scalar_out and not np.isscalar(self.sim_data.y_sd):
-                self.obs_data.y_sd = np.interp(self.obs_data.y_ind, self.sim_data.y_ind, self.sim_data.y_sd)
+                self.obs_data.orig_y_mean = self.sim_data.orig_y_mean
+            if not self.scalar_out and not np.isscalar(self.sim_data.orig_y_sd):
+                self.obs_data.orig_y_sd = np.interp(self.obs_data.y_ind, self.sim_data.y_ind, self.sim_data.orig_y_sd)
             else:
-                self.obs_data.y_sd = self.sim_data.y_sd
-            self.obs_data.y_std = (self.obs_data.y - self.obs_data.y_mean)/self.obs_data.y_sd
+                self.obs_data.orig_y_sd = self.sim_data.orig_y_sd
+            self.obs_data.y_std = (self.obs_data.y - self.obs_data.orig_y_mean) / self.obs_data.orig_y_sd
 
     def create_K_basis(self, n_pc=0.995, K=None):
         """

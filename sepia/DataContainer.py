@@ -51,8 +51,8 @@ class DataContainer(object):
         # Basis and transform stuff initialized to None
         self.K = None
         self.D = None
-        self.y_sd = None
-        self.y_mean = None
+        self.orig_y_sd = None
+        self.orig_y_mean = None
         self.y_std = None
         self.x_trans = None
         self.t_trans = None
