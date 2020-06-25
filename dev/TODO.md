@@ -71,15 +71,11 @@ some items of model.num into model.num and model.info, be more clear about what 
 - BasicOpEx
 - Neddermeyer (requires ragged obs capability in data class)
 - Tower example, and parallel documentation to the report.
-- The other examples in "Examples"
-
-##### Documentation for closing the project
-- ????
+- The other examples in "Examples"?
 
 ##### Development principles going forward
 - maintenance
 - management
 - devs and community ownership
-- releases to github.com/lanl/sepia
 
 
