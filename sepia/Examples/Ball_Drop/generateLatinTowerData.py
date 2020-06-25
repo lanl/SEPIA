@@ -11,10 +11,14 @@ import numpy as np
 import pyDOE # Latin Hypercube
 import random
 import matplotlib.pyplot as plt
+from matplotlib.gridspec import GridSpec
+from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 from invertH import *
 import numpy as np
+
 # directory where data files should be written
-datadir = '/Users/granthutchings/Documents/LANL/SEPIA/sepia/Examples/Ball_Drop/data/';
+datadir = '/Users/granthutchings/Documents/LANL/SEPIA/sepia/Examples/Ball_Drop/data/'
+
 # notes:
 # x = R
 # theta = C
@@ -88,6 +92,8 @@ des = np.array([
     [0.0198,    0.0218],
     [0.5440,    0.1925]])
 plt.scatter(des[:,0],des[:,1])
+plt.show()
+
 # scale the first column to [0,.5] and call it R_sim
 # (this includes our field values, i.e., R \in [0,.5])
 # scale the second column to [0.05,.25] and call it Csim
@@ -95,6 +101,7 @@ plt.scatter(des[:,0],des[:,1])
 R_sim = des[:,0] * .4 + .05;
 C_sim = des[:,1] * .2 + .05;
 plt.scatter(R_sim,C_sim)
+plt.show()
 
 # Generate field data for each R
 t_field       = invertHtrue(h_field, g, C_true, R, et) # observed times
@@ -114,9 +121,76 @@ t_sim_dense = invertHsim(h_dense, g, C_sim, R_sim)
 #t_sim_dense = invertHsim(h_dense, g_sim, C_sim, R_sim) # this took a really long time
 
 
-# DO PLOTS HERE
+#%% #===================== Plots ===============================#
 y_max = max(max(t_field.max(1)),max(t_sim.max(1))) # max of all row maxes for axis limit
+# find closest values each R
+# ith column of R_nearest_des contains the n_neighbors nearest design points (by index)
+# for ith value of R
+n_neighbors = 3
+R_nearest_des = np.zeros(shape=(n_neighbors,len(R)),dtype=int)
+for i in range(len(R)):
+    dist = np.argsort(np.abs(R_sim-R[i]))
+    R_nearest_des[:,i] = dist[0:n_neighbors]
+    
+# Generate plot for each radius
+colors = ('r', 'g', 'b')
+#fig, axs = plt.subplots(2,2)
+#axs = axs.flatten()
+fig = plt.figure(figsize=[12,12],constrained_layout=True)
+gs = GridSpec(2,2,figure=fig)
+axs = np.array([fig.add_subplot(gs[0,0]),\
+                fig.add_subplot(gs[0,1]),\
+                fig.add_subplot(gs[1,0])])
+for i in range(len(R)):
+    # axis limits, ticks, and labels
+    axs[i].set_xlim([0, 25])
+    axs[i].set_ylim([0, y_max+.5])
+    axs[i].xaxis.set_ticks(np.arange(0,30,5))
+    axs[i].yaxis.set_ticks(np.arange(0,y_max+.5,1))
+    axs[i].set_title("Ball Radius {}".format(R[i]),fontweight="bold")
+    axs[i].set_xlabel("Height (m)")
+    axs[i].set_ylabel("Time (s)")
+    
+    # simulations - all
+    for j in range(n_sim):
+        axs[i].plot(h_dense, np.transpose(t_sim_dense)[:,j],color='lightgrey',\
+                linestyle="--",label="Simulation runs" if j==0 else "")
+    
+        # simulations - nearest neighbors
+    for j in range(n_neighbors):
+        axs[i].plot(h_dense,np.transpose(t_sim_dense)[:,R_nearest_des[j,i]],\
+                    linestyle="--",\
+                    color=colors[j],label="Nearest Sim {}".format(j+1))
+    
+    # true data curve and "real data points"
+    axs[i].plot(h_dense, t_field_dense[i,:],'k',label="Reality")
+    axs[i].plot(h_field, t_field[i,],'ks',label="Field data")
+    
 
+    axs[i].legend(loc="lower right")
+    
+
+        
+    # imbed design point subplot
+    inset_ax = inset_axes(axs[i],width="30%",height="30%",loc="upper left",\
+                          borderpad=2.5)
+    inset_ax.set_xlabel("R design values",fontsize=7,labelpad=1)
+    inset_ax.set_ylabel("C design values",fontsize=7)
+    inset_ax.xaxis.set_ticks(R)
+    inset_ax.yaxis.set_ticks(np.arange(0,.251,.05))
+    inset_ax.tick_params(axis='both', which='major', labelsize=7, pad = -5)
+    inset_ax.scatter(R_sim,C_sim,s=15, facecolors='none', edgecolors='grey')
+    inset_ax.scatter(R_sim[R_nearest_des[:,i]],C_sim[R_nearest_des[:,i]],s=15,\
+                     color=colors)
+    inset_ax.axvline(x=R[i], ymin=0, ymax=1,color='k',linewidth=.5)
+plt.savefig('data/plotAll.png', dpi=300)
+plt.show()
+
+
+
+
+
+#%% #==================== Write data ===========================#
 # write the h-t pairs into files
 # sim.dat, should be length(hsim) x length(Csim)
 with open(datadir+'sim.dat',"w+") as f:
