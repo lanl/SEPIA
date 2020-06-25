@@ -16,7 +16,7 @@ Documentation:
 4. Local build of documentation: see doc/README.md
 
 Community and Engagement
-- recreate/document (and go further with?) the Luscher work
+- recreate/document (and go further with?) historical examples
 - Announce broadly
 - Know what to do next...
 
@@ -44,7 +44,7 @@ some items of model.num into model.num and model.info, be more clear about what 
 - this is relatively easy.
 
 ##### Additions to SepiaModelSetup
-- lamVzGroups
+- lamVzGroups : functionality should be in the code, maybe just add to setup
 - experimental data with different "time" observation points
 - thetaconstraints option
 
