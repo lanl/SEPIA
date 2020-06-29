@@ -67,6 +67,7 @@ class SepiaParam:
         :param trim: number of samples to trim from beginning of chain
         :param sampleset: indices of samples to use
         :param flat: whether to flatten size of parameter
+        :param untransform_theta: Boolean -- whether or not to untransform theta to original scale
         :return: ndarray -- MCMC draws
         """
         if type(sampleset) is int: sampleset=[sampleset] # it has to be a list
@@ -109,6 +110,12 @@ class SepiaParam:
         self.val = sval
 
     def untransform_theta(self, sample_array):
+        """
+        Untransforms an array of theta values using stored t_min and t_max.
+
+        :param sample_array: ndarray -- array of theta samples, (nsamp, theta_size)
+        :return: untransformed sample array
+        """
         if self.orig_range is not None:
             t_min = self.orig_range[0]
             t_max = self.orig_range[1]
