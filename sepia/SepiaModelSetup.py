@@ -237,72 +237,72 @@ def setup_model(data, Sigy=None, lamVzGroup=None):
 
 
 
-#########
+# #########
+# #
+# #########
+# if __name__ == "__main__":
 #
-#########
-if __name__ == "__main__":
-
-    n_obs = 5      # number of obs data
-    n_sim = 700    # number of sim data
-    p = 1          # dimension of x (observed inputs)
-    q = 5          # dimension of t (design inputs)
-
-    ### Univariate test case
-    t = np.random.uniform(-20, 20, (n_sim, q))
-    x = 0.5 * np.ones((n_sim, p))
-    y = 5 * np.random.normal(0, 1, n_sim)
-
-    # Sim data only
-    d1 = SepiaData(x_sim=x, y_sim=y, t_sim=t)
-    d1.standardize_y()
-    d1.transform_xt()
-    print(d1)
-
-    print('univariate sim-only test case')
-    model = setup_model(d1)
-    print('')
-
-    # Sim and obs data
-    x_obs = 0.5 * np.ones((n_obs, p))
-    y_obs = 10 + 5 * np.random.normal(0, 1, n_obs)
-    d2 = SepiaData(x_sim=x, y_sim=y, t_sim=t, x_obs=x_obs, y_obs=y_obs)
-    d2.standardize_y()
-    d2.transform_xt()
-    print(d2)
-
-    print('univariate sim and obs test case')
-    model = setup_model(d2)
-    print('')
-
-    ### Multivariate test case
-    ell_sim = 1000 # dimension of multivariate y_sim
-    ell_obs = 258  # dimension of multivariate y_obs
-    t = np.random.uniform(-20, 20, (n_sim, q))
-    x = 0.5 * np.ones((n_sim, p))
-    y_ind = np.linspace(0, 100, ell_sim)
-    y = 20 * np.square((y_ind[None, :] - 50)/75.) + 5 * np.random.normal(0, 1, (n_sim, 1))
-
-    # Sim data only
-    d1 = SepiaData(x_sim=x, y_sim=y, t_sim=t, y_ind_sim=y_ind)
-    d1.standardize_y()
-    d1.transform_xt()
-    d1.create_K_basis(n_pc=3)
-    print(d1)
-    print('multivariate sim-only test case')
-    model = setup_model(d1)
-    print('')
-
-    # Sim and obs data
-    x_obs = 0.5 * np.ones((n_obs, p))
-    y_obs_ind = np.linspace(10, 85, ell_obs)
-    y_obs = 20 * np.square((y_obs_ind[None, :] - 50)/75.) + 10 + 5 * np.random.normal(0, 1, (n_obs, 1))
-    d2 = SepiaData(x_sim=x, y_sim=y, t_sim=t, y_ind_sim=y_ind, x_obs=x_obs, y_obs=y_obs, y_ind_obs=y_obs_ind)
-    d2.standardize_y()
-    d2.transform_xt()
-    d2.create_K_basis(n_pc=15)
-    d2.create_D_basis('constant')
-    print(d2)
-
-    print('multivariate sim and obs test case')
-    model = setup_model(d2)
-    print('')
+#     n_obs = 5      # number of obs data
+#     n_sim = 700    # number of sim data
+#     p = 1          # dimension of x (observed inputs)
+#     q = 5          # dimension of t (design inputs)
+#
+#     ### Univariate test case
+#     t = np.random.uniform(-20, 20, (n_sim, q))
+#     x = 0.5 * np.ones((n_sim, p))
+#     y = 5 * np.random.normal(0, 1, n_sim)
+#
+#     # Sim data only
+#     d1 = SepiaData(x_sim=x, y_sim=y, t_sim=t)
+#     d1.standardize_y()
+#     d1.transform_xt()
+#     print(d1)
+#
+#     print('univariate sim-only test case')
+#     model = setup_model(d1)
+#     print('')
+#
+#     # Sim and obs data
+#     x_obs = 0.5 * np.ones((n_obs, p))
+#     y_obs = 10 + 5 * np.random.normal(0, 1, n_obs)
+#     d2 = SepiaData(x_sim=x, y_sim=y, t_sim=t, x_obs=x_obs, y_obs=y_obs)
+#     d2.standardize_y()
+#     d2.transform_xt()
+#     print(d2)
+#
+#     print('univariate sim and obs test case')
+#     model = setup_model(d2)
+#     print('')
+#
+#     ### Multivariate test case
+#     ell_sim = 1000 # dimension of multivariate y_sim
+#     ell_obs = 258  # dimension of multivariate y_obs
+#     t = np.random.uniform(-20, 20, (n_sim, q))
+#     x = 0.5 * np.ones((n_sim, p))
+#     y_ind = np.linspace(0, 100, ell_sim)
+#     y = 20 * np.square((y_ind[None, :] - 50)/75.) + 5 * np.random.normal(0, 1, (n_sim, 1))
+#
+#     # Sim data only
+#     d1 = SepiaData(x_sim=x, y_sim=y, t_sim=t, y_ind_sim=y_ind)
+#     d1.standardize_y()
+#     d1.transform_xt()
+#     d1.create_K_basis(n_pc=3)
+#     print(d1)
+#     print('multivariate sim-only test case')
+#     model = setup_model(d1)
+#     print('')
+#
+#     # Sim and obs data
+#     x_obs = 0.5 * np.ones((n_obs, p))
+#     y_obs_ind = np.linspace(10, 85, ell_obs)
+#     y_obs = 20 * np.square((y_obs_ind[None, :] - 50)/75.) + 10 + 5 * np.random.normal(0, 1, (n_obs, 1))
+#     d2 = SepiaData(x_sim=x, y_sim=y, t_sim=t, y_ind_sim=y_ind, x_obs=x_obs, y_obs=y_obs, y_ind_obs=y_obs_ind)
+#     d2.standardize_y()
+#     d2.transform_xt()
+#     d2.create_K_basis(n_pc=15)
+#     d2.create_D_basis('constant')
+#     print(d2)
+#
+#     print('multivariate sim and obs test case')
+#     model = setup_model(d2)
+#     print('')
