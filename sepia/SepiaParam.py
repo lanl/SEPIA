@@ -35,10 +35,12 @@ class SepiaParam:
     :param bounds: list -- bounds for parameter values (can be inf)
     :param mcmcStepType: string -- step type for MCMC ('Normal', 'Uniform', 'PropMH')
     :param mcmcStepParam: ndarray, scalar -- step size parameter (has val_shape or scalar is expanded to that shape)
+    :param orig_range: list, size 2 -- range for untransformed parameter (applicable for theta)
     :raises: Exception if non scalar val doesn't match val_shape
     """
 
-    def __init__(self, val, name, val_shape=1, dist='Normal', params=[], bounds=False, mcmcStepType='Normal', mcmcStepParam=0.1):
+    def __init__(self, val, name, val_shape=1, dist='Normal', params=[], bounds=False, mcmcStepType='Normal',
+                 mcmcStepParam=0.1, orig_range=None):
         if np.isscalar(val):
             self.val = val * np.ones(val_shape)
         else:
@@ -56,8 +58,9 @@ class SepiaParam:
             self.mcmc = SepiaMCMC(self, stepType=mcmcStepType, stepParam=mcmcStepParam)
         else:
             self.mcmc = SepiaMCMC(self, stepType='Recorder')
+        self.orig_range = orig_range
 
-    def mcmc_to_array(self, trim=0, sampleset=False, flat=True):
+    def mcmc_to_array(self, trim=0, sampleset=False, flat=True, untransform_theta=False):
         """
         Convert internal representation of MCMC draws to an array.
 
@@ -71,6 +74,8 @@ class SepiaParam:
             draws = np.array(self.mcmc.draws)[sampleset, :, :]  # (nsamp, p+q, pu)
         else:
             draws = np.array(self.mcmc.draws)[trim:, :, :] # (nsamp, p+q, pu)
+        if untransform_theta:
+            draws = self.untransform_theta(draws)
         if flat:
             draws_flat = np.zeros((draws.shape[0], draws.shape[1]*draws.shape[2]))
             for samp in range(draws.shape[0]): # TODO I don't think a loop is needed here... just one reshape
@@ -102,6 +107,16 @@ class SepiaParam:
         if np.isscalar(sval):
             sval = np.array(sval).reshape(self.val_shape)
         self.val = sval
+
+    def untransform_theta(self, sample_array):
+        if self.orig_range is not None:
+            t_min = self.orig_range[0]
+            t_max = self.orig_range[1]
+            sample_array = sample_array * (t_max - t_min) + t_min
+        return sample_array
+
+
+
 
 
 

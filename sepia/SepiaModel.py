@@ -136,8 +136,11 @@ class SepiaModel:
         lamOs_a = 1 + lamOs_a_corr
         lamOs_b = 1e-3 + lamOs_b_corr
         lamOs_init = np.max([20, lamOs_a/lamOs_b])
+        theta_range = [self.data.obs_data.orig_t_min, self.data.obs_data.orig_t_max]
+        if theta_range[0] == theta_range[1]:
+            theta_range = None
         self.params.theta = SepiaParam(val=0.5, name='theta', val_shape=(1, self.num.q), dist='Normal', params=[0.5, 10.],
-                                       bounds=[0, 1], mcmcStepParam=0.2, mcmcStepType='Uniform')
+                                       bounds=[0, 1], mcmcStepParam=0.2, mcmcStepType='Uniform', orig_range=theta_range)
         self.params.lamOs = SepiaParam(val=lamOs_init, name='lamOs', val_shape=(1, 1), dist='Gamma',
                                        params=[lamOs_a, lamOs_b], bounds=[0, np.inf], mcmcStepParam=lamOs_init/2, mcmcStepType='PropMH')
         self.params.mcmcList = [self.params.theta, self.params.betaU, self.params.lamUz, self.params.lamWs, self.params.lamWOs, self.params.lamOs]
@@ -156,8 +159,11 @@ class SepiaModel:
         lamOs_a = 1 + lamOs_a_corr
         lamOs_b = 1e-3 + lamOs_b_corr
         lamOs_init = np.max([20, lamOs_a/lamOs_b])
+        theta_range = [self.data.obs_data.orig_t_min, self.data.obs_data.orig_t_max]
+        if theta_range[0] == theta_range[1]:
+            theta_range = None
         self.params.theta = SepiaParam(val=0.5, name='theta', val_shape=(1, self.num.q), dist='Normal', params=[0.5, 10.],
-                                       bounds=[0, 1], mcmcStepParam=0.2, mcmcStepType='Uniform')
+                                       bounds=[0, 1], mcmcStepParam=0.2, mcmcStepType='Uniform', orig_range=theta_range)
         self.params.betaV = SepiaParam(val=0.1, name='betaV', val_shape=(self.num.p, self.num.lamVzGnum), dist='Beta', params=[1., 0.1],
                                        bounds=[0, np.inf], mcmcStepParam=0.1, mcmcStepType='BetaRho')
         self.params.lamVz = SepiaParam(val=20., name='lamVz', val_shape=(1, 1), dist='Gamma', params=[1., 1e-3],
