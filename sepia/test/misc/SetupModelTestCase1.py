@@ -79,7 +79,7 @@ def create_test_case():
 
     # Save as matfile for testing in matlab
     savedict = {'t':t, 'y':y, 'y_obs':y_obs, 'D':data.obs_data.D, 'Kobs':data.obs_data.K, 'Ksim':data.sim_data.K,
-                'y_obs_std':data.obs_data.y_std, 'y_sim_std':data.sim_data.y_std, 'y_sd':data.sim_data.y_sd}
+                'y_obs_std':data.obs_data.y_std, 'y_sim_std':data.sim_data.y_std, 'y_sd':data.sim_data.orig_y_sd}
     scipy.io.savemat('data/test_case_matlab.mat', savedict)
 
     g = setup_model(data)

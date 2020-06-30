@@ -43,9 +43,9 @@ print(f'beta={g.params.beta.mcmc.draws[-1]}, lam={g.params.lam.mcmc.draws[-1]}, 
 # For visualization, get predictions on original scale (hold second variable constant)
 tp = 0.5*np.ones((100, q))
 xp1 = np.concatenate([np.linspace(0, 1, 100)[:, None], 0.5*np.ones((100, 1))], axis=1)
-ypred1 = (g.predict(xp1, tp, samples=100) + data.sim_data.y_mean) * data.sim_data.y_sd
+ypred1 = (g.predict(xp1, tp, samples=100) + data.sim_data.orig_y_mean) * data.sim_data.orig_y_sd
 xp2 = np.concatenate([0.5*np.ones((100, 1)), np.linspace(0, 1, 100)[:, None]], axis=1)
-ypred2 = (g.predict(xp2, tp, samples=100) + data.sim_data.y_mean) * data.sim_data.y_sd
+ypred2 = (g.predict(xp2, tp, samples=100) + data.sim_data.orig_y_mean) * data.sim_data.orig_y_sd
 
 # plot results
 if True:
