@@ -5,6 +5,8 @@ import scipy.stats
 
 from SepiaDistCov import SepiaDistCov
 
+# TODO this is not finished!
+
 def sensitivity(model, sampleset=False, ngrid=21, varlist=[], jelist=[], rg=None, option='mean'):
 
     # Extract things from model
