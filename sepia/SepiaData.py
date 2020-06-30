@@ -120,12 +120,12 @@ class SepiaData(object):
             b_vec[xmm == 0] = 1
             xmm[xmm == 0] = 1
             return (x - x_min) / xmm * (b_vec - a_vec) + a_vec
-        self.sim_data.orig_x_min = np.min(self.sim_data.x, 0)
-        self.sim_data.orig_x_max = np.max(self.sim_data.x, 0)
+        self.sim_data.orig_x_min = np.min(self.sim_data.x, 0, keepdims=True)
+        self.sim_data.orig_x_max = np.max(self.sim_data.x, 0, keepdims=True)
         self.sim_data.x_trans = trans(self.sim_data.x, xt_min, xt_max, self.sim_data.orig_x_min, self.sim_data.orig_x_max)
         if self.sim_data.t is not None:
-            self.sim_data.orig_t_min = np.min(self.sim_data.t, 0)
-            self.sim_data.orig_t_max = np.max(self.sim_data.t, 0)
+            self.sim_data.orig_t_min = np.min(self.sim_data.t, 0, keepdims=True)
+            self.sim_data.orig_t_max = np.max(self.sim_data.t, 0, keepdims=True)
             self.sim_data.t_trans = trans(self.sim_data.t, xt_min, xt_max, self.sim_data.orig_t_min, self.sim_data.orig_t_max)
         if not self.sim_only:
             self.obs_data.orig_x_min = self.sim_data.orig_x_min
