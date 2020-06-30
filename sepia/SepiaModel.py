@@ -160,7 +160,7 @@ class SepiaModel:
         lamOs_b = 1e-3 + lamOs_b_corr
         lamOs_init = np.max([20, lamOs_a/lamOs_b])
         theta_range = [self.data.obs_data.orig_t_min, self.data.obs_data.orig_t_max]
-        if theta_range[0] == theta_range[1]:
+        if np.allclose(theta_range[0], theta_range[1]):
             theta_range = None
         self.params.theta = SepiaParam(val=0.5, name='theta', val_shape=(1, self.num.q), dist='Normal', params=[0.5, 10.],
                                        bounds=[0, 1], mcmcStepParam=0.2, mcmcStepType='Uniform', orig_range=theta_range)
