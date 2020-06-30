@@ -223,11 +223,15 @@ class SepiaData(object):
             return
         if not self.sim_only:
             if D is not None:
+                if not D.shape[1] == self.obs_data.y.shape[1]:
+                    raise TypeError('D basis shape incorrect; second dim should match ell_obs')
                 self.obs_data.D = D
             elif type == 'constant':
                 self.obs_data.D = np.ones((1, self.obs_data.y.shape[1]))
             elif type == 'linear' and not self.scalar_out:
                 self.obs_data.D = np.vstack([np.ones(self.obs_data.y.shape[1]), self.obs_data.y_ind])
+            # Normalize D to match priors
+            self.obs_data.D /= np.sqrt(np.max(np.dot(self.obs_data.D, self.obs_data.D.T)))
 
     # Below are some initial attempts at visualization, should expand/fix
     def plot_K_basis(self):
