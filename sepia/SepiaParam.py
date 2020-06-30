@@ -117,8 +117,8 @@ class SepiaParam:
         :return: untransformed sample array
         """
         if self.orig_range is not None:
-            t_min = np.array(self.orig_range[0][None, :, :])
-            t_max = np.array(self.orig_range[1][None, :, :])
+            t_min = self.orig_range[0]
+            t_max = self.orig_range[1]
             sample_array = sample_array * (t_max - t_min) + t_min
         return sample_array
 
