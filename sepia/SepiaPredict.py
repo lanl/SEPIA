@@ -25,9 +25,9 @@ class SepiaEmulatorPrediction():
                        addResidVar, returnRlz, returnMuSigma=storeMuSigma)
 
     def get_w(self):
-        return self.pred
-    #def get_y_standardized(self):
-    #    return np.tensordot(self.pred.w,self.model.data.
+        return self.w
+    def get_y_standardized(self):
+        return np.tensordot(self.w,self.model.data.sim_data.K,axes=[[2],[0]])
     def get_y_native(self):
         pass
 
@@ -35,7 +35,7 @@ class SepiaFullPrediction():
     def __init__(self, xpred, samples, model, theta_pred=None,
                        addResidVar=False, returnRlz=True, returnMuSigma=False):
 
-        self.pred=uvPred(self, xpred, samples, model.num, model.data, theta_pred,
+        uvPred(self, xpred, samples, model.num, model.data, theta_pred,
                     addResidVar, returnRlz, returnMuSigma)
 
 
@@ -371,9 +371,9 @@ def wPred(pred, xpred,samples,num,data=None,theta_pred=None,
         #%  first dim  - (number of realizations == samples)
         #%  second dim - (number of basis elements in K = pu)
         #%  third dim  - (number of prediction points n = number of rows of [x,theta])
-        pred.w=np.zeros((nsamp,pu,npred))
+        pred.w=np.zeros((nsamp,npred,pu))
         for ii in range(pu):
-            pred.w[:,ii,:]=tpred[:,ii*npred:(ii+1)*npred]
+            pred.w[:,:,ii]=tpred[:,ii*npred:(ii+1)*npred]
 
     return pred
 
