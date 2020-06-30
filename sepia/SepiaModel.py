@@ -80,16 +80,26 @@ class SepiaModel:
         self.num = ModelContainer() # num for numeric state
         self.params = None
 
-    def get_samples(self, nburn=0, sampleset=False, flat=True, includelogpost=True):
+    def get_samples(self, nburn=0, sampleset=False, numsamples=False, flat=True, includelogpost=True):
         """
         Extract MCMC samples into dictionary format.
 
         :param nburn: number of samples to discard at beginning of chain
         :param sampleset: indices of samples to include
+        :param numsamples: return num_samples of samples, evenly spaced from first to last
         :param flat: whether to flatten the resulting array
         :param includelogpost: whether to also get samples of log posterior
         :return: dict -- array of samples for each parameter, keyed by parameter name
         """
+        total_samples=self.params.lp.get_num_samples()
+
+        if numsamples is not False:
+            if numsamples>=total_samples:
+                sampleset=np.arange(total_samples)
+            else:
+                sampleset=[int(ii) for ii in np.linspace(0,total_samples-1,numsamples)]
+        else:
+            sampleset=[ii for ii in sampleset if ii<total_samples and ii>=0]
         plist = self.params.mcmcList
         if includelogpost: plist.append(self.params.lp)
         samples={p.name: p.mcmc_to_array(trim=nburn,sampleset=sampleset, flat=flat)

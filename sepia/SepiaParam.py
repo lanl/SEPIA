@@ -60,6 +60,9 @@ class SepiaParam:
             self.mcmc = SepiaMCMC(self, stepType='Recorder')
         self.orig_range = orig_range
 
+    def get_num_samples(self):
+        return len(self.mcmc.draws)
+
     def mcmc_to_array(self, trim=0, sampleset=False, flat=True, untransform_theta=False):
         """
         Convert internal representation of MCMC draws to an array.

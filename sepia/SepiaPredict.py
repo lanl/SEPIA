@@ -11,17 +11,43 @@ from sepia.SepiaDistCov import SepiaDistCov
 
 # initially a data container
 # But eventually this object will do predictions, tranformations, potentially diagnostics
-class SepiaPredictions():
-    def __init__(self):
+class SepiaEmulatorPrediction():
+    def __init__(self, xpred, samples, model, theta_pred=None,
+                 addResidVar=False, returnRlz=True, storeMuSigma=False):
+
+        self.model=model
+        self.xpred=xpred
+        self.theta_pred=theta_pred
+        self.samples=samples
+
+        # prediction is samples x pu (basis) x prediction points (xpreds)
+        wPred(self, xpred, samples, model.num, model.data, theta_pred,
+                       addResidVar, returnRlz, returnMuSigma=storeMuSigma)
+
+    def get_w(self):
+        return self.pred
+    #def get_y_standardized(self):
+    #    return np.tensordot(self.pred.w,self.model.data.
+    def get_y_native(self):
         pass
 
+class SepiaFullPrediction():
+    def __init__(self, xpred, samples, model, theta_pred=None,
+                       addResidVar=False, returnRlz=True, returnMuSigma=False):
+
+        self.pred=uvPred(self, xpred, samples, model.num, model.data, theta_pred,
+                    addResidVar, returnRlz, returnMuSigma)
+
+
+
 def rmultnormsvd(n,mu,sigma):
+    # using this for development, to verify with the same rand stream as matlab
     U, s, V = np.linalg.svd(sigma, full_matrices=False)
     normalrands=norm.ppf(np.random.rand(np.shape(mu)[0],n))
     rnorm=np.tile(mu,(1,n)) + U @ np.diag(np.sqrt(s)) @ normalrands
     return rnorm.squeeze()
 
-def uvPred(xpred, samples, num, data=None, thetapred=None,
+def uvPred(pred, xpred, samples, num, data, theta_pred=None,
            addResidVar=False,returnRlz=True,returnMuSigma=False, useAltW=False):
 
     n=num.n; m=num.m; p=num.p; q=num.q; pu=num.pu; pv=num.pv
@@ -32,8 +58,6 @@ def uvPred(xpred, samples, num, data=None, thetapred=None,
     npred = np.shape(xpred)[0]
 
     nsamp = samples['lamWs'].shape[0]
-
-    pred = SepiaPredictions()
 
     # CHANGED: get x0Dist from num, don't recompute
     x0Dist = num.x0Dist
@@ -46,8 +70,6 @@ def uvPred(xpred, samples, num, data=None, thetapred=None,
         pred.mu=np.empty((nsamp,npred*(pv+pu) ))
         pred.sigma=np.empty((nsamp,npred*(pv+pu),npred*(pv+pu) ))
 
-    # vpCov(lamVzGnum).mat=[];
-    # vvCov(lamVzGnum).mat=[];
     for ii in range(nsamp):
         theta = samples['theta'][ii:ii + 1, :]
         betaU = samples['betaU'][ii, :]
@@ -60,8 +82,8 @@ def uvPred(xpred, samples, num, data=None, thetapred=None,
         lamWOs = samples['lamWOs'][ii:ii + 1, :]
         lamOs = samples['lamOs'][ii:ii + 1, :]
 
-        if thetapred:
-            xpredt = np.concatenate((xpred, thetapred), axis=1)
+        if theta_pred:
+            xpredt = np.concatenate((xpred, theta_pred), axis=1)
         else:
             xpredt = np.concatenate((xpred, np.tile(theta, (npred, 1))), axis=1)
 
@@ -274,18 +296,16 @@ def uvPred(xpred, samples, num, data=None, thetapred=None,
     return pred
 
 
-def wPred(xpred,samples,num,data=None,thetapred=None,
+def wPred(pred, xpred,samples,num,data=None,theta_pred=None,
           addResidVar=False,returnRlz=True,returnMuSigma=False):
 
     n=num.n; m=num.m; p=num.p; q=num.q; pu=num.pu
 
     if type(xpred) == float : xpred=np.reshape(xpred,(1,1))
-    if len(np.shape(xpred)) ==1 : xpred=np.reshape(xpred,(1,len(xpred)))
+    if len(np.shape(xpred)) ==1 : xpred=np.reshape(xpred,(len(xpred),1))
     npred=np.shape(xpred)[0]
 
     nsamp=samples['lamWs'].shape[0]
-
-    pred=SepiaPredictions()
 
     if returnRlz:
         tpred = np.zeros((nsamp, npred * pu))
@@ -303,8 +323,8 @@ def wPred(xpred,samples,num,data=None,thetapred=None,
         lamWOs=samples['lamWOs'][ii:ii+1,:]
 
         if not num.sim_only:
-            if thetapred:
-                xpredt = np.concatenate((xpred,thetapred),axis=1)
+            if theta_pred:
+                xpredt = np.concatenate((xpred,theta_pred),axis=1)
             else:
                 xpredt = np.concatenate( ( xpred,np.tile(theta,(npred, 1)) ),axis=1)
         else:
@@ -348,117 +368,12 @@ def wPred(xpred,samples,num,data=None,thetapred=None,
 
     if returnRlz:
         #% Reshape the pred matrix to 3D:
-        #%  first dim  - (number of realizations [pvals])
-        #%  second dim - (number of principal components)
-        #%  third dim  - (number of points [x,theta]s)
+        #%  first dim  - (number of realizations == samples)
+        #%  second dim - (number of basis elements in K = pu)
+        #%  third dim  - (number of prediction points n = number of rows of [x,theta])
         pred.w=np.zeros((nsamp,pu,npred))
         for ii in range(pu):
             pred.w[:,ii,:]=tpred[:,ii*npred:(ii+1)*npred]
 
     return pred
 
-'''
-Just hanging on to this for reference, should be deleted
-'''
-def wPred_old(xpred,samples,num,data=None,thetapred=None,
-          addResidVar=False,returnRlz=True,returnMuSigma=False):
-
-    # Gatt: y'know, these really could be predicted independently, rather than from
-    #       the full structured matrices
-    #       (historical anomaly, this is derived from uvpred)
-
-    n=num.n; m=num.m; p=num.p; q=num.q; pu=num.pu
-
-    if type(xpred) == float : xpred=np.reshape(xpred,(1,1))
-    if len(np.shape(xpred)) ==1 : xpred=np.reshape(xpred,(1,len(xpred)))
-    npred=np.shape(xpred)[0]
-
-    nsamp=samples['lamWs'].shape[0]
-
-    pred=SepiaPredictions()
-
-    if returnRlz:
-        tpred = np.zeros((nsamp, npred * pu))
-    if returnMuSigma:
-        pred.mu=np.empty((nsamp,npred*pu))
-        pred.sigma=np.empty((nsamp,npred*pu,npred*pu))
-
-    for ii in range(nsamp):
-        if not num.sim_only:
-            theta=samples['theta'][ii:ii+1,:]
-        betaU=samples['betaU'][ii,:]
-        betaU=np.reshape(betaU,(p+q,pu),order='F')
-        lamUz=samples['lamUz'][ii:ii+1,:]
-        lamWs=samples['lamWs'][ii:ii+1,:]
-        lamWOs=samples['lamWOs'][ii:ii+1,:]
-
-        if not num.sim_only:
-            if thetapred:
-                xpredt = np.concatenate((xpred,thetapred),axis=1)
-            else:
-                xpredt = np.concatenate( ( xpred,np.tile(theta,(npred, 1)) ),axis=1)
-        else:
-          xpredt=xpred
-
-        xpredDist=SepiaDistCov(xpredt)
-        zxpredDist=SepiaDistCov(data.zt,xpredt)
-
-        SigW=np.zeros((m*pu,m*pu))
-        for jj in range(pu):
-              SigW[jj*m:(jj+1)*m,jj*m:(jj+1)*m] = num.ztDist.compute_cov_mat(betaU[:, jj], lamUz[0, jj])
-        #np.fill_diagonal( SigW,SigW.diagonal() +
-        #                       np.kron( np.reciprocal(num.LamSim*lamWOs),np.ones((1,m))) +
-        #                       np.kron( np.reciprocal(lamWs),np.ones((1,m))) )
-        # CHANGED: replaced kron with repeat
-        np.fill_diagonal( SigW,SigW.diagonal() +
-                               np.repeat( np.reciprocal(num.LamSim*lamWOs),m) +
-                               np.repeat( np.reciprocal(lamWs),m) )
-
-        SigWp=np.zeros((npred*pu,npred*pu))
-        for jj in range(pu):
-            SigWp[jj*npred:(jj+1)*npred,jj*npred:(jj+1)*npred] = xpredDist.compute_cov_mat(betaU[:, jj], lamUz[0, jj])
-        #np.fill_diagonal( SigWp,SigWp.diagonal() +
-        #                        np.kron(np.reciprocal(lamWs),np.ones((1,npred))) )
-        # CHANGED: replaced kron with repeat
-        np.fill_diagonal(SigWp, SigWp.diagonal() + np.repeat(np.reciprocal(lamWs),npred) )
-        if addResidVar:
-            #np.fill_diagonal( SigWp, SigWp.diagonal() +
-            #                np.kron( np.reciprocal(num.LamSim*lamWOs),np.ones((1,npred))) )
-            # CHANGED: replaced kron with repeat
-            np.fill_diagonal(SigWp, SigWp.diagonal() + np.repeat( np.reciprocal(num.LamSim*lamWOs),npred) )
-
-        SigWWp=np.zeros((m*pu,npred*pu))
-        for jj in range(pu):
-            SigWWp[jj*m:(jj+1)*m,jj*npred:(jj+1)*npred] = zxpredDist.compute_cov_mat(betaU[:, jj], lamUz[0, jj])
-
-        SigData=SigW
-        SigPred=SigWp
-        SigCross=SigWWp
-
-        # Get posterior parameters
-        #W=linsolve(SigData,SigCross,struct('SYM',true,'POSDEF',true))';
-        #Myhat=W*(data.w(:));
-        #Syhat=SigPred-W*SigCross;
-        W=scipy.linalg.solve(SigData,SigCross,sym_pos=True)
-        Myhat=W.T @ num.w
-        Syhat=SigPred - W.T @ SigCross
-
-        if returnRlz:
-          # Record a realization
-          tpred[ii,:]=rmultnormsvd(1,Myhat,Syhat)
-
-        if returnMuSigma:
-          # add the distribution params to the return
-          pred.mu[ii,:]=np.squeeze(Myhat)
-          pred.sigma[ii,:,:]=Syhat
-
-    if returnRlz:
-        #% Reshape the pred matrix to 3D:
-        #%  first dim  - (number of realizations [pvals])
-        #%  second dim - (number of principal components)
-        #%  third dim  - (number of points [x,theta]s)
-        pred.w=np.zeros((nsamp,pu,npred))
-        for ii in range(pu):
-            pred.w[:,ii,:]=tpred[:,ii*npred:(ii+1)*npred]
-
-    return pred
