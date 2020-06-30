@@ -49,7 +49,7 @@ some items of model.num into model.num and model.info, be more clear about what 
 - thetaconstraints option
 
 ##### Linked models
-- models that share variables: setup and mcmc
+- models that share variables: setup and mcmc (basic is there, tune_step_sizes doesn't work with it though)
 
 ##### Hierachical modeling
 - Setup and mcmc (basic is there, tune_step_sizes doesn't work with it though)
@@ -66,6 +66,9 @@ some items of model.num into model.num and model.info, be more clear about what 
 
 ##### Performance Profiling and Optimization
 - Seems OK for now
+
+##### Save/load models
+- Pickle? Want to be sure loaded models will be compatible with new code
 
 ##### Examples, worked and documented 
 - BasicOpEx
