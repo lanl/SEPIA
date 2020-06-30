@@ -41,6 +41,7 @@ class SepiaData(object):
     # Attributes set internally based on input data:
     #     sim_only    boolean, whether it's simulation data only or both simulation and observed
     #     scalar_out  boolean, whether GP has scalar output
+    # TODO want to check for np array inputs? Or cast them?
     def __init__(self, x_sim=None, t_sim=None, y_sim=None, y_ind_sim=None, x_obs=None, y_obs=None, y_ind_obs=None):
         if y_sim is None:
             raise TypeError('y_sim is required to set up model.')
