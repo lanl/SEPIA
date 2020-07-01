@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-# TODO: assumes same y_ind for all observations in both sim and data (no ragged arrays).
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -23,8 +22,8 @@ class SepiaData(object):
     :param y_sim: (n, ell_sim) matrix (REQUIRED)
     :param y_ind_sim: (ell_sim, ) vector of indices for multivariate y
     :param x_obs: (m, p) matrix
-    :param y_obs: (m, ell_obs) matrix
-    :param y_ind_obs: (l_obs, ) vector of indices for multivariate y
+    :param y_obs: (m, ell_obs) matrix or list length m of 1D arrays (for ragged y_ind_obs)
+    :param y_ind_obs: (l_obs, ) vector of indices for multivariate y or list length m of 1D arrays (for ragged y_ind_obs)
     :raises: TypeError if shapes not conformal or required data missing.
 
     """
@@ -36,12 +35,11 @@ class SepiaData(object):
     #     y_sim      simulation GP outputs (m, ell_sim)
     #     y_ind_sim  y indices for simulation data (needed if ell_sim > 1)
     #     x_obs      (optional) observation GP inputs, (n, p)
-    #     y_obs      (optional) observation GP outputs, (n, ell_obs)
-    #     y_ind_obs  (optional) y indices for observation data (needed if ell_obs > 1)
+    #     y_obs      (optional) observation GP outputs, (n, ell_obs) or list of ragged
+    #     y_ind_obs  (optional) y indices for observation data (needed if ell_obs > 1) or list of ragged
     # Attributes set internally based on input data:
     #     sim_only    boolean, whether it's simulation data only or both simulation and observed
     #     scalar_out  boolean, whether GP has scalar output
-    # TODO want to check for np array inputs? Or cast them?
     def __init__(self, x_sim=None, t_sim=None, y_sim=None, y_ind_sim=None, x_obs=None, y_obs=None, y_ind_obs=None):
         if y_sim is None:
             raise TypeError('y_sim is required to set up model.')
@@ -55,7 +53,7 @@ class SepiaData(object):
             self.sim_only = True
         else:
             if x_obs is None:
-                x_obs = 0.5 * np.ones((y_obs.shape[0], 1)) # sets up dummy x
+                x_obs = 0.5 * np.ones((len(y_obs), 1)) # sets up dummy x
             if x_sim.shape[1] != x_obs.shape[1]:
                 raise TypeError('x_sim and x_obs do not contain the same number of variables/columns.')
             self.obs_data = DataContainer(x=x_obs, y=y_obs, y_ind=y_ind_obs)
@@ -82,7 +80,10 @@ class SepiaData(object):
             else:
                 res += 'pu NOT SET (transformed response dimension); call method create_K_basis \n'
         else:
-            res += 'This is a simulator and obs model, sim y dimension %d, obs y dimension %d\n' % (self.sim_data.y.shape[1], self.obs_data.y.shape[1])
+            if isinstance(self.obs_data.y, list):
+                res += 'This is a simulator and obs model, sim y dimension %d, obs y dimension ragged\n' % self.sim_data.y.shape[1]
+            else:
+                res += 'This is a simulator and obs model, sim y dimension %d, obs y dimension %d\n' % (self.sim_data.y.shape[1], self.obs_data.y.shape[1])
             res += 'n  = %5d (number of observed data)\n' % self.obs_data.x.shape[0]
             res += 'm  = %5d (number of simulated data)\n' % self.sim_data.x.shape[0]
             res += 'p  = %5d (number of inputs)\n' % self.sim_data.x.shape[1]
@@ -95,7 +96,10 @@ class SepiaData(object):
                 else:
                     res += 'pu NOT SET (transformed response dimension); call method create_K_basis\n'
                 if self.obs_data.D is not None:
-                    res += 'pv = %5d (transformed discrepancy dimension)\n' % self.obs_data.D.shape[0]
+                    if isinstance(self.obs_data.D, list):
+                        res += 'pv = %5d (transformed discrepancy dimension)\n' % self.obs_data.D[0].shape[0]
+                    else:
+                        res += 'pv = %5d (transformed discrepancy dimension)\n' % self.obs_data.D.shape[0]
                 else:
                     res += 'pv NOT SET (transformed discrepancy dimension); call method create_D_basis\n'
         return res
@@ -155,14 +159,35 @@ class SepiaData(object):
         self.sim_data.y_std = y_dm/self.sim_data.orig_y_sd
         if not self.sim_only:
             if not self.scalar_out and not np.isscalar(self.sim_data.orig_y_mean):
-                self.obs_data.orig_y_mean = np.interp(self.obs_data.y_ind.squeeze(), self.sim_data.y_ind.squeeze(), self.sim_data.orig_y_mean)
+                if isinstance(self.obs_data.y, list):
+                    orig_y_mean = []
+                    for i in range(len(self.obs_data.y)):
+                        orig_y_mean.append(np.interp(self.obs_data.y_ind[i], self.sim_data.y_ind.squeeze(), self.sim_data.orig_y_mean))
+                else:
+                    orig_y_mean = np.interp(self.obs_data.y_ind.squeeze(), self.sim_data.y_ind.squeeze(), self.sim_data.orig_y_mean)
+                self.obs_data.orig_y_mean = orig_y_mean
             else:
-                self.obs_data.orig_y_mean = self.sim_data.orig_y_mean
+                if isinstance(self.obs_data.y, list):
+                    self.obs_data.orig_y_mean = [self.sim_data.orig_y_mean for i in range(len(self.obs_data.y))]
+                else:
+                    self.obs_data.orig_y_mean = self.sim_data.orig_y_mean
             if not self.scalar_out and not np.isscalar(self.sim_data.orig_y_sd):
-                self.obs_data.orig_y_sd = np.interp(self.obs_data.y_ind, self.sim_data.y_ind, self.sim_data.orig_y_sd)
+                if isinstance(self.obs_data.y, list):
+                    orig_y_sd = []
+                    for i in range(len(self.obs_data.y)):
+                        orig_y_sd.append(np.interp(self.obs_data.y_ind[i], self.sim_data.y_ind.squeeze(), self.sim_data.orig_y_sd))
+                else:
+                    orig_y_sd = np.interp(self.obs_data.y_ind, self.sim_data.y_ind, self.sim_data.orig_y_sd)
+                self.obs_data.orig_y_sd = orig_y_sd
             else:
-                self.obs_data.orig_y_sd = self.sim_data.orig_y_sd
-            self.obs_data.y_std = (self.obs_data.y - self.obs_data.orig_y_mean) / self.obs_data.orig_y_sd
+                if isinstance(self.obs_data.y, list):
+                    self.obs_data.orig_y_sd = [self.sim_data.orig_y_sd for i in range(len(self.obs_data.y))]
+                else:
+                    self.obs_data.orig_y_sd = self.sim_data.orig_y_sd
+            if isinstance(self.obs_data.y, list):
+                self.obs_data.y_std = [(self.obs_data.y[i] - self.obs_data.orig_y_mean[i]) / self.obs_data.orig_y_sd[i] for i in range(len(self.obs_data.y))]
+            else:
+                self.obs_data.y_std = (self.obs_data.y - self.obs_data.orig_y_mean) / self.obs_data.orig_y_sd
 
     def create_K_basis(self, n_pc=0.995, K=None):
         """
@@ -187,9 +212,17 @@ class SepiaData(object):
         # interpolate PC basis to observed, if present
         if not self.sim_only:
             pu = self.sim_data.K.shape[0]
-            K_obs = np.zeros((pu, self.obs_data.y_ind.shape[0]))
-            for i in range(pu):
-                K_obs[i, :] = np.interp(self.obs_data.y_ind, self.sim_data.y_ind, self.sim_data.K[i, :])
+            if isinstance(self.obs_data.y, list):
+                K_obs = []
+                for ki in range(len(self.obs_data.y)):
+                    K_obs_tmp = np.zeros((pu, self.obs_data.y_ind[ki].shape[0]))
+                    for i in range(pu):
+                        K_obs_tmp[i, :] = np.interp(self.obs_data.y_ind[ki], self.sim_data.y_ind, self.sim_data.K[i, :])
+                    K_obs.append(K_obs_tmp)
+            else:
+                K_obs = np.zeros((pu, self.obs_data.y_ind.shape[0]))
+                for i in range(pu):
+                    K_obs[i, :] = np.interp(self.obs_data.y_ind, self.sim_data.y_ind, self.sim_data.K[i, :])
             self.obs_data.K = K_obs
 
     def compute_sim_PCA_basis(self, n_pc):
@@ -212,27 +245,46 @@ class SepiaData(object):
         self.sim_data.K = np.transpose(np.dot(U[:, :pu], np.diag(s[:pu])) / np.sqrt(y_std.shape[0]))
 
 
-    def create_D_basis(self, type='constant', D=None):
+    def create_D_basis(self, type='constant', D=None, norm=True):
         """
         Create D_obs discrepancy basis.
 
         :param type: 'constant' or 'linear'
-        :param D: optional, a basis matrix to use of shape (n_basis_elements, ell_obs)
+        :param D: optional, a basis matrix to use of shape (n_basis_elements, ell_obs), or list of matrices for ragged obs
+        :param norm: whether to normalize D matrix
         """
+        # TODO add D_sim
         if self.sim_only:
             print('Sim only, skipping discrepancy...')
             return
         if not self.sim_only:
             if D is not None:
-                if not D.shape[1] == self.obs_data.y.shape[1]:
-                    raise TypeError('D basis shape incorrect; second dim should match ell_obs')
+                if isinstance(D, list):
+                    for i in range(len(D)):
+                        if not D[i].shape[1] == self.obs_data.y[i].shape[1]:
+                            raise TypeError('D basis shape incorrect; second dim should match ell_obs')
+                else:
+                    if not D.shape[1] == self.obs_data.y.shape[1]:
+                        raise TypeError('D basis shape incorrect; second dim should match ell_obs')
                 self.obs_data.D = D
             elif type == 'constant':
-                self.obs_data.D = np.ones((1, self.obs_data.y.shape[1]))
+                if isinstance(self.obs_data.y, list):
+                    self.obs_data.D = [np.ones((1, self.obs_data.y[i].shape[0])) for i in range(len(self.obs_data.y))]
+                else:
+                    self.obs_data.D = np.ones((1, self.obs_data.y.shape[1]))
             elif type == 'linear' and not self.scalar_out:
                 self.obs_data.D = np.vstack([np.ones(self.obs_data.y.shape[1]), self.obs_data.y_ind])
+                if isinstance(self.obs_data.y, list):
+                    self.obs_data.D = [np.vstack([np.ones(self.obs_data.y[i].shape[0]), self.obs_data.y_ind[i]]) for i in range(len(self.obs_data.y))]
+                else:
+                    self.obs_data.D = np.vstack([np.ones(self.obs_data.y.shape[1]), self.obs_data.y_ind])
             # Normalize D to match priors
-            self.obs_data.D /= np.sqrt(np.max(np.dot(self.obs_data.D, self.obs_data.D.T)))
+            if norm:
+                if isinstance(self.obs_data.D, list):
+                    for i in range(len(self.obs_data.D)):
+                        self.obs_data.D[i] /= np.sqrt(np.max(np.dot(self.obs_data.D[i], self.obs_data.D[i].T)))
+                else:
+                    self.obs_data.D /= np.sqrt(np.max(np.dot(self.obs_data.D, self.obs_data.D.T)))
 
     # Below are some initial attempts at visualization, should expand/fix
     def plot_K_basis(self):
