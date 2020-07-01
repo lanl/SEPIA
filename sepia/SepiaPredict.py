@@ -54,6 +54,7 @@ class SepiaEmulatorPrediction():
     def get_mu_sigma(self):
         return self.mu,self.sigma
 
+
 class SepiaFullPrediction():
     def __init__(self, xpred, samples, model, theta_pred=None,
                        addResidVar=False, returnRlz=True, returnMuSigma=False):
