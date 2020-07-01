@@ -314,7 +314,7 @@ class SepiaData(object):
                     ncol = 5
                     nrow = np.ceil(pv / ncol)
                     plt.figure(3, figsize=(8, 2 * nrow))
-                    for i in range(pu):
+                    for i in range(pv):
                         plt.subplot(nrow, ncol, i+1)
                         plt.hist(v[:, i])
                         plt.xlabel('D %d wt' % (i+1))
