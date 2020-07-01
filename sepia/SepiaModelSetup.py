@@ -86,12 +86,12 @@ def setup_model(data, Sigy=None, lamVzGroup=None):
         pu = sim_data.K.shape[0]
     num.m, num.p, num.q, num.pu = m, p, q, pu
     if not data.sim_only:
-        ell_obs = obs_data.y.shape[1]
+        ell_obs = obs_data.y.shape[1] # TODO ragged
         n = obs_data.x.shape[0]
         if data.scalar_out or obs_data.D is None:
             pv = 0
         else:
-            pv = obs_data.D.shape[0]
+            pv = obs_data.D.shape[0] # TODO ragged
         num.n, num.pv = n, pv
     else:
         num.n = 0
@@ -100,7 +100,7 @@ def setup_model(data, Sigy=None, lamVzGroup=None):
     # Set up Sigy/Lamy
     if not data.sim_only:
         if Sigy is None:
-            Sigy = np.diag(np.ones(ell_obs))
+            Sigy = np.diag(np.ones(ell_obs)) # TODO ragged
         if data.scalar_out:
             Lamy = 1/Sigy
         else:
@@ -130,7 +130,7 @@ def setup_model(data, Sigy=None, lamVzGroup=None):
         num.lamVzGnum = lamVzGnum
 
     # Transform obs data using D, Kobs -> v, u
-    if not data.sim_only:
+    if not data.sim_only: # TODO ragged obs
         if data.scalar_out:
             u = obs_data.y_std
             v = np.array([], dtype=float)
@@ -171,7 +171,7 @@ def setup_model(data, Sigy=None, lamVzGroup=None):
     num.LamSim = LamSim
 
     # Compute LamObs
-    if not data.sim_only:
+    if not data.sim_only: # TODO ragged obs
         if data.scalar_out:
             LamObs = Lamy * np.diag(np.ones(n))
             rankLO = np.linalg.matrix_rank(LamObs)

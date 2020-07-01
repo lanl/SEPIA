@@ -3,6 +3,10 @@ import numpy as np
 from sepia.DataContainer import DataContainer
 
 class DataContainerTestCase(unittest.TestCase):
+    """
+    DataContainer mostly exists to check dimensions, so this test module is making sure setting up the objects
+    does not trigger exceptions.
+    """
 
     def setUp(self):
         self.n = 10
@@ -22,7 +26,12 @@ class DataContainerTestCase(unittest.TestCase):
         self.dc5 = DataContainer(x=np.concatenate([0.5*np.ones((self.n, 1)), np.random.uniform(-1, 2, (self.n, 2))], axis=1),
                                  y=np.random.uniform(-3, 5, (self.n, 50)), y_ind=np.linspace(0, 10, 50),
                                  t=np.concatenate([0.5*np.ones((self.n, 1)), np.random.uniform(-5, 5, (self.n, 4))], axis=1))
-
+        # Multi-output, multi-dimensional x/t, ragged obs
+        y_ell = np.random.random_integers(10, 60, self.n)
+        y = [np.random.uniform(-3, 5, y_ell[i]) for i in range(len(y_ell))]
+        y_ind = [np.linspace(0, 10, y_ell[i]) for i in range(len(y_ell))]
+        self.dc6 = DataContainer(x=np.random.uniform(-1, 2, (self.n, 3)), y=y,
+                                 t=np.random.uniform(-5, 5, (self.n, 5)), y_ind=y_ind)
 
     def test_xy_size(self):
         # Make sure it promotes 1D vectors to (n, 1)
@@ -44,4 +53,3 @@ class DataContainerTestCase(unittest.TestCase):
         self.assertEqual(self.dc4.y_ind.shape[0], self.dc4.y.shape[1], 'y/y_ind shape mismatch')
 
 
-    #def test_compute_PCA_basis(self):

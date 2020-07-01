@@ -13,8 +13,8 @@ class SepiaHierThetaMCMCTestCase(unittest.TestCase):
 
     def setUp(self, m=100, n=1, nt_sim=50, nt_obs=20, n_theta=3, n_basis=5, sig_n=0.1, seed=42):
         n_hier = 3
-        self.hier_idx = np.array([[1, 1, 1]])
-        #self.hier_idx = np.array([[1, 1, 1], [2, -1, 2]) # TODO this fails
+        self.hier_idx = np.array([[0, 0, 0]])
+        #self.hier_idx = np.array([[1, 1, 1], [2, -1, 2]]) # TODO this fails for multivariate; cant use for univariate now
         multi_data_list = []
         univ_data_list = []
         for si in range(n_hier):
@@ -40,7 +40,7 @@ class SepiaHierThetaMCMCTestCase(unittest.TestCase):
         self.univ_model_list = [setup_model(d) for d in univ_data_list]
         self.multi_model_list = [setup_model(d) for d in multi_data_list]
 
-    # TODO: univariate test fails!
+    # TODO: univariate test fails! It's because univ setup only has one theta...
     def test_univariate_sim_and_obs_shared_theta_mcmc(self):
         """
         Tests mcmc for univariate sim and obs model with hier thetas
@@ -51,7 +51,7 @@ class SepiaHierThetaMCMCTestCase(unittest.TestCase):
         model = SepiaHierarchicalThetaModels(model_list=self.univ_model_list, hier_theta_inds=self.hier_idx)
 
         model.do_mcmc(100)
-        samples_dicts = [{p.name: p.mcmc_to_array() for p in model.params.mcmcList} for model in self.univ_model_list]
+        samples_dicts = [{p.name: p.mcmc_to_array(untransform_theta=True) for p in model.params.mcmcList} for model in self.univ_model_list]
 
     def test_multivariate_sim_and_obs_shared_theta_mcmc(self):
         """
@@ -63,7 +63,7 @@ class SepiaHierThetaMCMCTestCase(unittest.TestCase):
         model = SepiaHierarchicalThetaModels(model_list=self.multi_model_list, hier_theta_inds=self.hier_idx)
 
         model.do_mcmc(100)
-        samples_dicts = [{p.name: p.mcmc_to_array() for p in model.params.mcmcList} for model in self.multi_model_list]
+        samples_dicts = [{p.name: p.mcmc_to_array(untransform_theta=True) for p in model.params.mcmcList} for model in self.multi_model_list]
 
 
 
