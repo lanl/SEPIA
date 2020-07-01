@@ -2,10 +2,10 @@
 # -*- coding: utf-8 -*-
 """
 Created on Wed Jun 24 07:52:25 2020
-
+Generate, Plot, and write all data needed for ball drop example 1
 @author: granthutchings
 """
-#%%
+#%% Imports
 import sys
 sys.path.append('/Users/granthutchings/opt/anaconda3/lib/python3.7/site-packages')
 import numpy as np
@@ -14,16 +14,9 @@ import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 from invertH import invertHsim, invertHtrue
-from sepia.SepiaModelSetup import setup_model
-from sepia.SepiaData import SepiaData
-from scipy.stats import norm
 from importlib import reload
 
-#%%
-# directory where data files should be written
-datadir = '/Users/granthutchings/Documents/LANL/SEPIA/sepia/Examples/Ball_Drop/data/'
-
-# notes:
+#%% notes
 # x = R
 # theta = C
 # y = {h, t}, i.e., pairs of h and t that form a trace when plotted
@@ -50,7 +43,8 @@ datadir = '/Users/granthutchings/Documents/LANL/SEPIA/sepia/Examples/Ball_Drop/d
 # inputs for simulator: x = R, theta = C
 # We want to calibrate theta in the simulator to match the field data.
 
-# values for generating data
+#%% Compute data
+
 n = 3
 n_field_heights = 4
 m_heights = 16
@@ -123,122 +117,6 @@ y_field_dense = invertHtrue(h_dense, g, C_true, R, et) # dense grid for plots
 y_sim       = invertHsim(h_sim,   g, C_sim, R_sim)
 y_sim_dense = invertHsim(h_dense, g, C_sim, R_sim)
 
-# NEED TO MAKE THIS WORK FOR MULTIPLE G AS WELL
-#g_sim = np.repeat(g,m)
-#y_sim       = invertHsim(h_sim,   g_sim, C_sim, R_sim) # this look a long time
-#y_sim_dense = invertHsim(h_dense, g_sim, C_sim, R_sim) # this took a really long time
-
-#%%
-# create sepia data object
-data = SepiaData(x_sim = np.matrix(R_sim).T, t_sim = np.matrix(C_sim).T, y_sim = y_sim, y_ind_sim = h_sim,\
-                 x_obs = np.matrix(R).T, y_obs = y_field, y_ind_obs=h_field)
-data.transform_xt()
-data.standardize_y()
-data.create_K_basis(2)
-# Generate D_obs matrix
-D_grid = h_sim # locations on which the kernels are centered
-D_width = 1.5 # width of each kernel
-pv = len(D_grid)
-D_obs = np.zeros(shape=(len(h_field),pv))
-D_sim = np.zeros(shape=(len(h_sim),pv))
-# create each kernel
-for j in range(pv):
-    # create kernel j for each experiment
-    D_obs[:,j] = norm.pdf(h_field, D_grid[j], D_width)
-    D_sim[:,j] = norm.pdf(h_sim, D_grid[j],D_width)
-    
-#D_max = np.max(np.matmul(D_sim,D_sim.T))
-#D_sim = D_sim / np.sqrt(D_max)
-#D_obs = D_obs / np.sqrt(D_obs)
-
-data.create_D_basis(type='linear',D=D_obs.T)
-
-# visualize bases
-data.plot_K_basis()
-#data.plot_K_weights()
-#data.plot_K_residuals()
-
-
-print(data)
-
-plt.ylim(-.5,2)
-plt.plot(h_sim,D_sim)
-plt.show()
-plt.plot(h_field,D_obs)
-
-#%% Model
-model = setup_model(data)
-
-#%% MCMC
-model.tune_step_sizes(50, 20)
-model.do_mcmc(10000)
-
-#%% Parameters
-# Extract MCMC samples into dictionary with parameter names
-#samples_dict = {p.name: p.mcmc_to_array(trim=1000, untransform_theta=True) for p in model.params.mcmcList}
-samples_dict = {p.name: p.mcmc_to_array(trim=1000,untransform_theta=True) for p in model.params.mcmcList}
-
-# return parameters (C) to native scale
-t_min = np.min(C_sim, 0)
-t_max = np.max(C_sim, 0)
-theta = samples_dict['theta'] * (t_max - t_min) + t_min
-plt.hist(theta[:,0])
-plt.xlabel("C")
-
-for i, k in enumerate(samples_dict.keys()):
-    param_shape = samples_dict[k].shape[1]
-    if param_shape >= 5:
-        ncol = 5
-        nrow = int(np.ceil(param_shape / ncol))
-    else:
-        ncol = param_shape
-        nrow = 1
-    plt.figure(i)
-    for j in range(param_shape):
-        plt.subplot(nrow, ncol, j + 1)
-        plt.hist(samples_dict[k][:, j])
-        plt.xlabel(k)
-        print(k,"- mean:",np.mean(samples_dict[k][:, j]),"std:",np.std(samples_dict[k][:, j]))
-    plt.show()
-
-#%% LOO Cross Validation
-# =============================================================================
-# run_stats = np.zeros((25,2))
-# for i in range(m):
-#     # delete i'th simulation
-#     data = SepiaData(x_sim = np.delete(np.matrix(R_sim).T,i,0),\
-#                      t_sim = np.delete(np.matrix(C_sim).T,i,0),\
-#                      y_sim = np.delete(y_sim,i,0),y_ind_sim = h_sim,\
-#                      x_obs = np.matrix(R).T, y_obs = y_field, y_ind_obs=h_field)
-#     data.transform_xt()
-#     data.standardize_y()
-#     data.create_K_basis(2)
-#     # Generate D_obs matrix
-#     for j in range(pv):
-#         # create kernel j for each experiment
-#         D_obs[:,j] = norm.pdf(h_field, D_grid[j], D_width)
-#         D_sim[:,j] = norm.pdf(h_sim, D_grid[j],D_width)
-#         
-#     D_max = np.max(np.matmul(D_sim,D_sim.T))
-#     D_sim = D_sim / np.sqrt(D_max)
-#     D_obs = D_obs / np.sqrt(D_obs)
-#     
-#     data.create_D_basis(type='linear',D=D_obs.T)
-# 
-#     model = setup_model(data)
-# 
-#     model.tune_step_sizes(50, 20)
-#     model.do_mcmc(1000)
-#     samples_dict = {p.name: p.mcmc_to_array(trim=100,untransform_theta=True) for p in model.params.mcmcList}
-#     t_min = np.min(C_sim, 0)
-#     t_max = np.max(C_sim, 0)
-#     theta = samples_dict['theta'] * (t_max - t_min) + t_min
-#     #plt.hist(theta[:,0])
-#     #plt.xlabel("C")
-#     run_stats[i,0] = np.mean(theta[:,0])
-#     run_stats[i,1] = np.std(theta[:,0])
-# =============================================================================
-
 
 #%% #===================== Plots ===============================#
 y_max = max(max(y_field.max(1)),max(y_sim.max(1))) # max of all row maxes for axis limit
@@ -307,6 +185,10 @@ plt.show()
 
 #%% #==================== Write data ===========================#
 # write the h-t pairs into files
+
+# directory where data files should be written
+datadir = '/Users/granthutchings/Documents/LANL/SEPIA/sepia/Examples/Ball_Drop/data/'
+
 # sim.dat, should be length(hsim) x length(Csim)
 with open(datadir+'sim.dat',"w+") as f:
     for line in np.matrix(np.transpose(y_sim)):

@@ -6,7 +6,8 @@ Created on Wed Jun 24 12:18:07 2020
 @author: granthutchings
 """
 import numpy as np
-import scipy
+from scipy import optimize
+import random
 # =============================================================================
 # def invertHtrue(h, g, C, R, et):
 #     """
@@ -31,7 +32,7 @@ import scipy
 #         t0 = np.sqrt(2*h[i]/g)
 #         
 #         # find the time
-#         t_i = scipy.optimize.fmin(banana, t0)
+#         t_i = optimize.fmin(banana, t0)
 #         
 #         # add observation error
 #         t[i] = t_i + et*np.random.uniform()
@@ -68,7 +69,7 @@ def invertHtrue(h, g, C, R, et):
             t0 = np.sqrt(2*h[hh]/g)
             
             # find the time
-            t_tmp = scipy.optimize.fmin(banana, t0, disp=False)
+            t_tmp = optimize.fmin(banana, t0, disp=False)
             
             # add observation error
             t[rr,hh] = t_tmp + et*np.random.uniform()
@@ -115,7 +116,7 @@ def invertHsim(h, g, C, R):
                     t0 = np.sqrt(2*h[hh]/g)
                     
                     # find the time
-                    t_tmp = scipy.optimize.fmin(banana,t0,disp=False)
+                    t_tmp = optimize.fmin(banana,t0,disp=False)
                     
                     #t[rr,hh,cc,gg] = t_tmp
                     t[rc,hh] = t_tmp

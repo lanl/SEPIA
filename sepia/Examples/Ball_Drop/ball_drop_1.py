@@ -248,17 +248,17 @@ for j in range(pv):
     D_sim[:,j] = norm.pdf(h_sim, D_grid[j],D_width)
     D_dense[:,j] = norm.pdf(h_dense, D_grid[j],D_width)
 
-# normalize D to match priors (should be able to remove this code now)
+# normalize D to match priors (not needed for D_obs, done in create_D_basis())
 D_max = np.max(np.matmul(D_sim,D_sim.T))
 D_sim = D_sim / np.sqrt(D_max)
 D_dense = D_dense / np.sqrt(D_max)
-D_obs = D_obs / np.sqrt(D_max)
 
 data.create_D_basis(D=D_obs.T)
 
 plt.ylim(-.5,1.5)
 plt.xlim(0,25)
 plt.plot(h_dense,D_dense)
+#plt.plot(h_field,D_obs)
 plt.xlabel("Height (m)");plt.ylabel("Basis elements d_i")
 plt.title("D (dense grid)")
 plt.show()
