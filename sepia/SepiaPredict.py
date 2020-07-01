@@ -9,9 +9,8 @@ import numpy as np
 from scipy.stats import norm
 from sepia.SepiaDistCov import SepiaDistCov
 
-# initially a data container
-# But eventually this object will do predictions, tranformations, potentially diagnostics
-class SepiaEmulatorPrediction():
+# this is only intended to be inherited from for an Emulator or Full prediction
+class SepiaPrediction():
     def __init__(self, xpred, samples, model, theta_pred=None,
                  addResidVar=False, storeRlz=True, storeMuSigma=False):
 
@@ -31,6 +30,9 @@ class SepiaEmulatorPrediction():
         self.mu=[]
         self.sigma=[]
 
+class SepiaEmulatorPrediction(SepiaPrediction):
+    def __init__(self,*args,**kwrds):
+        super(SepiaEmulatorPrediction,self).__init__(*args,**kwrds)
         # prediction is samples x pu (basis) x prediction points (xpreds)
         wPred(self)
 
