@@ -41,9 +41,15 @@ class SepiaEmulatorPrediction():
         return np.tensordot(self.w,self.model.data.sim_data.K,axes=[[2],[0]])
 
     def get_y_native(self):
-        pass
-        #std_predshape=np.tile(
-        #return self.get_y_standardized*self.model.data.sim_data.
+        # tile out the standardization vectors to the full prediction shape (is this this only way?!?)
+        wshape=self.w.shape
+        if isinstance(self.model.data.sim_data.orig_y_sd,np.ndarray):
+            ysd_inpredshape = np.tile(self.model.data.sim_data.orig_y_sd, (wshape[0], wshape[1], 1))
+        else:
+            # cheating a bit, if it's scalar it doesn't have to be tiled out
+            ysd_inpredshape=self.model.data.sim_data.orig_y_sd
+        ymean_inpredshape = np.tile(self.model.data.sim_data.orig_y_mean, (wshape[0], wshape[1], 1))
+        return self.get_y_standardized()*ysd_inpredshape+ymean_inpredshape
 
     def get_mu_sigma(self):
         return self.mu,self.sigma
