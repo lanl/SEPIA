@@ -271,11 +271,13 @@ class SepiaData(object):
                 w = np.dot(np.linalg.pinv(self.sim_data.K).T, self.sim_data.y_std.T).T
                 ncol = 5
                 nrow = np.ceil(pu / ncol)
-                plt.figure(1, figsize=(8, 2 * nrow))
+                plt.figure(1, figsize=(10, 2 * nrow))
                 for i in range(pu):
                     plt.subplot(nrow, ncol, i+1)
+                    w_abs_max = max(w[:,i].min(), w[:,i].max(), key=abs)
+                    plt.xlim((-w_abs_max,w_abs_max))
                     plt.hist(w[:, i])
-                    plt.xlabel('PC %d wt' % (i+1))
+                    plt.xlabel('PC %d wt : w' % (i+1))
                 plt.show()
             if not self.obs_data.K is None:
                 pu = self.obs_data.K.shape[0]
@@ -288,11 +290,11 @@ class SepiaData(object):
                     u = np.dot(np.linalg.inv(DKprod + DKridge), np.linalg.multi_dot([DK, Lamy, self.obs_data.y_std.T])).T
                     ncol = 5
                     nrow = np.ceil(pu / ncol)
-                    plt.figure(2, figsize=(8, 2 * nrow))
+                    plt.figure(2, figsize=(10, 2 * nrow))
                     for i in range(pu):
                         plt.subplot(nrow, ncol, i+1)
                         plt.hist(u[:, i])
-                        plt.xlabel('PC %d wt' % (i+1))
+                        plt.xlabel('PC %d wt : u' % (i+1))
                     plt.show()
                 else:
                     pv = self.obs_data.D.shape[0]
@@ -305,19 +307,19 @@ class SepiaData(object):
                     u = vu[pv:, :].T
                     ncol = 5
                     nrow = np.ceil(pu / ncol)
-                    plt.figure(2, figsize=(8, 2 * nrow))
+                    plt.figure(2, figsize=(10, 2 * nrow))
                     for i in range(pu):
                         plt.subplot(nrow, ncol, i+1)
                         plt.hist(u[:, i])
-                        plt.xlabel('PC %d wt' % (i+1))
+                        plt.xlabel('PC %d wt : u' % (i+1))
                     plt.show()
                     ncol = 5
                     nrow = np.ceil(pv / ncol)
-                    plt.figure(3, figsize=(8, 2 * nrow))
+                    plt.figure(3, figsize=(10, 2 * nrow))
                     for i in range(pv):
                         plt.subplot(nrow, ncol, i+1)
                         plt.hist(v[:, i])
-                        plt.xlabel('D %d wt' % (i+1))
+                        plt.xlabel('D %d wt : v' % (i+1))
                     plt.show()
 
     def plot_K_residuals(self):
