@@ -292,26 +292,25 @@ class SepiaData(object):
             print('Scalar output, no K basis to plot.')
         else:
             if not self.sim_data.K is None:
-                #plt.figure(1)
-                #plt.plot(self.sim_data.y_ind, self.sim_data.K.T, '.-')
-                #plt.xlabel('Sim y_ind')
-                #plt.ylabel('Sim K basis')
-                #plt.show()
                 pu = self.sim_data.K.shape[0]
                 ncol = 5
                 nrow = np.ceil(pu / ncol)
-                plt.figure(1, figsize=(8, 2 * nrow))
-                for i in range(pu):
-                    plt.subplot(nrow, ncol, i+1)
-                    sns.lineplot(x=self.sim_data.y_ind, y=self.sim_data.K[i, :])
-                    plt.title('PC %d' % (i+1))
-                    plt.xlabel('sim y_ind')
-                plt.show()
+                fig, axs = plt.subplots(1,pu,figsize=(8, 2 * nrow))
+                fig.tight_layout()
+                for i,ax in enumerate(axs):
+                    ax.plot(self.sim_data.y_ind, self.sim_data.K[i,:])
+                    ax.set_title('PC %d' % (i+1))
+                    ax.set_xlabel('sim y_ind')
+                    if i == 0: ax.set_ylabel('sim K basis')
+
             if not self.obs_data.K is None:
                 plt.figure(2)
-                plt.plot(self.sim_data.y_ind, self.sim_data.K.T, '.-')
-                plt.xlabel('Obs y_ind')
-                plt.ylabel('Obs K basis')
+                for i in range(self.obs_data.K.T.shape[1]):
+                    plt.plot(self.obs_data.y_ind, self.obs_data.K.T[:,i], '--o',label='PC {}'.format(i+1))
+                plt.xlabel('obs y_ind')
+                plt.ylabel('obs K basis')
+                plt.xticks(self.obs_data.y_ind)
+                plt.legend()
                 plt.show()
 
     def plot_K_weights(self):
