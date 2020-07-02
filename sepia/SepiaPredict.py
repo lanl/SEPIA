@@ -83,8 +83,8 @@ class SepiaFullPrediction(SepiaPrediction):
     def get_discrepancy_standardized(self):
         return np.tensordot(self.v,self.model.data.obs_data.D,axes=[[2],[0]])
 
-    def get_discrepancy(self):
-        ysd_inpredshape,_ = self.calc_sim_standardizations_inpredshape()
+    def get_discrepancy_native(self):
+        ysd_inpredshape,_ = self.calc_obs_standardizations_inpredshape()
         return np.tensordot(self.v,self.model.data.obs_data.D,axes=[[2],[0]])*ysd_inpredshape
 
     def get_yobs_standardized(self):
