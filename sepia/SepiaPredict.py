@@ -64,42 +64,62 @@ class SepiaFullPrediction(SepiaPrediction):
         uvPred(self)
 
     def get_u_v(self):
-        return self.u,self.v
+        return self.u, self.v
 
-    def get_sim_standardized(self):
+    def get_ysim_standardized(self):
         return np.tensordot(self.u,self.model.data.sim_data.K,axes=[[2],[0]])
 
+    def get_ysim_asobs_standardized(self):
+        return np.tensordot(self.u,self.model.data.obs_data.K,axes=[[2],[0]])
+
+    def get_ysim_native(self):
+        ysd_inpredshape, ymean_inpredshape = self.calc_sim_standardizations_inpredshape()
+        return self.get_ysim_standardized()*ysd_inpredshape+ymean_inpredshape
+
+    def get_ysim_asobs_native(self):
+        ysd_inpredshape, ymean_inpredshape = self.calc_obs_standardizations_inpredshape()
+        return self.get_ysim_asobs_standardized()*ysd_inpredshape+ymean_inpredshape
+
+    def get_discrepancy_standardized(self):
+        return np.tensordot(self.v,self.model.data.obs_data.D,axes=[[2],[0]])
+
     def get_discrepancy(self):
-        return np.tensordot(self.v,self.model.data.sim_data.D,axes=[[2],[0]])
+        ysd_inpredshape,_ = self.calc_sim_standardizations_inpredshape()
+        return np.tensordot(self.v,self.model.data.obs_data.D,axes=[[2],[0]])*ysd_inpredshape
 
-    def get_y_standardized(self):
-        return self.get_sim_standardized()+self.get_discrepancy()
+    def get_yobs_standardized(self):
+        return self.get_ysim_asobs_standardized()+self.get_discrepancy_standardized()
 
-    def get_sim_native(self):
-        # tile out the standardization vectors to the full prediction shape (is this this only way?!?)
-        ushape=self.u.shape
-        if isinstance(self.model.data.sim_data.orig_y_sd,np.ndarray):
-            ysd_inpredshape = np.tile(self.model.data.sim_data.orig_y_sd, (ushape[0], ushape[1], 1))
-        else:
-            # cheating a bit, if it's scalar it doesn't have to be tiled out
-            ysd_inpredshape=self.model.data.sim_data.orig_y_sd
-        ymean_inpredshape = np.tile(self.model.data.sim_data.orig_y_mean, (ushape[0], ushape[1], 1))
-        return self.get_y_standardized()*ysd_inpredshape+ymean_inpredshape
-
-    def get_y_native(self):
-        # tile out the standardization vectors to the full prediction shape (is this this only way?!?)
-        ushape=self.u.shape
-        if isinstance(self.model.data.sim_data.orig_y_sd,np.ndarray):
-            ysd_inpredshape = np.tile(self.model.data.sim_data.orig_y_sd, (ushape[0], ushape[1], 1))
-        else:
-            # cheating a bit, if it's scalar it doesn't have to be tiled out
-            ysd_inpredshape=self.model.data.sim_data.orig_y_sd
-        ymean_inpredshape = np.tile(self.model.data.sim_data.orig_y_mean, (ushape[0], ushape[1], 1))
-        return (self.get_y_standardized()+self.get_discrepancy())*ysd_inpredshape+ymean_inpredshape
+    def get_yobs_native(self):
+        ysd_inpredshape, ymean_inpredshape = self.calc_obs_standardizations_inpredshape()
+        return (self.get_ysim_asobs_standardized()+self.get_discrepancy_standardized())*ysd_inpredshape+ymean_inpredshape
 
     def get_mu_sigma(self):
         return self.mu,self.sigma
 
+    def calc_sim_standardizations_inpredshape(self):
+        # internal function, calculate the ysd and ymean arrays
+        # tile out the standardization vectors to the full prediction shape (is this this only way?!?)
+        ushape=self.u.shape
+        if isinstance(self.model.data.sim_data.orig_y_sd,np.ndarray):
+            ysd_inpredshape = np.tile(self.model.data.sim_data.orig_y_sd, (ushape[0], ushape[1], 1))
+        else:
+            # cheating a bit, if it's scalar it doesn't have to be tiled out
+            ysd_inpredshape=self.model.data.sim_data.orig_y_sd
+        ymean_inpredshape = np.tile(self.model.data.sim_data.orig_y_mean, (ushape[0], ushape[1], 1))
+        return ysd_inpredshape, ymean_inpredshape
+
+    def calc_obs_standardizations_inpredshape(self):
+        # internal function, calculate the ysd and ymean arrays
+        # tile out the standardization vectors to the full prediction shape (is this this only way?!?)
+        ushape=self.u.shape
+        if isinstance(self.model.data.obs_data.orig_y_sd,np.ndarray):
+            ysd_inpredshape = np.tile(self.model.data.obs_data.orig_y_sd, (ushape[0], ushape[1], 1))
+        else:
+            # cheating a bit, if it's scalar it doesn't have to be tiled out
+            ysd_inpredshape=self.model.data.obs_data.orig_y_sd
+        ymean_inpredshape = np.tile(self.model.data.obs_data.orig_y_mean, (ushape[0], ushape[1], 1))
+        return ysd_inpredshape, ymean_inpredshape
 
 '''
 So much for the sugar, here's the medicine... 
