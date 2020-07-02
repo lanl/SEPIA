@@ -11,14 +11,14 @@ from sepia.SepiaDistCov import SepiaDistCov
 
 # this is only intended to be inherited from for an Emulator or Full prediction
 class SepiaPrediction():
-    def __init__(self, xpred, samples, model, theta_pred=None,
+    def __init__(self, x_pred=None, samples=None, model=None, theta_pred=None,
                  addResidVar=False, storeRlz=True, storeMuSigma=False):
 
-        if type(xpred) == float: xpred = np.reshape(xpred, (1, 1))
-        if len(np.shape(xpred)) == 1: xpred = np.reshape(xpred, (len(xpred), 1))
+        if type(x_pred) == float: x_pred = np.reshape(x_pred, (1, 1))
+        if len(np.shape(x_pred)) == 1: x_pred = np.reshape(x_pred, (len(x_pred), 1))
 
         self.model=model
-        self.xpred=xpred
+        self.xpred=x_pred
         self.theta_pred=theta_pred
         self.samples=samples
         self.addResidVar=addResidVar
@@ -33,7 +33,7 @@ class SepiaPrediction():
 class SepiaEmulatorPrediction(SepiaPrediction):
     def __init__(self,*args,**kwrds):
         super(SepiaEmulatorPrediction,self).__init__(*args,**kwrds)
-        # prediction is samples x pu (basis) x prediction points (xpreds)
+        # prediction is samples x prediction points (xpreds) x pu (basis)
         wPred(self)
 
     def get_w(self):
@@ -57,14 +57,53 @@ class SepiaEmulatorPrediction(SepiaPrediction):
         return self.mu,self.sigma
 
 
-class SepiaFullPrediction():
-    def __init__(self, xpred, samples, model, theta_pred=None,
-                       addResidVar=False, returnRlz=True, returnMuSigma=False):
+class SepiaFullPrediction(SepiaPrediction):
+    def __init__(self,*args,**kwrds):
+        super(SepiaFullPrediction,self).__init__(*args,**kwrds)
+        # prediction is samples x prediction points x pu or pv (basis)
+        uvPred(self)
 
-        uvPred(self, xpred, samples, model.num, model.data, theta_pred,
-                    addResidVar, returnRlz, returnMuSigma)
+    def get_u_v(self):
+        return self.u,self.v
+
+    def get_sim_standardized(self):
+        return np.tensordot(self.u,self.model.data.sim_data.K,axes=[[2],[0]])
+
+    def get_discrepancy(self):
+        return np.tensordot(self.v,self.model.data.sim_data.D,axes=[[2],[0]])
+
+    def get_y_standardized(self):
+        return self.get_sim_standardized()+self.get_discrepancy()
+
+    def get_sim_native(self):
+        # tile out the standardization vectors to the full prediction shape (is this this only way?!?)
+        ushape=self.u.shape
+        if isinstance(self.model.data.sim_data.orig_y_sd,np.ndarray):
+            ysd_inpredshape = np.tile(self.model.data.sim_data.orig_y_sd, (ushape[0], ushape[1], 1))
+        else:
+            # cheating a bit, if it's scalar it doesn't have to be tiled out
+            ysd_inpredshape=self.model.data.sim_data.orig_y_sd
+        ymean_inpredshape = np.tile(self.model.data.sim_data.orig_y_mean, (ushape[0], ushape[1], 1))
+        return self.get_y_standardized()*ysd_inpredshape+ymean_inpredshape
+
+    def get_y_native(self):
+        # tile out the standardization vectors to the full prediction shape (is this this only way?!?)
+        ushape=self.u.shape
+        if isinstance(self.model.data.sim_data.orig_y_sd,np.ndarray):
+            ysd_inpredshape = np.tile(self.model.data.sim_data.orig_y_sd, (ushape[0], ushape[1], 1))
+        else:
+            # cheating a bit, if it's scalar it doesn't have to be tiled out
+            ysd_inpredshape=self.model.data.sim_data.orig_y_sd
+        ymean_inpredshape = np.tile(self.model.data.sim_data.orig_y_mean, (ushape[0], ushape[1], 1))
+        return (self.get_y_standardized()+self.get_discrepancy())*ysd_inpredshape+ymean_inpredshape
+
+    def get_mu_sigma(self):
+        return self.mu,self.sigma
 
 
+'''
+So much for the sugar, here's the medicine... 
+'''
 
 def rmultnormsvd(n,mu,sigma):
     # using this for development, to verify with the same rand stream as matlab
@@ -73,16 +112,18 @@ def rmultnormsvd(n,mu,sigma):
     rnorm=np.tile(mu,(1,n)) + U @ np.diag(np.sqrt(s)) @ normalrands
     return rnorm.squeeze()
 
-def uvPred(pred, xpred, samples, num, data, theta_pred=None,
-           addResidVar=False, returnRlz=True, returnMuSigma=False, useAltW=False):
+def uvPred(pred, useAltW=False):
+    # some shorthand references from the pred object
+    xpred=pred.xpred
+    samples=pred.samples
+    num=pred.model.num
+    data=pred.model.data
+    theta_pred=pred.theta_pred
 
     n=num.n; m=num.m; p=num.p; q=num.q; pu=num.pu; pv=num.pv
     lamVzGnum=num.lamVzGnum; lamVzGroup=num.lamVzGroup
 
-    if type(xpred) == float: xpred = np.reshape(xpred, (1, 1))
-    if len(np.shape(xpred)) == 1: xpred = np.reshape(xpred, (1, len(xpred)))
     npred = np.shape(xpred)[0]
-
     nsamp = samples['lamWs'].shape[0]
 
     # CHANGED: get x0Dist from num, don't recompute
@@ -90,9 +131,9 @@ def uvPred(pred, xpred, samples, num, data, theta_pred=None,
     xpred0Dist=SepiaDistCov(xpred)
     xxpred0Dist=SepiaDistCov(data.x,xpred)
 
-    if returnRlz:
+    if pred.storeRlz:
         tpred = np.empty((nsamp, npred*(pv+pu) ))
-    if returnMuSigma:
+    if pred.storeMuSigma:
         pred.mu=np.empty((nsamp,npred*(pv+pu) ))
         pred.sigma=np.empty((nsamp,npred*(pv+pu),npred*(pv+pu) ))
 
@@ -116,7 +157,6 @@ def uvPred(pred, xpred, samples, num, data, theta_pred=None,
 
         xtheta=np.concatenate((data.x,np.tile(theta, (n, 1))),axis=1)
         xDist=SepiaDistCov(xtheta)
-        #ztDist=SepiaDistCov(data.zt) # CHANGED: not being used, don't calculate, or get from num
         xzDist=SepiaDistCov(xtheta,data.zt)
         xpredDist=SepiaDistCov(xpredt)
         xxpredDist=SepiaDistCov(xtheta,xpredt)
@@ -135,18 +175,11 @@ def uvPred(pred, xpred, samples, num, data, theta_pred=None,
         SigU=np.zeros((n*pu,n*pu))
         for jj in range(pu):
            SigU[jj*n:(jj+1)*n,jj*n:(jj+1)*n]=xDist.compute_cov_mat(betaU[:, jj], lamUz[0, jj])
-        #np.fill_diagonal(SigU, SigU.diagonal() +
-        #                 np.kron(np.reciprocal(lamWs),np.ones((1,n))) )
-        # CHANGED: use repeat instead of kron
         np.fill_diagonal(SigU, SigU.diagonal() + np.repeat(np.reciprocal(lamWs), n))
 
         SigW = np.zeros((m * pu, m * pu))
         for jj in range(pu):
             SigW[jj * m:(jj + 1) * m, jj * m:(jj + 1) * m] = num.ztDist.compute_cov_mat(betaU[:, jj], lamUz[0, jj])
-        #np.fill_diagonal(SigW, SigW.diagonal() +
-        #                 np.kron(np.reciprocal(num.LamSim * lamWOs), np.ones((1, m))) +
-        #                 np.kron(np.reciprocal(lamWs), np.ones((1, m))))
-        # CHANGED: use repeat instead of kron
         np.fill_diagonal(SigW, SigW.diagonal() +
                          np.repeat(np.reciprocal(num.LamSim * lamWOs), m) + np.repeat(np.reciprocal(lamWs), m))
 
@@ -219,14 +252,8 @@ def uvPred(pred, xpred, samples, num, data, theta_pred=None,
         for jj in range(pu):
             SigUp[jj*npred:(jj+1)*npred,jj*npred:(jj+1)*npred] = \
                           xpredDist.compute_cov_mat(betaU[:, jj], lamUz[0, jj])
-        #np.fill_diagonal(SigUp, SigUp.diagonal() +
-        #                   np.kron(np.reciprocal(lamWs), np.ones((1, npred))))
-        # CHANGED: use repeat instead of kron
         np.fill_diagonal(SigUp, SigUp.diagonal() + np.repeat(np.reciprocal(lamWs), npred))
-        if addResidVar:
-            #np.fill_diagonal(SigUp, SigUp.diagonal() +
-            #            np.kron(np.reciprocal(num.LamSim * lamWOs), np.ones((1, npred))))
-            # CHANGED: use repeat instead of kron
+        if pred.addResidVar:
             np.fill_diagonal(SigUp, SigUp.diagonal() + np.repeat(np.reciprocal(num.LamSim * lamWOs), npred))
         #SigPred=[SigVp 0
         #         0      SigUp  ]
@@ -295,31 +322,31 @@ def uvPred(pred, xpred, samples, num, data, theta_pred=None,
                 Myhat = W[:n*pv, :].T @ num.v + W[n*pv:, :].T @ np.concatenate([num.u, num.w])
             Syhat = SigPred - W.T @ SigCross
 
-        if returnRlz:
+        if pred.storeRlz:
             # Record a realization
             tpred[ii, :] = rmultnormsvd(1, Myhat, Syhat)
             # testing speed of built in
             #tpred[ii, :] = np.random.multivariate_normal(Myhat.squeeze(), Syhat)
 
-        if returnMuSigma:
+        if pred.storeMuSigma:
             # add the distribution params to the return
             pred.mu[ii, :] = np.squeeze(Myhat)
             pred.sigma[ii, :, :] = Syhat
 
 
-    if returnRlz:
+    if pred.storeRlz:
         # Reshape the pred matrix to 3D, for each component:
         #  first dim  - (number of realizations [pvals])
-        #  second dim - (number of principal components)
-        #  third dim  - (number of points [x,theta]s)
-        pred.v=np.zeros( (nsamp,pv,npred) )
-        pred.u=np.zeros( (nsamp,pu,npred) )
+        #  second dim  - (number of points [x,theta]s)
+        #  third dim - (number of principal components)
+        pred.v=np.zeros( (nsamp,npred, pv) )
+        pred.u=np.zeros( (nsamp,npred, pu) )
         for ii in range(pv):
-          pred.v[:,ii,:]=tpred[:,ii*npred:(ii+1)*npred]
+          pred.v[:,:,ii]=tpred[:,ii*npred:(ii+1)*npred]
         for ii in range(pu):
-          pred.u[:,ii,:]=tpred[:,pv*npred+ii*npred:pv*npred+(ii+1)*npred]
+          pred.u[:,:,ii]=tpred[:,pv*npred+ii*npred:pv*npred+(ii+1)*npred]
 
-    return pred
+    # and at the end, everything should be stored back in the prediction object.
 
 
 def wPred(pred):
@@ -332,7 +359,7 @@ def wPred(pred):
 
     n=num.n; m=num.m; p=num.p; q=num.q; pu=num.pu
 
-    npred=np.shape(pred.xpred)[0]
+    npred=np.shape(xpred)[0]
     nsamp=samples['lamWs'].shape[0]
 
     #allocate results containers if needed
@@ -351,11 +378,10 @@ def wPred(pred):
         lamWs=samples['lamWs'][ii:ii+1,:]
         lamWOs=samples['lamWOs'][ii:ii+1,:]
 
-        if not num.sim_only:
-            if theta_pred:
-                xpredt = np.concatenate((xpred,theta_pred),axis=1)
-            else:
-                xpredt = np.concatenate( ( xpred,np.tile(theta,(npred, 1)) ),axis=1)
+        if theta_pred is not None:
+            xpredt = np.concatenate((xpred,theta_pred),axis=1)
+        elif not num.sim_only:
+            xpredt = np.concatenate( ( xpred,np.tile(theta,(npred, 1)) ),axis=1)
         else:
             xpredt=xpred
 
@@ -397,8 +423,8 @@ def wPred(pred):
     if pred.storeRlz:
         #% Reshape the pred matrix to 3D:
         #%  first dim  - (number of realizations == samples)
-        #%  second dim - (number of basis elements in K = pu)
-        #%  third dim  - (number of prediction points n = number of rows of [x,theta])
+        #%  second dim  - (number of prediction points n = number of rows of [x,theta])
+        #%  third dim - (number of basis elements in K = pu)
         pred.w=np.zeros((nsamp,npred,pu))
         for ii in range(pu):
             pred.w[:,:,ii]=tpred[:,ii*npred:(ii+1)*npred]
