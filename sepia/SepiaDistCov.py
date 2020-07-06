@@ -6,10 +6,10 @@ class SepiaDistCov(object):
     """
     Class for computing/storing distances and covariance matrix.
 
-    If only one data set is given, the auto-distance is computed, else distance with data2.
+    If only one data set is given, the auto-distance is computed, else computes distance between data and data2.
 
-    :param data: input data shape (n_samples, _)
-    :param data2: optional second data set to compute distances with data
+    :param data: nparray -- input data, shape (n_samples, _)
+    :param data2: nparray -- optional, second data set to compute distances with data
 
     """
 
@@ -30,10 +30,10 @@ class SepiaDistCov(object):
         """
         Computes GP covariance matrix using precomputed distances.
 
-        :param beta: GP lengthscale parameter
-        :param lamz: GP marginal precision
-        :param lams: nugget precision
-        :param verbose: True will print stuff
+        :param beta: nparray -- GP lengthscale parameters
+        :param lamz: nparray -- GP marginal precision parameters
+        :param lams: scalar -- nugget precision
+        :param verbose: boolean -- whether to print extra information
         :return: computed covariance matrix
         """
         if verbose:
