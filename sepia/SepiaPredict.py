@@ -11,6 +11,18 @@ from sepia.SepiaDistCov import SepiaDistCov
 
 # this is only intended to be inherited from for an Emulator or Full prediction
 class SepiaPrediction():
+    '''
+    Base class inherited for predictions. Defines all parameters:
+
+    :param x_pred: (npred x p) matrix, x values for which to predict
+    :param samples: sample set, as provided by SepiaModel.get_samples; predict for each sample
+    :param model: the SepiaModel object
+    :param theta_pred: (npred x q) matrix, optional; if present concatenate with x_pred for predictions
+    :param addResidVar: add the posterior residual variability to the samples
+    :param storeRlz: make and store a process realizations for each x_pred / sample combination
+    :param storeMuSigma: store the mean and sigma for the GP posterior for each x_pred / sample combination
+
+    '''
     def __init__(self, x_pred=None, samples=None, model=None, theta_pred=None,
                  addResidVar=False, storeRlz=True, storeMuSigma=False):
 
@@ -31,12 +43,20 @@ class SepiaPrediction():
         self.sigma=[]
 
 class SepiaEmulatorPrediction(SepiaPrediction):
+    '''
+    Make predictions of the emulator ('eta') component of the model.
+    This functions with an emulator-only model or a full model, but predicts the posterior simulation estimates
+    Initialization (parameters) are inherited from SepiaPrediction
+    Predictions are performed on init.
+    '''
     def __init__(self,*args,**kwrds):
         super(SepiaEmulatorPrediction,self).__init__(*args,**kwrds)
         # prediction is samples x prediction points (xpreds) x pu (basis)
         wPred(self)
 
     def get_w(self):
+        #Returns predictions that were made on init
+        #:return: predictions of w, (#samples x #x_pred x pu) tensor
         return self.w
 
     def get_y_standardized(self):
