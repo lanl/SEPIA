@@ -14,8 +14,7 @@ class SepiaData(object):
     """
     Data object used for SepiaModel, containing potentially both sim_data and obs_data.
 
-    Many arguments optional, but should typically instantiate with all data needed for the desired model,
-    and avoid adding additional data later.
+    Many arguments are optional, but users should instantiate object with all data needed for the desired model.
 
     :param x_sim: (n, p) matrix
     :param t_sim: (n, q) matrix, can be None (BUT at least one of x_sim and t_sim must be provided)
@@ -145,8 +144,8 @@ class SepiaData(object):
         """
         Standardizes both sim_data and obs_data GP outputs (y) based on sim_data.y mean/SD.
 
-        :param center: True or False, whether to subtract simulation mean
-        :param scale: 'scalar', 'columnwise', or False, how to rescale the data
+        :param center: boolean -- whether to subtract simulation mean
+        :param scale: 'scalar', 'columnwise', or False -- how to rescale the data
         """
         if center:
             self.sim_data.orig_y_mean = np.mean(self.sim_data.y, 0)
@@ -196,8 +195,8 @@ class SepiaData(object):
         """
         Creates K_sim and K_obs using PCA on sim_data.y_std; should be called after standardize_y.
 
-        :param n_pc: proportion in [0, 1] of variance, or an integer number of components
-        :param K: optional, a basis matrix to use of shape (n_basis_elements, ell_sim)
+        :param n_pc: float, int -- proportion in [0, 1] of variance, or an integer number of components
+        :param K: nparray -- optional, a basis matrix to use of shape (n_basis_elements, ell_sim)
         """
         if self.scalar_out:
             if n_pc == 1:
@@ -232,7 +231,7 @@ class SepiaData(object):
         """
         Does PCA basis computation on sim_data.y_std attribute, sets K attribute to calculated basis.
 
-        :param n_pc: an integer number of components or a proportion of variance explained, in [0, 1].
+        :param n_pc: int -- number of components or a proportion of variance explained, in [0, 1].
         """
         y_std = self.sim_data.y_std
         if y_std is None:
@@ -250,11 +249,12 @@ class SepiaData(object):
 
     def create_D_basis(self, type='constant', D=None, norm=True):
         """
-        Create D_obs discrepancy basis.
+        Create D_obs discrepancy basis. Either type or D must be provided.
 
-        :param type: 'constant' or 'linear'
-        :param D: optional, a basis matrix to use of shape (n_basis_elements, ell_obs), or list of matrices for ragged obs
-        :param norm: whether to normalize D matrix
+        :param type: 'constant' or 'linear' -- optionally sets up default constant or linear D
+        :param D: nparray -- a basis matrix to use of shape (n_basis_elements, ell_obs), or list of matrices for
+                  ragged obs; supercedes use of basis specified by type parameter
+        :param norm: boolean -- whether to normalize D matrix
         """
         # TODO add D_sim
         if self.sim_only:
@@ -291,6 +291,10 @@ class SepiaData(object):
 
     # Below are some initial attempts at visualization, should expand/fix
     def plot_K_basis(self):
+        """
+        Plots K basis elements for both sim and obs indices (if applicable).
+
+        """
         if self.scalar_out:
             print('Scalar output, no K basis to plot.')
         else:
@@ -317,6 +321,10 @@ class SepiaData(object):
                 plt.show()
 
     def plot_K_weights(self):
+        """
+        Plots K basis weights for both sim and obs data (if applicable).
+
+        """
         if self.scalar_out:
             print('Scalar output, no K weights to plot.')
         else:
@@ -390,6 +398,10 @@ class SepiaData(object):
                     plt.show()
 
     def plot_K_residuals(self):
+        """
+        Plots residuals after projection to K basis.
+
+        """
         if self.scalar_out:
             print('Scalar output, no K weights to plot.')
         else:
