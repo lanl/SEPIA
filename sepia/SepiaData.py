@@ -48,6 +48,7 @@ class SepiaData(object):
         if x_sim is None:
             x_sim = 0.5 * np.ones((t_sim.shape[0], 1)) # sets up dummy x
         self.sim_data = DataContainer(x=x_sim, y=y_sim, t=t_sim, y_ind=y_ind_sim)
+        self.ragged_obs = False
         if y_obs is None:
             self.obs_data = None
             self.sim_only = True
@@ -58,6 +59,8 @@ class SepiaData(object):
                 raise TypeError('x_sim and x_obs do not contain the same number of variables/columns.')
             self.obs_data = DataContainer(x=x_obs, y=y_obs, y_ind=y_ind_obs)
             self.sim_only = False
+            if isinstance(y_obs, list):
+                self.ragged_obs = True
         if y_ind_sim is not None and y_sim.shape[1] > 1:
             self.scalar_out = False
         else:
@@ -80,7 +83,7 @@ class SepiaData(object):
             else:
                 res += 'pu NOT SET (transformed response dimension); call method create_K_basis \n'
         else:
-            if isinstance(self.obs_data.y, list):
+            if self.ragged_obs:
                 res += 'This is a simulator and obs model, sim y dimension %d, obs y dimension ragged\n' % self.sim_data.y.shape[1]
             else:
                 res += 'This is a simulator and obs model, sim y dimension %d, obs y dimension %d\n' % (self.sim_data.y.shape[1], self.obs_data.y.shape[1])
@@ -96,7 +99,7 @@ class SepiaData(object):
                 else:
                     res += 'pu NOT SET (transformed response dimension); call method create_K_basis\n'
                 if self.obs_data.D is not None:
-                    if isinstance(self.obs_data.D, list):
+                    if self.ragged_obs:
                         res += 'pv = %5d (transformed discrepancy dimension)\n' % self.obs_data.D[0].shape[0]
                     else:
                         res += 'pv = %5d (transformed discrepancy dimension)\n' % self.obs_data.D.shape[0]
@@ -159,7 +162,7 @@ class SepiaData(object):
         self.sim_data.y_std = y_dm/self.sim_data.orig_y_sd
         if not self.sim_only:
             if not self.scalar_out and not np.isscalar(self.sim_data.orig_y_mean):
-                if isinstance(self.obs_data.y, list):
+                if self.ragged_obs:
                     orig_y_mean = []
                     for i in range(len(self.obs_data.y)):
                         orig_y_mean.append(np.interp(self.obs_data.y_ind[i], self.sim_data.y_ind.squeeze(), self.sim_data.orig_y_mean))
@@ -167,12 +170,12 @@ class SepiaData(object):
                     orig_y_mean = np.interp(self.obs_data.y_ind.squeeze(), self.sim_data.y_ind.squeeze(), self.sim_data.orig_y_mean)
                 self.obs_data.orig_y_mean = orig_y_mean
             else:
-                if isinstance(self.obs_data.y, list):
+                if self.ragged_obs:
                     self.obs_data.orig_y_mean = [self.sim_data.orig_y_mean for i in range(len(self.obs_data.y))]
                 else:
                     self.obs_data.orig_y_mean = self.sim_data.orig_y_mean
             if not self.scalar_out and not np.isscalar(self.sim_data.orig_y_sd):
-                if isinstance(self.obs_data.y, list):
+                if self.ragged_obs:
                     orig_y_sd = []
                     for i in range(len(self.obs_data.y)):
                         orig_y_sd.append(np.interp(self.obs_data.y_ind[i], self.sim_data.y_ind.squeeze(), self.sim_data.orig_y_sd))
@@ -180,11 +183,11 @@ class SepiaData(object):
                     orig_y_sd = np.interp(self.obs_data.y_ind, self.sim_data.y_ind, self.sim_data.orig_y_sd)
                 self.obs_data.orig_y_sd = orig_y_sd
             else:
-                if isinstance(self.obs_data.y, list):
+                if self.ragged_obs:
                     self.obs_data.orig_y_sd = [self.sim_data.orig_y_sd for i in range(len(self.obs_data.y))]
                 else:
                     self.obs_data.orig_y_sd = self.sim_data.orig_y_sd
-            if isinstance(self.obs_data.y, list):
+            if self.ragged_obs:
                 self.obs_data.y_std = [(self.obs_data.y[i] - self.obs_data.orig_y_mean[i]) / self.obs_data.orig_y_sd[i] for i in range(len(self.obs_data.y))]
             else:
                 self.obs_data.y_std = (self.obs_data.y - self.obs_data.orig_y_mean) / self.obs_data.orig_y_sd
@@ -212,7 +215,7 @@ class SepiaData(object):
         # interpolate PC basis to observed, if present
         if not self.sim_only:
             pu = self.sim_data.K.shape[0]
-            if isinstance(self.obs_data.y, list):
+            if self.ragged_obs:
                 K_obs = []
                 for ki in range(len(self.obs_data.y)):
                     K_obs_tmp = np.zeros((pu, self.obs_data.y_ind[ki].shape[0]))
@@ -259,7 +262,7 @@ class SepiaData(object):
             return
         if not self.sim_only:
             if D is not None:
-                if isinstance(D, list):
+                if self.ragged_obs:
                     for i in range(len(D)):
                         if not D[i].shape[1] == self.obs_data.y[i].shape[1]:
                             raise TypeError('D basis shape incorrect; second dim should match ell_obs')
@@ -268,19 +271,19 @@ class SepiaData(object):
                         raise TypeError('D basis shape incorrect; second dim should match ell_obs')
                 self.obs_data.D = D
             elif type == 'constant':
-                if isinstance(self.obs_data.y, list):
+                if self.ragged_obs:
                     self.obs_data.D = [np.ones((1, self.obs_data.y[i].shape[0])) for i in range(len(self.obs_data.y))]
                 else:
                     self.obs_data.D = np.ones((1, self.obs_data.y.shape[1]))
             elif type == 'linear' and not self.scalar_out:
                 self.obs_data.D = np.vstack([np.ones(self.obs_data.y.shape[1]), self.obs_data.y_ind])
-                if isinstance(self.obs_data.y, list):
+                if self.ragged_obs:
                     self.obs_data.D = [np.vstack([np.ones(self.obs_data.y[i].shape[0]), self.obs_data.y_ind[i]]) for i in range(len(self.obs_data.y))]
                 else:
                     self.obs_data.D = np.vstack([np.ones(self.obs_data.y.shape[1]), self.obs_data.y_ind])
             # Normalize D to match priors
             if norm:
-                if isinstance(self.obs_data.D, list):
+                if self.ragged_obs:
                     for i in range(len(self.obs_data.D)):
                         self.obs_data.D[i] /= np.sqrt(np.max(np.dot(self.obs_data.D[i], self.obs_data.D[i].T)))
                 else:
