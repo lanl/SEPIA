@@ -86,12 +86,18 @@ def setup_model(data, Sigy=None, lamVzGroup=None):
         pu = sim_data.K.shape[0]
     num.m, num.p, num.q, num.pu = m, p, q, pu
     if not data.sim_only:
-        ell_obs = obs_data.y.shape[1] # TODO ragged
+        if data.ragged_obs:
+            ell_obs = [obs_data.y[i].shape for i in range(len(obs_data.y))]
+        else:
+            ell_obs = obs_data.y.shape[1]
         n = obs_data.x.shape[0]
         if data.scalar_out or obs_data.D is None:
             pv = 0
         else:
-            pv = obs_data.D.shape[0] # TODO ragged
+            if data.ragged_obs:
+                pv = obs_data.D[0].shape[0]
+            else:
+                pv = obs_data.D.shape[0]
         num.n, num.pv = n, pv
     else:
         num.n = 0
@@ -100,11 +106,17 @@ def setup_model(data, Sigy=None, lamVzGroup=None):
     # Set up Sigy/Lamy
     if not data.sim_only:
         if Sigy is None:
-            Sigy = np.diag(np.ones(ell_obs)) # TODO ragged
+            if data.ragged_obs:
+                Sigy = [np.diag(np.ones(ell_obs[i])) for i in range(len(ell_obs))]
+            else:
+                Sigy = np.diag(np.ones(ell_obs))
         if data.scalar_out:
             Lamy = 1/Sigy
         else:
-            Lamy = np.linalg.inv(Sigy)
+            if data.ragged_obs:
+                Lamy = [np.linalg.inv(Sigy[i]) for i in range(len(Sigy))]
+            else:
+                Lamy = np.linalg.inv(Sigy)
 
     # Set up GP inputs/DistCov objects
     if not data.sim_only:
@@ -135,15 +147,31 @@ def setup_model(data, Sigy=None, lamVzGroup=None):
             u = obs_data.y_std
             v = np.array([], dtype=float)
         else:
-            DKridge = 1e-6 * np.diag(np.ones(pu+pv))       # (pu+pv, pu+pv)
-            if obs_data.D is None:
-                DK = obs_data.K
+            DKridge = 1e-6 * np.diag(np.ones(pu + pv)) # (pu+pv, pu+pv)
+            if data.ragged_obs:
+                v = []
+                u = []
+                for i in range(len(data.obs_data.y)):
+                    if obs_data.D is None:
+                        DK = obs_data.K[i]
+                    else:
+                        DK = np.concatenate([obs_data.D[i], obs_data.K[i]])  # (pu+pv, ell_obs)
+                    DKprod = np.linalg.multi_dot([DK, Lamy[i], DK.T]) # (pu+pv, pu+pv)
+                    y_tmp = obs_data.y_std[i][:, None]
+                    vu = np.dot(np.linalg.inv(DKprod + DKridge), np.linalg.multi_dot([DK, Lamy[i], y_tmp]))
+                    v.append(vu[:pv, :].T)
+                    u.append(vu[pv:, :].T)
+                v = np.concatenate(v)
+                u = np.concatenate(u)
             else:
-                DK = np.concatenate([obs_data.D, obs_data.K])  # (pu+pv, ell_obs)
-            DKprod = np.linalg.multi_dot([DK, Lamy, DK.T]) # (pu+pv, pu+pv)
-            vu = np.dot(np.linalg.inv(DKprod + DKridge), np.linalg.multi_dot([DK, Lamy, obs_data.y_std.T]))
-            v = vu[:pv, :].T
-            u = vu[pv:, :].T
+                if obs_data.D is None:
+                    DK = obs_data.K
+                else:
+                    DK = np.concatenate([obs_data.D, obs_data.K])  # (pu+pv, ell_obs)
+                DKprod = np.linalg.multi_dot([DK, Lamy, DK.T]) # (pu+pv, pu+pv)
+                vu = np.dot(np.linalg.inv(DKprod + DKridge), np.linalg.multi_dot([DK, Lamy, obs_data.y_std.T]))
+                v = vu[:pv, :].T
+                u = vu[pv:, :].T
         num.u = u.reshape((n*pu, 1), order='F').copy()
         num.v = v.reshape((n*pv, 1), order='F').copy()
     else:
@@ -177,12 +205,21 @@ def setup_model(data, Sigy=None, lamVzGroup=None):
             rankLO = np.linalg.matrix_rank(LamObs)
         else:
             if obs_data.D is None: # TODO can do something simpler if DK is just K since orthogonal (may apply in a few places with DK)
-                DK = obs_data.K
+                if data.ragged_obs:
+                    DK = [obs_data.K[i] for i in range(n)]
+                else:
+                    DK = obs_data.K
             else:
-                DK = np.concatenate([obs_data.D, obs_data.K]) # Note: our DK = DK' in matlab
+                if data.ragged_obs:
+                    DK = [np.concatenate([obs_data.D[i], obs_data.K[i]]) for i in range(n)]
+                else:
+                    DK = np.concatenate([obs_data.D, obs_data.K]) # Note: our DK = DK' in matlab
             DKridge = 1e-6 * np.diag(np.ones(pu + pv))
-            DKprod = np.linalg.multi_dot([DK, Lamy, DK.T])
-            LamObs = scipy.linalg.block_diag(*[DKprod for i in range(n)])
+            if data.ragged_obs:
+                DKprod = [np.linalg.multi_dot([DK[i], Lamy[i], DK[i].T]) for i in range(n)]
+            else:
+                DKprod = [np.linalg.multi_dot([DK, Lamy, DK.T]) for i in range(n)]
+            LamObs = scipy.linalg.block_diag(*DKprod)
             rankLO = np.linalg.matrix_rank(LamObs, hermitian=True)  # Same as value in matlab
             LamObs = LamObs + scipy.linalg.block_diag(*[DKridge for i in range(n)])
             # Reorder indices: is currently v1 u1 v2 u2 ... want v1 v2 v3 ... u1 u2 ...
@@ -201,18 +238,33 @@ def setup_model(data, Sigy=None, lamVzGroup=None):
     # TODO Process optional inputs for lamWOs, lamOs
     # Compute prior correction for lamOs, lamWOs
     if not data.sim_only:
-        tot_elements = ell_obs * n # TODO need to change if allowing ragged arrays
+        if data.ragged_obs:
+            tot_elements = np.sum(ell_obs)
+        else:
+            tot_elements = ell_obs * n
         lamOs_a_corr = 0.5 * (tot_elements - rankLO)
         lamOs_b_corr = 0
         if not data.scalar_out:
             if obs_data.D is None:
-                DK = obs_data.K
+                if data.ragged_obs:
+                    DK = [obs_data.K[i] for i in range(n)]
+                else:
+                    DK = obs_data.K
             else:
-                DK = np.concatenate([obs_data.D, obs_data.K]) # Note: our DK = DK' in matlab
-            DKvu = np.dot(DK.T, np.concatenate([v, u], axis=1).T)
-            for i in range(n):
-                resid = obs_data.y_std[i, :] - DKvu[:, i]
-                lamOs_b_corr += 0.5 * np.sum(np.linalg.multi_dot([resid, Lamy, resid]))
+                if data.ragged_obs:
+                    DK = [np.concatenate([obs_data.D[i], obs_data.K[i]]) for i in range(n)]
+                else:
+                    DK = np.concatenate([obs_data.D, obs_data.K]) # Note: our DK = DK' in matlab
+            if data.ragged_obs:
+                DKvu = [np.dot(DK[i].T, np.concatenate([v[None, i, :], u[None, i, :]], axis=1).T) for i in range(n)]
+                for i in range(n):
+                    resid = obs_data.y_std[i] - DKvu[i]
+                    lamOs_b_corr += 0.5 * np.sum(np.linalg.multi_dot([resid, Lamy[i], resid]))
+            else:
+                DKvu = np.dot(DK.T, np.concatenate([v, u], axis=1).T)
+                for i in range(n):
+                    resid = obs_data.y_std[i, :] - DKvu[:, i]
+                    lamOs_b_corr += 0.5 * np.sum(np.linalg.multi_dot([resid, Lamy, resid]))
 
     lamWOs_a_corr = 0.5 * (ell_sim - pu) * m
     if data.scalar_out:
