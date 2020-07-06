@@ -15,6 +15,16 @@ from sepia.SepiaModel import SepiaModel
 
 
 class SepiaSharedThetaModels:
+    """
+    Container for multiple models with selected thetas shared across models.
+
+    :param model_list: list of instantiated SepiaModel objects
+    :param shared_theta_inds: nparray -- (n_shared_theta, n_models) where each row corresponds to one group of shared
+                              thetas, and each column gives the index of the theta within a particular model, with
+                             -1 used to indicate no theta from a particular model is part of the shared group.
+
+    """
+
     def __init__(self, model_list=None, shared_theta_inds=None):
         self.model_list = model_list                # List of instantiated SepiaModel objects
         self.shared_theta_inds = shared_theta_inds  # Matrix (n_shared_theta, n_models) indicating shared indices, -1 means not in a model

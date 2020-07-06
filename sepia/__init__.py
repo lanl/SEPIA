@@ -6,5 +6,8 @@ from .SepiaModel import SepiaModel
 from .SepiaModelSetup import setup_model
 from .SepiaParam import SepiaParam
 from .SepiaPrior import SepiaPrior
+from .SepiaPredict import SepiaPrediction, SepiaFullPrediction, SepiaEmulatorPrediction
+from .SepiaSharedThetaModels import SepiaSharedThetaModels
+from .SepiaHierarchicalThetaModels import SepiaHierarchicalThetaModels
 
 from .util import timeit

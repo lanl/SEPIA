@@ -16,6 +16,16 @@ from sepia.SepiaModel import SepiaModel
 
 
 class SepiaHierarchicalThetaModels:
+    """
+    Container for multiple models with hierarchical Normal model on selected thetas.
+
+    :param model_list: list of instantiated SepiaModel objects
+    :param hier_theta_inds: nparray -- (n_hier_theta, n_models) where each row corresponds to one group of hierarchically
+                            modeled thetas, and each column gives the index of the theta within a particular model, with
+                            -1 used to indicate no theta from a particular model is part of the hierarchical group.
+
+    """
+
     def __init__(self, model_list=None, hier_theta_inds=None):
         self.model_list = model_list            # List of instantiated SepiaModel objects
         self.hier_theta_inds = hier_theta_inds  # Matrix (n_hier_theta, n_models) indicating hier indices, -1 means not in a model
