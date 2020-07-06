@@ -319,17 +319,21 @@ class SepiaData(object):
         else:
             if not self.sim_data.K is None:
                 pu = self.sim_data.K.shape[0]
-                w = np.dot(np.linalg.pinv(self.sim_data.K).T, self.sim_data.y_std.T).T
                 ncol = 5
-                nrow = np.ceil(pu / ncol)
-                plt.figure(1, figsize=(10, 2 * nrow))
-                for i in range(pu):
-                    plt.subplot(nrow, ncol, i+1)
-                    w_abs_max = max(w[:,i].min(), w[:,i].max(), key=abs)
-                    plt.xlim((-w_abs_max,w_abs_max))
-                    plt.hist(w[:, i])
-                    plt.xlabel('PC %d wt : w' % (i+1))
+                nrow = int(np.ceil(pu / ncol))
+                w = np.dot(np.linalg.pinv(self.sim_data.K).T, self.sim_data.y_std.T).T
+                fig, axs = plt.subplots(nrow,ncol,figsize=(10, 2*nrow))
+                fig.tight_layout()
+                for i,ax in enumerate(axs.flatten()):
+                    if(i < w.shape[1]):
+                        w_abs_max = max(w[:,i].min(), w[:,i].max(), key=abs)
+                        ax.set_xlim([-w_abs_max,w_abs_max])
+                        ax.set_xlabel('PC %d wt : w' % (i+1))
+                        ax.hist(w[:,i])
+                    else:
+                        ax.axis('off')
                 plt.show()
+
             if not self.obs_data.K is None:
                 pu = self.obs_data.K.shape[0]
                 if self.obs_data.D is None:
@@ -340,12 +344,15 @@ class SepiaData(object):
                     DKprod = np.linalg.multi_dot([DK, Lamy, DK.T])  # (pu+pv, pu+pv)
                     u = np.dot(np.linalg.inv(DKprod + DKridge), np.linalg.multi_dot([DK, Lamy, self.obs_data.y_std.T])).T
                     ncol = 5
-                    nrow = np.ceil(pu / ncol)
-                    plt.figure(2, figsize=(10, 2 * nrow))
-                    for i in range(pu):
-                        plt.subplot(nrow, ncol, i+1)
-                        plt.hist(u[:, i])
-                        plt.xlabel('PC %d wt : u' % (i+1))
+                    nrow = int(np.ceil(pu / ncol))
+                    fig, axs = plt.subplots(nrow,ncol,figsize=(10,2*nrow))
+                    fig.tight_layout()
+                    for i,ax in enumerate(axs.flatten()):
+                        if i < u.shape[1]:
+                            ax.hist(u[:,i])
+                            ax.set_xlabel('PC %d wt : u' % (i+1))
+                        else:
+                            ax.axis('off')
                     plt.show()
                 else:
                     pv = self.obs_data.D.shape[0]
@@ -357,20 +364,26 @@ class SepiaData(object):
                     v = vu[:pv, :].T
                     u = vu[pv:, :].T
                     ncol = 5
-                    nrow = np.ceil(pu / ncol)
-                    plt.figure(2, figsize=(10, 2 * nrow))
-                    for i in range(pu):
-                        plt.subplot(nrow, ncol, i+1)
-                        plt.hist(u[:, i])
-                        plt.xlabel('PC %d wt : u' % (i+1))
+                    nrow = int(np.ceil(pu / ncol))
+                    fig, axs = plt.subplots(nrow,ncol,figsize=(10,2*nrow))
+                    fig.tight_layout()
+                    for i,ax in enumerate(axs.flatten()):
+                        if i < u.shape[1]:
+                            ax.hist(u[:,i])
+                            ax.set_xlabel('PC %d wt : u' % (i+1))
+                        else:
+                            ax.axis('off')
                     plt.show()
-                    ncol = 5
-                    nrow = np.ceil(pv / ncol)
-                    plt.figure(3, figsize=(10, 2 * nrow))
-                    for i in range(pv):
-                        plt.subplot(nrow, ncol, i+1)
-                        plt.hist(v[:, i])
-                        plt.xlabel('D %d wt : v' % (i+1))
+                    
+                    nrow = int(np.ceil(pv / ncol))
+                    fig, axs = plt.subplots(nrow,ncol,figsize=(10,2*nrow))
+                    fig.tight_layout()
+                    for i,ax in enumerate(axs.flatten()):
+                        if i < v.shape[1]:
+                            ax.hist(v[:,i])
+                            ax.set_xlabel('D %d wt : v' % (i+1))
+                        else:
+                            ax.axis('off')
                     plt.show()
 
     def plot_K_residuals(self):
@@ -402,29 +415,29 @@ class SepiaData(object):
                     plt.title('obs projection residual')
                     plt.xlabel('obs y_ind')
                     plt.show()
-                # else:
-                #     pv = self.obs_data.D.shape[0]
-                #     DK = np.concatenate([self.obs_data.D, self.obs_data.K])  # (pu+pv, ell_obs)
-                #     DKridge = 1e-6 * np.diag(np.ones(pu + pv))  # (pu+pv, pu+pv)
-                #     Lamy = np.eye(self.obs_data.y_ind.shape[0])
-                #     DKprod = np.linalg.multi_dot([DK, Lamy, DK.T])  # (pu+pv, pu+pv)
-                #     vu = np.dot(np.linalg.inv(DKprod + DKridge), np.linalg.multi_dot([DK, Lamy, self.obs_data.y_std.T]))
-                #     v = vu[:pv, :].T
-                #     u = vu[pv:, :].T
-                #     ncol = 5
-                #     nrow = np.ceil(pu / ncol)
-                #     plt.figure(2, figsize=(8, 2 * nrow))
-                #     for i in range(pu):
-                #         plt.subplot(nrow, ncol, i+1)
-                #         plt.hist(u[:, i])
-                #         plt.xlabel('PC %d wt' % (i+1))
-                #     plt.show()
-                #     ncol = 5
-                #     nrow = np.ceil(pv / ncol)
-                #     plt.figure(3, figsize=(8, 2 * nrow))
-                #     for i in range(pu):
-                #         plt.subplot(nrow, ncol, i+1)
-                #         plt.hist(v[:, i])
-                #         plt.xlabel('D %d wt' % (i+1))
-                #     plt.show()
+                else:
+                    pv = self.obs_data.D.shape[0]
+                    DK = np.concatenate([self.obs_data.D, self.obs_data.K])  # (pu+pv, ell_obs)
+                    DKridge = 1e-6 * np.diag(np.ones(pu + pv))  # (pu+pv, pu+pv)
+                    Lamy = np.eye(self.obs_data.y_ind.shape[0])
+                    DKprod = np.linalg.multi_dot([DK, Lamy, DK.T])  # (pu+pv, pu+pv)
+                    vu = np.dot(np.linalg.inv(DKprod + DKridge), np.linalg.multi_dot([DK, Lamy, self.obs_data.y_std.T]))
+                    v = vu[:pv, :].T
+                    u = vu[pv:, :].T
+                    ncol = 5
+                    nrow = np.ceil(pu / ncol)
+                    plt.figure(2, figsize=(8, 2 * nrow))
+                    for i in range(pu):
+                        plt.subplot(nrow, ncol, i+1)
+                        plt.hist(u[:, i])
+                        plt.xlabel('PC %d wt' % (i+1))
+                    plt.show()
+                    ncol = 5
+                    nrow = np.ceil(pv / ncol)
+                    plt.figure(3, figsize=(8, 2 * nrow))
+                    for i in range(pu):
+                        plt.subplot(nrow, ncol, i+1)
+                        plt.hist(v[:, i])
+                        plt.xlabel('D %d wt' % (i+1))
+                    plt.show()
 
