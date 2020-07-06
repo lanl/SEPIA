@@ -9,7 +9,6 @@ import numpy as np
 from scipy.stats import norm
 from sepia.SepiaDistCov import SepiaDistCov
 
-# this is only intended to be inherited from for an Emulator or Full prediction
 class SepiaPrediction():
     '''
     Base class inherited for predictions. Defines all parameters:
@@ -17,7 +16,8 @@ class SepiaPrediction():
     :param x_pred: (npred x p) matrix, x values for which to predict
     :param samples: sample set, as provided by SepiaModel.get_samples; predict for each sample
     :param model: the SepiaModel object
-    :param theta_pred: (npred x q) matrix, optional; if present concatenate with x_pred for predictions
+    :param theta_pred: (npred x q) matrix, optional; if present concatenate with x_pred for predictions, \
+    otherwise theta_pred will be taken from theta posterior samples provided
     :param addResidVar: add the posterior residual variability to the samples
     :param storeRlz: make and store a process realizations for each x_pred / sample combination
     :param storeMuSigma: store the mean and sigma for the GP posterior for each x_pred / sample combination
@@ -47,9 +47,9 @@ class SepiaEmulatorPrediction(SepiaPrediction):
     Make predictions of the emulator ('eta') component of the model. This functions with an emulator-only model
     or a full model, but predicts the posterior simulation estimates
 
-    :param all: init parameters are inherited from SepiaPrediction
+    :param all: init parameters are parsed by SepiaPrediction (inherited init)
 
-    Predictions are performed on init and stored in the object for access by member methods.
+    Predictions are performed on init and stored in the object for access methods:
     '''
     def __init__(self,*args,**kwrds):
         super(SepiaEmulatorPrediction,self).__init__(*args,**kwrds)
@@ -102,9 +102,9 @@ class SepiaFullPrediction(SepiaPrediction):
     '''
     Make predictions of the full model: both emulator ('eta') and discrepancy ('delta') == (u,v)
 
-    :param all: init parameters are inherited from SepiaPrediction
+    :param all: init parameters are parsed by SepiaPrediction (inherited init)
 
-    Predictions are performed on init and stored in the object for access by member methods.
+    Predictions are performed on init and stored in the object for access by methods:
     '''
     def __init__(self,*args,**kwrds):
         super(SepiaFullPrediction,self).__init__(*args,**kwrds)
