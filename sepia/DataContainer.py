@@ -30,9 +30,9 @@ class DataContainer(object):
         Initializes DataContainer object.
 
         :param x: GP inputs (the ones known for both sim and obs), shape (n, p)
-        :param y: GP outputs, shape (n, ell)
+        :param y: GP outputs, shape (n, ell) or list of 1D arrays for ragged observations
         :param t: optional GP inputs (the ones known only for sim), shape (n, q)
-        :param y_ind: optional y indices (needed if ell > 1)
+        :param y_ind: optional y indices (needed if ell > 1) or list of 1D arrays for ragged observations
         """
         self.x = x
         self.y = y
@@ -53,8 +53,6 @@ class DataContainer(object):
             else:
                 if self.y.shape[1] != y_ind.shape[0]:
                     raise TypeError('Dimension 1 of y must match dimension 0 of y_ind.')
-        #if y_ind is not None and self.y.shape[1] != y_ind.shape[0]: # TODO allow ragged
-        #    raise TypeError('Dimension 1 of y must match dimension 0 of y_ind.')
         self.t = t
         self.y_ind = y_ind
         # Basis and transform stuff initialized to None
