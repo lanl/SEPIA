@@ -3,7 +3,7 @@ import os
 
 sys.path.insert(0, os.path.abspath('..'))
 
-extensions = ['sphinx.ext.autodoc', 'sphinx.ext.coverage', 'sphinx.ext.napoleon', 'nbsphinx']
+extensions = ['sphinx.ext.autodoc', 'sphinx.ext.coverage', 'sphinx.ext.napoleon']
 source_suffix = '.rst'
 master_doc = 'index'
 project = 'Sepia'
