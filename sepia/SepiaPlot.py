@@ -20,15 +20,18 @@ def theta_pairs(samples_dict,design_names=[]):
             design_names.append('theta_'+str(i+1))
             
     theta_df = pd.DataFrame(theta,columns=design_names)
-    if theta_df.shape[1]>1:
+    theta_df.insert(0,'idx',theta_df.index,allow_duplicates = False)
+    sns.set_palette(sns.color_palette("RdBu_r", theta_df.shape[0]))
+    if theta_df.shape[1]>2:
         with sns.plotting_context("notebook"):
-            g = sns.PairGrid(theta_df, diag_sharey=False)
-            g.map_upper(sns.scatterplot)
+            sns.set_palette(sns.color_palette("RdBu_r", theta_df.shape[0]))
+            g = sns.PairGrid(theta_df.loc[:, theta_df.columns != 'idx'], diag_sharey=False)
+            g.map_upper(sns.scatterplot, hue=theta_df['idx'], legend=False)
             g.map_lower(sns.kdeplot, colors="C0")
             g.map_diag(sns.kdeplot, lw=2)
             plt.show()
     else:
-        sns.distplot(theta_df,hist=True,axlabel=design_names[0])
+        sns.distplot(theta_df.loc[:, theta_df.columns != 'idx'],hist=True,axlabel=design_names[0])
         plt.show()
         
 def mcmc_trace(samples_dict,theta_names=None,max_print=5):
