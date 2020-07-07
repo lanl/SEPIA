@@ -20,8 +20,6 @@ def theta_pairs(samples_dict,design_names=[]):
             design_names.append('theta_'+str(i+1))
             
     theta_df = pd.DataFrame(theta,columns=design_names)
-    theta_df.insert(0, "idx", theta_df.index, allow_duplicates = False)
-
     if theta_df.shape[1]>1:
         with sns.plotting_context("notebook"):
             g = sns.PairGrid(theta_df, diag_sharey=False)
