@@ -104,7 +104,8 @@ class SepiaPredictTestCase(unittest.TestCase):
 
         print('Checking predicted realizations for plotting...')
         # Apparently numerics come into play here, need to turn down the rtol on 'close'
-        self.assertTrue(np.allclose(np.array(matlab_output['pred_plot_w']).squeeze(), pred_plot.get_w().squeeze(),atol=1e-1))
+        self.assertTrue(np.allclose(np.array(matlab_output['pred_plot_w']).squeeze(),
+                                    pred_plot.get_w().squeeze(),atol=1e-1))
 
         print('Done.')
 
@@ -139,28 +140,30 @@ class SepiaPredictTestCase(unittest.TestCase):
 
         np.random.seed(int(seed))
         psamps = model.get_samples(0, sampleset=range(n_pred), flat=True)
-        pred = wPred([0.5], psamps, model.num, model.data, returnMuSigma=True)
+        pred = SepiaEmulatorPrediction(x_pred=np.array([0.5]).reshape(1,1),
+                                       samples=psamps, model=model, storeMuSigma=True)
         print('Samples are:')
-        print(pred.w.squeeze())
+        print(pred.get_w().squeeze())
         print('Matlab Samples are:')
         print(np.array(matlab_output['pred_w']).squeeze())
 
+        (pred_mu,pred_sigma)=pred.get_mu_sigma()
         print('Mu are:')
-        print(pred.mu.squeeze())
+        print(pred_mu.squeeze())
         print('Matlab Mu are:')
         print(np.array(matlab_output['pred_Myhat']).squeeze())
 
         print('Sigma are:')
-        print(pred.sigma.squeeze())
+        print(pred_sigma.squeeze())
         print('Matlab Sigma are:')
         print(np.array(matlab_output['pred_Syhat']).squeeze())
 
         print('Checking predicted realizations...')
-        self.assertTrue(np.allclose(np.array(matlab_output['pred_w']).squeeze(), pred.w.squeeze()))
+        self.assertTrue(np.allclose(np.array(matlab_output['pred_w']).squeeze(), pred.get_w().squeeze()))
         print('Checking predicted means...')
-        self.assertTrue(np.allclose(np.array(matlab_output['pred_Myhat']).squeeze(), pred.mu.squeeze()))
+        self.assertTrue(np.allclose(np.array(matlab_output['pred_Myhat']).squeeze(), pred_mu.squeeze()))
         print('Checking predicted sigmas...')
-        self.assertTrue(np.allclose(np.array(matlab_output['pred_Syhat']).squeeze(), pred.sigma.squeeze()))
+        self.assertTrue(np.allclose(np.array(matlab_output['pred_Syhat']).squeeze(), pred_sigma.squeeze()))
 
         print('Done.')
 
