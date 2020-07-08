@@ -203,56 +203,61 @@ class SepiaPredictTestCase(unittest.TestCase):
 
         np.random.seed(int(seed))
         psamps = model.get_samples(0, sampleset=range(n_pred), flat=True)
-        pred = wPred([0.5, 0.5], psamps, model.num, model.data, returnMuSigma=True)
+        pred=SepiaEmulatorPrediction(x_pred=np.array([0.5]).reshape(1,1), t_pred=np.array([0.5]).reshape(1,1),
+                                     samples=psamps, model=model, storeMuSigma=True)
         print('Samples are:')
-        print(pred.w.squeeze())
+        print(pred.get_w().squeeze())
         print('Matlab Samples are:')
         print(np.array(matlab_output['pred_w']).squeeze())
 
+        print(pred.get_w().shape)
+
+        (pred_mu, pred_sigma)=pred.get_mu_sigma()
         print('Mu are:')
-        print(pred.mu.squeeze())
+        print(pred_mu.squeeze())
         print('Matlab Mu are:')
         print(np.array(matlab_output['pred_Myhat']))
 
         print('Sigma are:')
-        print(pred.sigma.squeeze().squeeze().reshape(n_pred * n_pc, n_pc).T)
+        print(pred_sigma.squeeze().squeeze().reshape(n_pred * n_pc, n_pc).T)
         print('Matlab Sigma are:')
         print(np.array(matlab_output['pred_Syhat']).squeeze())
 
         print('Checking predicted realizations...')
-        self.assertTrue(np.allclose(np.array(matlab_output['pred_w']).squeeze(), pred.w.squeeze()))
+        self.assertTrue(np.allclose(np.array(matlab_output['pred_w']).squeeze(), pred.get_w().squeeze()))
         print('Checking predicted means...')
-        self.assertTrue(np.allclose(np.array(matlab_output['pred_Myhat']).squeeze(), pred.mu.squeeze()))
+        self.assertTrue(np.allclose(np.array(matlab_output['pred_Myhat']).squeeze(), pred_mu.squeeze()))
         print('Checking predicted sigmas...')
         self.assertTrue(np.allclose(np.array(matlab_output['pred_Syhat']).squeeze(),
-                                    pred.sigma.squeeze().reshape(n_pred * n_pc, n_pc).T))
+                                    pred_sigma.squeeze().reshape(n_pred * n_pc, n_pc).T))
 
         np.random.seed(int(seed))
-        pred_arv = wPred([0.5, 0.5], psamps, model.num, model.data,
-                         addResidVar=True, returnMuSigma=True)
+        pred_arv = SepiaEmulatorPrediction(x_pred=np.array([0.5]).reshape(1,1), t_pred=np.array([0.5]).reshape(1,1),
+                                           samples=psamps, model=model, storeMuSigma=True, addResidVar=True)
         print('Add Residual Variance test')
         print('Samples are:')
-        print(pred_arv.w.squeeze())
+        print(pred_arv.get_w().squeeze())
         print('Matlab Samples are:')
         print(np.array(matlab_output['pred_arv_w']).squeeze())
 
+        (pred_arv_mu, pred_arv_sigma)=pred_arv.get_mu_sigma()
         print('Mu are:')
-        print(pred_arv.mu.squeeze())
+        print(pred_arv_mu.squeeze())
         print('Matlab Mu are:')
         print(np.array(matlab_output['pred_arv_Myhat']))
 
         print('Sigma are:')
-        print(pred_arv.sigma.squeeze().squeeze().reshape(n_pred * n_pc, n_pc).T)
+        print(pred_arv_sigma.squeeze().squeeze().reshape(n_pred * n_pc, n_pc).T)
         print('Matlab Sigma are:')
         print(np.array(matlab_output['pred_arv_Syhat']).squeeze())
 
         print('Checking predicted realizations...')
-        self.assertTrue(np.allclose(np.array(matlab_output['pred_arv_w']).squeeze(), pred_arv.w.squeeze()))
+        self.assertTrue(np.allclose(np.array(matlab_output['pred_arv_w']).squeeze(), pred_arv.get_w().squeeze()))
         print('Checking predicted means...')
-        self.assertTrue(np.allclose(np.array(matlab_output['pred_arv_Myhat']).squeeze(), pred_arv.mu.squeeze()))
+        self.assertTrue(np.allclose(np.array(matlab_output['pred_arv_Myhat']).squeeze(), pred_arv_mu.squeeze()))
         print('Checking predicted sigmas...')
         self.assertTrue(np.allclose(np.array(matlab_output['pred_arv_Syhat']).squeeze(),
-                                    pred_arv.sigma.squeeze().reshape(n_pred * n_pc, n_pc).T))
+                                    pred_arv_sigma.squeeze().reshape(n_pred * n_pc, n_pc).T))
 
         print('Done.')
 
@@ -294,9 +299,10 @@ class SepiaPredictTestCase(unittest.TestCase):
 
         np.random.seed(int(seed))
         psamps = model.get_samples(0, sampleset=range(5), flat=True)
-        pred = wPred([0.5], psamps, model.num, model.data, returnMuSigma=True)
+        pred = SepiaEmulatorPrediction(np.array([0.5]).reshape(1,1), samples=psamps,
+                                       model=model, storeMuSigma=True)
         print('Samples are:')
-        print(pred.w.squeeze())
+        print(pred.get_w().squeeze())
         print('Matlab Samples are:')
         print(np.array(matlab_output['pred_w']).squeeze())
 
