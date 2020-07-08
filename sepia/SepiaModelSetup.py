@@ -57,7 +57,7 @@ def setup_model(data, Sigy=None, lamVzGroup=None):
         else:
             if not data.sim_only:
                 if data.sim_data.K.shape[0] != data.obs_data.K.shape[0]:
-                    raise TypeError('Sim and obs K shapes not conformal.')
+                    raise ValueError('Sim and obs K shapes not conformal.')
         if not data.sim_only and data.obs_data.D is None:
             print('Warning: you did not set up a D basis!')
             print('To use one, call data.create_D_basis on your SepiaData object.')

@@ -23,7 +23,7 @@ class SepiaData(object):
     :param x_obs: (m, p) matrix
     :param y_obs: (m, ell_obs) matrix or list length m of 1D arrays (for ragged y_ind_obs)
     :param y_ind_obs: (l_obs, ) vector of indices for multivariate y or list length m of 1D arrays (for ragged y_ind_obs)
-    :raises: TypeError if shapes not conformal or required data missing.
+    :raises: ValueError if shapes not conformal or required data missing.
 
     """
 
@@ -41,9 +41,9 @@ class SepiaData(object):
     #     scalar_out  boolean, whether GP has scalar output
     def __init__(self, x_sim=None, t_sim=None, y_sim=None, y_ind_sim=None, x_obs=None, y_obs=None, y_ind_obs=None):
         if y_sim is None:
-            raise TypeError('y_sim is required to set up model.')
+            raise ValueError('y_sim is required to set up model.')
         if x_sim is None and t_sim is None:
-            raise TypeError('At least one of x_sim or t_sim is required to set up model.')
+            raise ValueError('At least one of x_sim or t_sim is required to set up model.')
         if x_sim is None:
             x_sim = 0.5 * np.ones((t_sim.shape[0], 1)) # sets up dummy x
         self.sim_data = DataContainer(x=x_sim, y=y_sim, t=t_sim, y_ind=y_ind_sim)
@@ -55,7 +55,7 @@ class SepiaData(object):
             if x_obs is None:
                 x_obs = 0.5 * np.ones((len(y_obs), 1)) # sets up dummy x
             if x_sim.shape[1] != x_obs.shape[1]:
-                raise TypeError('x_sim and x_obs do not contain the same number of variables/columns.')
+                raise ValueError('x_sim and x_obs do not contain the same number of variables/columns.')
             self.obs_data = DataContainer(x=x_obs, y=y_obs, y_ind=y_ind_obs)
             self.sim_only = False
             if isinstance(y_obs, list):
@@ -265,10 +265,10 @@ class SepiaData(object):
                 if self.ragged_obs:
                     for i in range(len(D)):
                         if not D[i].shape[1] == self.obs_data.y[i].shape[1]:
-                            raise TypeError('D basis shape incorrect; second dim should match ell_obs')
+                            raise ValueError('D basis shape incorrect; second dim should match ell_obs')
                 else:
                     if not D.shape[1] == self.obs_data.y.shape[1]:
-                        raise TypeError('D basis shape incorrect; second dim should match ell_obs')
+                        raise ValueError('D basis shape incorrect; second dim should match ell_obs')
                 self.obs_data.D = D
             elif type == 'constant':
                 if self.ragged_obs:

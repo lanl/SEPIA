@@ -38,21 +38,21 @@ class DataContainer(object):
         self.y = y
         # Parse mandatory inputs (x and y)
         if self.x.shape[0] != len(self.y):
-            raise TypeError('Number of observations in x and y must be the same size.')
+            raise ValueError('Number of observations in x and y must be the same size.')
         # Optional inputs (depending on if sim_only or scalar_out)
         if t is not None and t.shape[0] != self.x.shape[0]:
-            raise TypeError('Dimension 0 of x and t must be the same size.')
+            raise ValueError('Dimension 0 of x and t must be the same size.')
         if self.y[0].shape[0] > 1 and y_ind is None:
-            raise TypeError('y_ind required when y has multivariate output.')
+            raise ValueError('y_ind required when y has multivariate output.')
         if y_ind is not None:
             if isinstance(y_ind, list):
                 y_shapes = [ytmp.shape for ytmp in self.y]
                 y_ind_shapes = [ytmp.shape for ytmp in y_ind]
                 if not np.alltrue(y_shapes == y_ind_shapes):
-                    raise TypeError('Dimension 1 of y must match dimension 0 of y_ind.')
+                    raise ValueError('Dimension 1 of y must match dimension 0 of y_ind.')
             else:
                 if self.y.shape[1] != y_ind.shape[0]:
-                    raise TypeError('Dimension 1 of y must match dimension 0 of y_ind.')
+                    raise ValueError('Dimension 1 of y must match dimension 0 of y_ind.')
         self.t = t
         self.y_ind = y_ind
         # Basis and transform stuff initialized to None
