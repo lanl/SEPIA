@@ -56,37 +56,39 @@ class SepiaPredictTestCase(unittest.TestCase):
 
         np.random.seed(int(seed))
         psamps = model.get_samples(0, sampleset=range(n_pred), flat=True)
-        pred = SepiaEmulatorPrediction(np.array([0.5, 0.5]).reshape(1,2), psamps, model, storeMuSigma=True)
+        pred = SepiaEmulatorPrediction(x_pred=np.array([0.5]).reshape(1,1), t_pred=np.array([0.5]).reshape(1,1),
+                                       samples=psamps, model=model, storeMuSigma=True)
         print('Samples are:')
-        print(pred.w.squeeze())
+        print(pred.get_w().squeeze())
         print('Matlab Samples are:')
         print(np.array(matlab_output['pred_w']).squeeze())
 
+        (pred_mu,pred_sigma)=pred.get_mu_sigma()
         print('Mu are:')
-        print(pred.mu.squeeze())
+        print(pred_mu.squeeze())
         print('Matlab Mu are:')
         print(np.array(matlab_output['pred_Myhat']).squeeze())
 
         print('Sigma are:')
-        print(pred.sigma.squeeze())
+        print(pred_sigma.squeeze())
         print('Matlab Sigma are:')
         print(np.array(matlab_output['pred_Syhat']).squeeze())
 
         print('Checking predicted realizations...')
-        self.assertTrue(np.allclose(np.array(matlab_output['pred_w']).squeeze(), pred.w.squeeze()))
+        self.assertTrue(np.allclose(np.array(matlab_output['pred_w']).squeeze(), pred.get_w().squeeze()))
         print('Checking predicted means...')
-        self.assertTrue(np.allclose(np.array(matlab_output['pred_Myhat']).squeeze(), pred.mu.squeeze()))
+        self.assertTrue(np.allclose(np.array(matlab_output['pred_Myhat']).squeeze(), pred_mu.squeeze()))
         print('Checking predicted sigmas...')
-        self.assertTrue(np.allclose(np.array(matlab_output['pred_Syhat']).squeeze(), pred.sigma.squeeze()))
+        self.assertTrue(np.allclose(np.array(matlab_output['pred_Syhat']).squeeze(), pred_sigma.squeeze()))
 
         # Prediction with multiple realizations
         np.random.seed(42)
         sampleset = np.arange(100, 1001, 100)-1
         samples = model.get_samples(sampleset=sampleset)
         nq = 10
-        x_pred = np.ones((nq, 1))
-        t_pred = np.linspace(0, 1, nq).reshape()
-        pred_plot = wPred(x_pred=x_pred, theta_pred=t_pred, samples=samples, model=model)
+        x_pred = np.tile(0.5,(nq, 1))
+        t_pred = np.linspace(0, 1, nq).reshape(nq,1)
+        pred_plot = SepiaEmulatorPrediction(x_pred=x_pred, t_pred=t_pred, samples=samples, model=model)
 
         print('pred_plot_w are:')
         print(pred_plot.w.squeeze()[0,:])
@@ -97,12 +99,12 @@ class SepiaPredictTestCase(unittest.TestCase):
             import matplotlib.pyplot as plt
             plt.figure()
             plt.plot(model.data.sim_data.t_trans, model.data.sim_data.y_std)
-            plt.plot(np.tile(t, (len(sampleset), 1)), np.squeeze(pred_plot.w), '.')
+            plt.plot(np.tile(t_pred.T, (len(sampleset), 1)), np.squeeze(pred_plot.get_w()), '.')
             plt.show()
 
         print('Checking predicted realizations for plotting...')
         # Apparently numerics come into play here, need to turn down the rtol on 'close'
-        self.assertTrue(np.allclose(np.array(matlab_output['pred_plot_w']).squeeze(), pred_plot.w.squeeze(),rtol=1e-1))
+        self.assertTrue(np.allclose(np.array(matlab_output['pred_plot_w']).squeeze(), pred_plot.get_w().squeeze(),atol=1e-1))
 
         print('Done.')
 
