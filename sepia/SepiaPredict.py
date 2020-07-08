@@ -16,34 +16,37 @@ class SepiaPrediction():
     :param x_pred: (npred x p) matrix, x values for which to predict
     :param samples: sample set, as provided by SepiaModel.get_samples; predict for each sample
     :param model: the SepiaModel object
-    :param theta_pred: (npred x q) matrix, optional; if present concatenate with x_pred for predictions, \
-    otherwise theta_pred will be taken from theta posterior samples provided
+    :param t_pred: (npred x q) matrix, optional; if present concatenate with x_pred for predictions, \
+    otherwise thetas will be taken from theta posterior samples provided. Required for emulator model.
     :param addResidVar: add the posterior residual variability to the samples
     :param storeRlz: make and store a process realizations for each x_pred / sample combination
     :param storeMuSigma: store the mean and sigma for the GP posterior for each x_pred / sample combination
 
     '''
-    def __init__(self, x_pred=None, samples=None, model=None, theta_pred=None,
+    def __init__(self, x_pred=None, samples=None, model=None, t_pred=None,
                  addResidVar=False, storeRlz=True, storeMuSigma=False):
 
         # make a list or scalar into an ndarray
         if not isinstance(x_pred,np.ndarray) or len(x_pred.shape)!=2:
             raise TypeError('x_pred is not a 2D numpy ndarray')
-        if theta_pred is not None and (not isinstance(theta_pred,np.ndarray) or len(theta_pred.shape)!=2):
-            raise TypeError('theta_pred is not a 2D numpy ndarray')
+        if t_pred is not None and (not isinstance(t_pred,np.ndarray) or len(t_pred.shape)!=2):
+            raise TypeError('t_pred is not a 2D numpy ndarray')
 
         # Validation of input sizes
         if x_pred.shape[1] != model.num.p:
-            raise ValueError('x_pred number of columns is not the same as model defined p')
-        if theta_pred is not None:
-            if theta_pred.shape[1] != model.num.q:
-                raise ValueError('theta_pred number of columns is not the same as model defined q')
-            if x_pred.shape[0] != theta_pred.shape[0]:
-                raise ValueError('x_pred and theta_pred have different number of rows')
+            raise ValueError('x_pred number of columns %d is not the same as model defined p = %d'%\
+                             (x_pred.shape[1],model.num.p))
+        if t_pred is not None:
+            if t_pred.shape[1] != model.num.q:
+                raise ValueError('t_pred number of columns %d is not the same as model defined q = %d'%\
+                                 (t_pred.shape[1],model.num.q))
+            if x_pred.shape[0] != t_pred.shape[0]:
+                raise ValueError('x_pred and t_pred have different number of rows: %d vs %d resp.'%\
+                                 (x_pred.shape[0],t_pred.shape[0]))
 
         self.model=model
         self.xpred=x_pred
-        self.theta_pred=theta_pred
+        self.t_pred=t_pred
         self.samples=samples
         self.addResidVar=addResidVar
         self.storeRlz=storeRlz
@@ -256,7 +259,7 @@ def uvPred(pred, useAltW=False):
     samples=pred.samples
     num=pred.model.num
     data=pred.model.data
-    theta_pred=pred.theta_pred
+    theta_pred=pred.t_pred
 
     n=num.n; m=num.m; p=num.p; q=num.q; pu=num.pu; pv=num.pv
     lamVzGnum=num.lamVzGnum; lamVzGroup=num.lamVzGroup
@@ -492,7 +495,7 @@ def wPred(pred):
     samples=pred.samples
     num=pred.model.num
     data=pred.model.data
-    theta_pred=pred.theta_pred
+    theta_pred=pred.t_pred
 
     n=num.n; m=num.m; p=num.p; q=num.q; pu=num.pu
 
