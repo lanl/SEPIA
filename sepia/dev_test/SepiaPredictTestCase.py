@@ -8,7 +8,7 @@ import os
 from sepia.SepiaData import SepiaData
 from sepia.SepiaModelSetup import setup_model
 import matlab.engine
-from sepia.SepiaPredict import wPred, uvPred
+from sepia.SepiaPredict import SepiaEmulatorPrediction, SepiaFullPrediction
 from setup_test_cases import *
 
 """
@@ -56,7 +56,7 @@ class SepiaPredictTestCase(unittest.TestCase):
 
         np.random.seed(int(seed))
         psamps = model.get_samples(0, sampleset=range(n_pred), flat=True)
-        pred = wPred([0.5, 0.5], psamps, model.num, model.data, returnMuSigma=True)
+        pred = SepiaEmulatorPrediction(np.array([0.5, 0.5]).reshape(1,2), psamps, model, storeMuSigma=True)
         print('Samples are:')
         print(pred.w.squeeze())
         print('Matlab Samples are:')
@@ -84,9 +84,9 @@ class SepiaPredictTestCase(unittest.TestCase):
         sampleset = np.arange(100, 1001, 100)-1
         samples = model.get_samples(sampleset=sampleset)
         nq = 10
-        t = np.linspace(0, 1, nq)
-        xpred = np.column_stack((np.ones((nq, 1)) * 0.5, t))
-        pred_plot = wPred(xpred, samples, model.num, model.data)
+        x_pred = np.ones((nq, 1))
+        t_pred = np.linspace(0, 1, nq).reshape()
+        pred_plot = wPred(x_pred=x_pred, theta_pred=t_pred, samples=samples, model=model)
 
         print('pred_plot_w are:')
         print(pred_plot.w.squeeze()[0,:])
