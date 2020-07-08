@@ -113,28 +113,31 @@ class SepiaEmulatorPrediction(SepiaPrediction):
         return self.mu,self.sigma
 
 class SepiaXvalEmulatorPrediction(SepiaEmulatorPrediction):
-    import copy
+
     def __init__(self, leave_out_inds=None, *args, **kwrds):
+        import copy
         super(SepiaXvalEmulatorPrediction, self).__init__(*args, **kwrds)
         self.storeRlz = True
         # By default, leave out inds is just each simulation
         m = self.model.num.m
+        orig_model = copy.deepcopy(self.model)
         if leave_out_inds is None:
             leave_out_inds = np.arange(m)
+        w_cv = []
         for li in leave_out_inds:
-            sub_model = copy.deepcopy(self.model)
-            self.sub_model.data.zt = self.sub_model.data.zt[np.arange(m) != li, :]
-            ztDist = sub_model.num.ztDist
-            idx_ztDist = np.logical_not(np.logical_or(ztDist.ind[0] == li, ztDist.ind[1] == li))
-            ztDist.ind[0] = ztDist.ind[0][idx_ztDist]
-            ztDist.ind[1] = ztDist.ind[1][idx_ztDist]
-            ztDist.sqdist = ztDist.sqdist[idx_ztDist, :]
-            self.xpred = sub_model.data.sim_data.x_trans[li, :]
-            self.theta_pred = sub_model.data.sim_data.t_trans[li, :]
-            self.model.num.m = sum(np.arange(m) != li)
+            sub_model = copy.deepcopy(orig_model)
+            sub_model.data.zt = sub_model.data.zt[np.arange(m) != li, :]
+            sub_model.num.m = sum(np.arange(m) != li)
+            ztDist = SepiaDistCov(sub_model.data.zt)
+            sub_model.num.ztDist = SepiaDistCov(sub_model.data.zt)
+            self.xpred = sub_model.data.sim_data.x_trans[li, :][None, :]
+            self.t_pred = sub_model.data.sim_data.t_trans[li, :][None, :]
+            self.model = sub_model
             wPred(self)
-            print('pause')
-
+            w_cv.append(self.w)
+        self.w = np.concatenate(w_cv, axis=1)
+        self.xpred = orig_model.data.sim_data.x_trans
+        self.t_pred = orig_model.data.sim_data.t_trans
 
 class SepiaFullPrediction(SepiaPrediction):
     '''
