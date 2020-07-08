@@ -26,8 +26,20 @@ class SepiaPrediction():
     def __init__(self, x_pred=None, samples=None, model=None, theta_pred=None,
                  addResidVar=False, storeRlz=True, storeMuSigma=False):
 
-        if type(x_pred) == float: x_pred = np.reshape(x_pred, (1, 1))
-        if len(np.shape(x_pred)) == 1: x_pred = np.reshape(x_pred, (len(x_pred), 1))
+        # make a list or scalar into an ndarray
+        if not isinstance(x_pred,np.ndarray) or len(x_pred.shape)!=2:
+            raise TypeError('x_pred is not a 2D numpy ndarray')
+        if theta_pred is not None and (not isinstance(theta_pred,np.ndarray) or len(theta_pred.shape)!=2):
+            raise TypeError('theta_pred is not a 2D numpy ndarray')
+
+        # Validation of input sizes
+        if x_pred.shape[1] != model.num.p:
+            raise ValueError('x_pred number of columns is not the same as model defined p')
+        if theta_pred is not None:
+            if theta_pred.shape[1] != model.num.q:
+                raise ValueError('theta_pred number of columns is not the same as model defined q')
+            if x_pred.shape[0] != theta_pred.shape[0]:
+                raise ValueError('x_pred and theta_pred have different number of rows')
 
         self.model=model
         self.xpred=x_pred
