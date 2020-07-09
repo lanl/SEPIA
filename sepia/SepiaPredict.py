@@ -427,7 +427,6 @@ def uvPred(pred, useAltW=False):
         SigPred[:npred*pv,:npred*pv]=SigVp
         SigPred[npred*pv:,npred*pv:]=SigUp
 
-
         # SigCross
         SigVVx=np.zeros((n*pv,npred*pv))
         vvCov=[]

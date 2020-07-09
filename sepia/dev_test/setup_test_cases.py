@@ -100,9 +100,10 @@ def setup_multi_sim_and_obs(m=100, n=10, nt_sim=20, nt_obs=15, noise_sd=0.1, nx=
                      x_obs=x_obs, y_obs=y_obs, y_ind_obs=y_ind_obs)
     data.standardize_y()
     data.transform_xt()
-    data.create_K_basis(n_pc)
-    if fix_K:
-        data.sim_data.K = np.array(res['K']).T
+    if fix_K: # means use the K from matlab - avoid issues with positive/negative component ambiguity
+        data.create_K_basis(n_pc, K=np.array(res['K']).T )
+    else:
+        data.create_K_basis(n_pc)
     data.create_D_basis('constant')
     print(data)
     model = setup_model(data)

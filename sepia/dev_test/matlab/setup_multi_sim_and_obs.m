@@ -1,6 +1,7 @@
 % Sets up test case for comparing multi sim and obs to python
 
-function res = setup_multi_sim_and_obs(m, n, nt_sim, nt_obs, noise_sd, nx, n_pc, seed, n_lik, n_mcmc, n_pred)
+function res = setup_multi_sim_and_obs(m, n, nt_sim, nt_obs, noise_sd, ...
+                    nx, n_pc, seed, n_lik, n_mcmc, n_pred)
 
     fprintf('\nStarting matlab setup_multi_sim_and_obs.m\n')
 
@@ -75,7 +76,9 @@ function res = setup_multi_sim_and_obs(m, n, nt_sim, nt_obs, noise_sd, nx, n_pc,
         obsData(i).Kobs(:,j)=interp1(time',Ksim(:,j),obsData(i).time);
       end
       obsData(i).x = x_obs(i, 1);
-      obsData(i).Dobs = ones(length(time_obs), 1);
+      Dobs = ones(length(time_obs), 1);
+      obsData(i).Dobs = Dobs / sqrt(max(max(Dobs'*Dobs)));
+                
     end
     
     % Set up GPMSA
@@ -154,7 +157,12 @@ function res = setup_multi_sim_and_obs(m, n, nt_sim, nt_obs, noise_sd, nx, n_pc,
     res.y_obs = y_obs';
     res.x_obs = x_obs(:, 1);
     res.y_ind_obs = time_obs';
-    res.K = Ksim;
+    res.D = obsData(1).Dobs;
+    res.Kobs=obsData(1).Kobs;
+    res.u = mcmc.data.u;
+    res.v = mcmc.data.v;
+    res.w = mcmc.data.w;
+    res.yobs_std=obsData(1).yStd;
     res.ll = ll;
     res.ll_time = ll_time;
     res.mcmc = mcmc_out;
@@ -167,6 +175,8 @@ function res = setup_multi_sim_and_obs(m, n, nt_sim, nt_obs, noise_sd, nx, n_pc,
     res.pred2_Myhat = pred2_Myhat;
     res.pred2_Syhat = pred2_Syhat;
 
+    %res=mcmc
+    
 %    % Optionally, save some output (using for example cases, probably not needed eventually)
 %    y_ind_obs = time_obs;
 %    x_sim = x(:, 1);

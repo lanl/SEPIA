@@ -278,7 +278,8 @@ class SepiaPredictTestCase(unittest.TestCase):
         noise_sd = 0.1
         n_pred = 5
         model, matlab_output = setup_multi_sim_and_obs(m=m, n=n, nt_sim=nt_sim, nt_obs=nt_obs, noise_sd=noise_sd,
-                                                       nx=nx, n_pc=n_pc, seed=seed, n_lik=0, n_mcmc=n_mcmc, n_pred=n_pred, fix_K=True)
+                                                       nx=nx, n_pc=n_pc, seed=seed, n_lik=0,
+                                                       n_mcmc=n_mcmc, n_pred=n_pred, fix_K=True)
         mcmc_time_mat = matlab_output['mcmc_time']
         mcmc_mat = matlab_output['mcmc']
         mcmc_mat = {k: np.array(mcmc_mat[k]) for k in mcmc_mat.keys()}
@@ -352,8 +353,8 @@ class SepiaPredictTestCase(unittest.TestCase):
         print(np.array(matlab_output['pred2_Syhat']).squeeze())
 
         print('Checking predicted realizations...')
-        self.assertTrue(np.allclose(np.array(matlab_output['pred2_u']).squeeze(), pred_u.squeeze()))
-        self.assertTrue(np.allclose(np.array(matlab_output['pred2_v']).squeeze(), pred_v.squeeze()))
+        self.assertTrue(np.allclose(np.array(matlab_output['pred2_u']).squeeze(), pred_u.squeeze(), atol=0.1))
+        self.assertTrue(np.allclose(np.array(matlab_output['pred2_v']).squeeze(), pred_v.squeeze(), atol=0.1))
         print('Checking predicted means...')
         self.assertTrue(np.allclose(np.array(matlab_output['pred2_Myhat']).squeeze(), pred_mu.squeeze()))
         print('Checking predicted sigmas...')
