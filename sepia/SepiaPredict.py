@@ -89,7 +89,10 @@ class SepiaEmulatorPrediction(SepiaPrediction):
 
         :return: predictions of standardized y, (#samples x #x_pred x py) tensor
         '''
-        return np.tensordot(self.w,self.model.data.sim_data.K,axes=[[2],[0]])
+        if self.model.num.scalar_out:
+            return self.w
+        else:
+            return np.tensordot(self.w,self.model.data.sim_data.K,axes=[[2],[0]])
 
     def get_y_native(self):
         '''

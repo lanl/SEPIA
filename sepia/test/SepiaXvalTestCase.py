@@ -69,9 +69,8 @@ class SepiaXvalTestCase(unittest.TestCase):
                                              x_pred=model.data.sim_data.x_trans,
                                              t_pred=model.data.sim_data.t_trans) # Note: don't really need x_pred, t_pred...
         w_pred = CVpred.get_w()
-        # Can't call with univ output?
-        #y_pred_std = CVpred.get_y_standardized()
-        #y_pred_nat = CVpred.get_y_native()
+        y_pred_std = CVpred.get_y_standardized()
+        y_pred_nat = CVpred.get_y_native()
 
         # Call with custom leave out inds 1
         loo_inds = [[i] for i in np.arange(1, model.num.m, 20)]
@@ -80,6 +79,8 @@ class SepiaXvalTestCase(unittest.TestCase):
                                              x_pred=model.data.sim_data.x_trans,
                                              t_pred=model.data.sim_data.t_trans) # Note: don't really need x_pred, t_pred...
         w_pred = CVpred.get_w()
+        y_pred_std = CVpred.get_y_standardized()
+        y_pred_nat = CVpred.get_y_native()
 
         # Call with custom leave out inds 2
         loo_inds = [[1,2,3,4], [7,6,5], [20]]
@@ -88,6 +89,8 @@ class SepiaXvalTestCase(unittest.TestCase):
                                              x_pred=model.data.sim_data.x_trans,
                                              t_pred=model.data.sim_data.t_trans) # Note: don't really need x_pred, t_pred...
         w_pred = CVpred.get_w()
+        y_pred_std = CVpred.get_y_standardized()
+        y_pred_nat = CVpred.get_y_native()
 
     def test_multivariate_sim_only_mcmc(self):
         """
