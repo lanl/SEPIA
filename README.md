@@ -3,13 +3,13 @@
 Simulation-Enabled Prediction, Inference, and Analysis: physics-informed statistical learning.
 This will be the python version of [GPMSA](https://github.com/lanl/gpmsa)
 
-### Warning: still under development!
-Basic functionality (model setup, likelihood evaluation, and mcmc sampling) is complete and has been tested against GPMSA matlab.
+### Warning: Construction Area. SEPIA is under development!
+Basic functionality (model setup, likelihood evaluation, and mcmc sampling, multivariate calibration, predictions) is complete and has been tested against GPMSA matlab.
 Some features are untested or still being developed (like auto step size tuning and sensitivity analysis).
 
 ### Examples
 Basic usage is demonstrated in the Examples directory. 
-Follow one of these examples but plugging in your own data.
+Follow one ofthese example, plugging in your own data.
 
 ### Install package locally
  I recommend doing this inside a python conda environment.
