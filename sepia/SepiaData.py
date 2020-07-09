@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 import seaborn as sns
+import pandas as pd
 sns.set()
 
 from sepia.DataContainer import DataContainer
@@ -454,6 +455,57 @@ class SepiaData(object):
                             else:
                                 ax.axis('off')
                         plt.show()
+    
+    def plot_u_w_pairs(self):
+        if self.scalar_out:
+            print('Scalar output, no K weights to plot.')
+        else:
+            if not self.sim_data.K is None:
+                pu = self.sim_data.K.shape[0]
+                ncol = 5
+                nrow = int(np.ceil(pu / ncol))
+                w = np.dot(np.linalg.pinv(self.sim_data.K).T, self.sim_data.y_std.T).T
+                col_names = []
+                for i in range(w.shape[1]): col_names.append('w{}'.format(i+1))
+                w_df = pd.DataFrame(data=w,columns=col_names)
+                
+                if not self.obs_data.K is None:
+                    pu = self.obs_data.K.shape[0]
+
+                    # No D
+                    if self.obs_data.D is None:
+                        pv = 0
+                        DK = self.obs_data.K
+                        DKridge = 1e-6 * np.diag(np.ones(pu + pv))  # (pu+pv, pu+pv)
+                        Lamy = np.eye(self.obs_data.y_ind.shape[0])
+                        DKprod = np.linalg.multi_dot([DK, Lamy, DK.T])  # (pu+pv, pu+pv)
+                        u = np.dot(np.linalg.inv(DKprod + DKridge), np.linalg.multi_dot([DK, Lamy, self.obs_data.y_std.T])).T
+                    else: # D
+                        pv = self.obs_data.D.shape[0]
+                        DK = np.concatenate([self.obs_data.D, self.obs_data.K])  # (pu+pv, ell_obs)
+                        DKridge = 1e-6 * np.diag(np.ones(pu + pv))  # (pu+pv, pu+pv)
+                        Lamy = np.eye(self.obs_data.y_ind.shape[0])
+                        DKprod = np.linalg.multi_dot([DK, Lamy, DK.T])  # (pu+pv, pu+pv)
+                        vu = np.dot(np.linalg.inv(DKprod + DKridge), np.linalg.multi_dot([DK, Lamy, self.obs_data.y_std.T]))
+                        v = vu[:pv, :].T
+                        u = vu[pv:, :].T
+
+                    lims = np.maximum(np.max(np.abs(w),axis=0),np.max(np.abs(u),axis=0))*1.1
+                    with sns.plotting_context("notebook", font_scale=1):
+                        g = sns.PairGrid(w_df)
+                        g.map_diag(sns.distplot)
+                        g.map_offdiag(sns.scatterplot)
+                        for i in range(g.axes.shape[1]): # rows
+                            for j in range(g.axes.shape[0]): # columns
+                                g.axes[i,j].set_xlim(-lims[j],lims[j]); g.axes[i,j].set_ylim(-lims[j],lims[j])
+                                if i == j:
+                                    for k in range(u.shape[0]):
+                                        g.axes[i,i].axvline(u[k,i],color='darkorange',label='u{}'.format(i+1) if k==0 else "_")
+                                    g.axes[i,i].legend(facecolor='white')
+                                else:
+                                    g.axes[i,j].scatter(u[:,j],u[:,i],c='darkorange',label='(u{},u{})'.format(j+1,i+1))
+                                    g.axes[i,j].legend(facecolor='white')
+                    plt.show()
 
     def plot_K_residuals(self):
         """
