@@ -22,13 +22,11 @@ def theta_pairs(samples_dict,design_names=[]):
     thin_idx = np.linspace(0,theta.shape[0]-1,1000,dtype=int) # thin to 1000 samples
     theta_df = pd.DataFrame(theta[thin_idx,:],columns=design_names) # take only 1000 samples to dataframe
     theta_df.insert(0,'idx',theta_df.index,allow_duplicates = False)
-    sns.set_palette(sns.color_palette("RdBu_r", theta_df.shape[0]))
     if theta_df.shape[1]>2:
         with sns.plotting_context("notebook"):
-            sns.set_palette(sns.color_palette("RdBu_r", theta_df.shape[0]))
             g = sns.PairGrid(theta_df.loc[:, theta_df.columns != 'idx'], diag_sharey=False)
-            g.map_upper(sns.scatterplot, hue=theta_df['idx'], legend=False)
-            g.map_lower(sns.kdeplot, colors="C0")
+            g.map_upper(sns.scatterplot, palette = 'coolwarm', hue=theta_df['idx'], legend=False)
+            g.map_lower(sns.kdeplot)
             g.map_diag(sns.distplot, hist=True)
             plt.show()
     else:
@@ -111,4 +109,4 @@ def rho_box_plots(model,labels=None):
         plt.yticks(np.arange(0,1.2,.2))
         plt.ylabel(r'$\rho$')
         plt.title('PC {}'.format(i+1))
-        plt.show()
+        plt.show() 
