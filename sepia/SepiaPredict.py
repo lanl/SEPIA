@@ -142,6 +142,8 @@ class SepiaXvalEmulatorPrediction(SepiaEmulatorPrediction):
             # Subset x/t to predict inds
             self.xpred = sub_model.data.sim_data.x_trans[li, :]
             self.t_pred = sub_model.data.sim_data.t_trans[li, :]
+            # Subset w's
+            sub_model.num.w = sub_model.num.w[fit_inds, :]
             # Set up sub model and call wPred
             self.model = sub_model
             wPred(self)
