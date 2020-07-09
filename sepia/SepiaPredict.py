@@ -151,6 +151,7 @@ class SepiaXvalEmulatorPrediction(SepiaEmulatorPrediction):
         self.w = np.concatenate(w_cv, axis=1)
         self.xpred = np.concatenate(x_cv, axis=0)
         self.t_pred = np.concatenate(t_cv, axis=0)
+        self.leave_out_inds = leave_out_inds
 
 
 class SepiaFullPrediction(SepiaPrediction):
