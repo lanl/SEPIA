@@ -4,6 +4,8 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.gridspec import GridSpec
+from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 import seaborn as sns
 sns.set()
 
@@ -23,7 +25,7 @@ class SepiaData(object):
     :param x_obs: (m, p) matrix
     :param y_obs: (m, ell_obs) matrix or list length m of 1D arrays (for ragged y_ind_obs)
     :param y_ind_obs: (l_obs, ) vector of indices for multivariate y or list length m of 1D arrays (for ragged y_ind_obs)
-    :raises: ValueError if shapes not conformal or required data missing.
+    :raises: TypeError if shapes not conformal or required data missing.
 
     """
 
@@ -41,9 +43,9 @@ class SepiaData(object):
     #     scalar_out  boolean, whether GP has scalar output
     def __init__(self, x_sim=None, t_sim=None, y_sim=None, y_ind_sim=None, x_obs=None, y_obs=None, y_ind_obs=None):
         if y_sim is None:
-            raise ValueError('y_sim is required to set up model.')
+            raise TypeError('y_sim is required to set up model.')
         if x_sim is None and t_sim is None:
-            raise ValueError('At least one of x_sim or t_sim is required to set up model.')
+            raise TypeError('At least one of x_sim or t_sim is required to set up model.')
         if x_sim is None:
             x_sim = 0.5 * np.ones((t_sim.shape[0], 1)) # sets up dummy x
         self.sim_data = DataContainer(x=x_sim, y=y_sim, t=t_sim, y_ind=y_ind_sim)
@@ -55,7 +57,7 @@ class SepiaData(object):
             if x_obs is None:
                 x_obs = 0.5 * np.ones((len(y_obs), 1)) # sets up dummy x
             if x_sim.shape[1] != x_obs.shape[1]:
-                raise ValueError('x_sim and x_obs do not contain the same number of variables/columns.')
+                raise TypeError('x_sim and x_obs do not contain the same number of variables/columns.')
             self.obs_data = DataContainer(x=x_obs, y=y_obs, y_ind=y_ind_obs)
             self.sim_only = False
             if isinstance(y_obs, list):
@@ -265,10 +267,10 @@ class SepiaData(object):
                 if self.ragged_obs:
                     for i in range(len(D)):
                         if not D[i].shape[1] == self.obs_data.y[i].shape[1]:
-                            raise ValueError('D basis shape incorrect; second dim should match ell_obs')
+                            raise TypeError('D basis shape incorrect; second dim should match ell_obs')
                 else:
                     if not D.shape[1] == self.obs_data.y.shape[1]:
-                        raise ValueError('D basis shape incorrect; second dim should match ell_obs')
+                        raise TypeError('D basis shape incorrect; second dim should match ell_obs')
                 self.obs_data.D = D
             elif type == 'constant':
                 if self.ragged_obs:
@@ -456,3 +458,97 @@ class SepiaData(object):
                         plt.xlabel('D %d wt' % (i+1))
                     plt.show()
 
+    def plot_data(self,which_x = [],x_min=None,x_max=None,y_min=None,y_max=None,n_neighbors=3,max_sims=50):
+        """
+        Plots observed data and simulation runs on the same axis with n_neighbors nearest simulations
+        in x-space colored
+        
+        :param which_x: list -- optionally sets which x_obs indices to plot
+        :param x_min: float -- optionally sets x lower limit on plot
+        :param x_max: float -- optionally sets x upper limit on plot
+        :param y_min: float -- optionally sets y lower limit on plot
+        :param y_max: float -- optionally sets y upper limit on plot
+        :param n_neighbors: int -- optionally sets number of nearest simulations to highlight
+        :param max_sims: int -- optionally sets maximum number of simulation runs to plot
+        """
+        n = self.obs_data.x.shape[0]
+        m = self.sim_data.x.shape[0]
+
+        # plot up to 4 input space points
+        if n > 4:
+            # if no which_x or given which_x is out of bounds
+            if not which_x or (which_x and not np.all(which_x)<n and not np.all(which_x>-1)):
+                # choose 4 equally space input points to plot
+                which_x = np.linspace(0,n-1,4,dtype=int)
+            x_plot = self.obs_data.x[which_x,:]
+        else:
+            which_x = np.arange(0,n,1,dtype=int)
+            x_plot = self.obs_data.x
+        n_plots = x_plot.shape[0]
+
+        # get axis limits
+        if x_min is None: x_min = min(np.amin(self.obs_data.y_ind),np.amin(self.sim_data.y_ind))
+        if x_max is None: x_max = max(np.amax(self.obs_data.y_ind),np.amax(self.sim_data.y_ind))    
+        if y_min is None: y_min = min(np.amin(self.obs_data.y),np.amin(self.sim_data.y))
+        if y_max is None: y_max = max(np.amax(self.obs_data.y),np.amax(self.sim_data.y))
+
+        # nearest neighbots
+        # find closest sim input points to each x_plot observed input points
+        # ith column of near_sim_idx contains the n_neighbors nearest sim_design points (by index)
+        # for ith point in x_plot
+        near_sim_idx = None
+        # this checks that x is not set up as a dummy, if it is, nearest neighbors in x space doesn't mean anything
+        if m>2 and not np.all(self.sim_data.x.flatten() == self.sim_data.x.flatten()[0]) and \
+               (self.obs_data.x.shape[0]==1 or not np.all(self.obs_data.x.flatten() == self.obs_data.x.flatten()[0])): 
+            n_neighbors = min(min(n_neighbors,m),7)
+            near_sim_idx = np.zeros(shape=(n_neighbors,n_plots),dtype=int)
+            for i in range(n_plots):
+                dist = np.argsort(np.linalg.norm(self.sim_data.x-x_plot[i,:],axis=1))
+                near_sim_idx[:,i] = dist[0:n_neighbors]
+
+        # Generate plot for each x_plot (x_obs) point
+        fig = plt.figure(figsize=[12,12],constrained_layout=True)
+        gs = GridSpec(2,2,figure=fig)
+        axs = np.array([fig.add_subplot(gs[0,0]),\
+                        fig.add_subplot(gs[0,1]),\
+                        fig.add_subplot(gs[1,0]),\
+                        fig.add_subplot(gs[1,1])])
+        for i in range(4):
+            if i < n_plots:
+                # axis limits, ticks, and labels
+                axs[i].set_xlim([x_min, x_max])
+                axs[i].set_ylim([y_min, y_max])
+                #axs[i].xaxis.set_ticks(np.linspace(x_min,x_max,10,endpoint=True))
+                #axs[i].yaxis.set_ticks(np.linspace(y_min,y_max,10,endpoint=True))
+                axs[i].set_title("x_obs point {}".format(i+1))
+                axs[i].set_xlabel("y_ind (native)")
+                axs[i].set_ylabel("y (native)")
+
+                # simulations all
+                if m>max_sims:
+                    sims_idx = np.linspace(0,m-1,max_sims,dtype=int)
+                else:
+                    sims_idx = range(m)
+                for j in sims_idx:
+                    axs[i].plot(self.sim_data.y_ind, np.transpose(self.sim_data.y)[:,j],color='lightgrey',\
+                        linestyle="--",label="Simulation runs" if j==0 else "_")
+
+                # simulations - nearest neighbors
+                if near_sim_idx is not None:
+                    colors = ('b', 'g', 'r', 'c', 'm', 'y', 'k') # for nearest sims
+                    for j in range(n_neighbors):
+                        axs[i].plot(self.sim_data.y_ind,np.transpose(self.sim_data.y)[:,near_sim_idx[j,i]],\
+                                linestyle="--",\
+                                color=colors[j],label="Nearest Sim {}".format(j+1))
+
+                # true data curve and "real data points"
+                axs[i].plot(self.obs_data.y_ind, self.obs_data.y[which_x[i],:],'--ko',label="Obs data")
+
+                # legend
+                axs[i].legend()
+                #axs[i].legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0.)
+
+            else:
+                axs[i].axis('off')
+                
+        plt.show()  
