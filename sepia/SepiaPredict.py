@@ -21,10 +21,11 @@ class SepiaPrediction():
     :param addResidVar: add the posterior residual variability to the samples
     :param storeRlz: make and store a process realizations for each x_pred / sample combination
     :param storeMuSigma: store the mean and sigma for the GP posterior for each x_pred / sample combination
+    :param do_call: boolean -- whether to call wPred/uvPred upon initialization
 
     '''
     def __init__(self, x_pred=None, samples=None, model=None, t_pred=None,
-                 addResidVar=False, storeRlz=True, storeMuSigma=False):
+                 addResidVar=False, storeRlz=True, storeMuSigma=False, do_call=True):
 
         # make a list or scalar into an ndarray
         if not isinstance(x_pred,np.ndarray) or len(x_pred.shape)!=2:
@@ -51,6 +52,7 @@ class SepiaPrediction():
         self.addResidVar=addResidVar
         self.storeRlz=storeRlz
         self.storeMuSigma=storeMuSigma
+        self.do_call = do_call
         self.w=[]
         self.u=[]
         self.v=[]
@@ -69,7 +71,8 @@ class SepiaEmulatorPrediction(SepiaPrediction):
     def __init__(self,*args,**kwrds):
         super(SepiaEmulatorPrediction,self).__init__(*args,**kwrds)
         # prediction is samples x prediction points (xpreds) x pu (basis)
-        wPred(self)
+        if self.do_call:
+            wPred(self)
 
     def get_w(self):
         '''
@@ -112,32 +115,40 @@ class SepiaEmulatorPrediction(SepiaPrediction):
         '''
         return self.mu,self.sigma
 
+
 class SepiaXvalEmulatorPrediction(SepiaEmulatorPrediction):
 
     def __init__(self, leave_out_inds=None, *args, **kwrds):
         import copy
-        super(SepiaXvalEmulatorPrediction, self).__init__(*args, **kwrds)
-        self.storeRlz = True
-        # By default, leave out inds is just each simulation
+        super(SepiaXvalEmulatorPrediction, self).__init__(do_call=False, *args, **kwrds)
         m = self.model.num.m
         orig_model = copy.deepcopy(self.model)
+        # By default, leave out inds is just each simulation in turn; it is a list of lists
         if leave_out_inds is None:
-            leave_out_inds = np.arange(m)
+            leave_out_inds = [[i] for i in np.arange(m)]
         w_cv = []
+        x_cv = []
+        t_cv = []
         for li in leave_out_inds:
+            fit_inds = [i for i in np.arange(m) if i not in li]
             sub_model = copy.deepcopy(orig_model)
-            sub_model.data.zt = sub_model.data.zt[np.arange(m) != li, :]
-            sub_model.num.m = sum(np.arange(m) != li)
-            ztDist = SepiaDistCov(sub_model.data.zt)
+            # Subset zt to fit inds, update ztDist
+            sub_model.data.zt = sub_model.data.zt[fit_inds, :]
+            sub_model.num.m = len(fit_inds)
             sub_model.num.ztDist = SepiaDistCov(sub_model.data.zt)
-            self.xpred = sub_model.data.sim_data.x_trans[li, :][None, :]
-            self.t_pred = sub_model.data.sim_data.t_trans[li, :][None, :]
+            # Subset x/t to predict inds
+            self.xpred = sub_model.data.sim_data.x_trans[li, :]
+            self.t_pred = sub_model.data.sim_data.t_trans[li, :]
+            # Set up sub model and call wPred
             self.model = sub_model
             wPred(self)
             w_cv.append(self.w)
+            x_cv.append(self.xpred)
+            t_cv.append(self.t_pred)
         self.w = np.concatenate(w_cv, axis=1)
-        self.xpred = orig_model.data.sim_data.x_trans
-        self.t_pred = orig_model.data.sim_data.t_trans
+        self.xpred = np.concatenate(x_cv, axis=0)
+        self.t_pred = np.concatenate(t_cv, axis=0)
+
 
 class SepiaFullPrediction(SepiaPrediction):
     '''
