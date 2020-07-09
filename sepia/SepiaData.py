@@ -322,10 +322,12 @@ class SepiaData(object):
                 plt.legend()
                 plt.show()
 
-    def plot_K_weights(self):
+    def plot_K_weights(self,max_u_plot=5,plot_sep=False):
         """
         Plots K basis weights for both sim and obs data (if applicable).
 
+        :param max_u_plot: int -- optional max number of u's for which to plot vertical line over histogram of w's
+        :param plot_sep: bool -- histogram w's and u's seperately
         """
         if self.scalar_out:
             print('Scalar output, no K weights to plot.')
@@ -335,69 +337,123 @@ class SepiaData(object):
                 ncol = 5
                 nrow = int(np.ceil(pu / ncol))
                 w = np.dot(np.linalg.pinv(self.sim_data.K).T, self.sim_data.y_std.T).T
-                fig, axs = plt.subplots(nrow,ncol,figsize=(10, 2*nrow))
-                fig.tight_layout()
-                for i,ax in enumerate(axs.flatten()):
-                    if(i < w.shape[1]):
-                        w_abs_max = max(w[:,i].min(), w[:,i].max(), key=abs)
-                        ax.set_xlim([-w_abs_max,w_abs_max])
-                        ax.set_xlabel('PC %d wt : w' % (i+1))
-                        ax.hist(w[:,i])
-                    else:
-                        ax.axis('off')
-                plt.show()
 
-            if not self.obs_data.K is None:
-                pu = self.obs_data.K.shape[0]
-                if self.obs_data.D is None:
-                    pv = 0
-                    DK = self.obs_data.K
-                    DKridge = 1e-6 * np.diag(np.ones(pu + pv))  # (pu+pv, pu+pv)
-                    Lamy = np.eye(self.obs_data.y_ind.shape[0])
-                    DKprod = np.linalg.multi_dot([DK, Lamy, DK.T])  # (pu+pv, pu+pv)
-                    u = np.dot(np.linalg.inv(DKprod + DKridge), np.linalg.multi_dot([DK, Lamy, self.obs_data.y_std.T])).T
-                    ncol = 5
-                    nrow = int(np.ceil(pu / ncol))
-                    fig, axs = plt.subplots(nrow,ncol,figsize=(10,2*nrow))
-                    fig.tight_layout()
-                    for i,ax in enumerate(axs.flatten()):
-                        if i < u.shape[1]:
-                            ax.hist(u[:,i])
-                            ax.set_xlabel('PC %d wt : u' % (i+1))
-                        else:
-                            ax.axis('off')
-                    plt.show()
-                else:
-                    pv = self.obs_data.D.shape[0]
-                    DK = np.concatenate([self.obs_data.D, self.obs_data.K])  # (pu+pv, ell_obs)
-                    DKridge = 1e-6 * np.diag(np.ones(pu + pv))  # (pu+pv, pu+pv)
-                    Lamy = np.eye(self.obs_data.y_ind.shape[0])
-                    DKprod = np.linalg.multi_dot([DK, Lamy, DK.T])  # (pu+pv, pu+pv)
-                    vu = np.dot(np.linalg.inv(DKprod + DKridge), np.linalg.multi_dot([DK, Lamy, self.obs_data.y_std.T]))
-                    v = vu[:pv, :].T
-                    u = vu[pv:, :].T
-                    ncol = 5
-                    nrow = int(np.ceil(pu / ncol))
-                    fig, axs = plt.subplots(nrow,ncol,figsize=(10,2*nrow))
-                    fig.tight_layout()
-                    for i,ax in enumerate(axs.flatten()):
-                        if i < u.shape[1]:
-                            ax.hist(u[:,i])
-                            ax.set_xlabel('PC %d wt : u' % (i+1))
-                        else:
-                            ax.axis('off')
-                    plt.show()
-                    
-                    nrow = int(np.ceil(pv / ncol))
-                    fig, axs = plt.subplots(nrow,ncol,figsize=(10,2*nrow))
-                    fig.tight_layout()
-                    for i,ax in enumerate(axs.flatten()):
-                        if i < v.shape[1]:
-                            ax.hist(v[:,i])
-                            ax.set_xlabel('D %d wt : v' % (i+1))
-                        else:
-                            ax.axis('off')
-                    plt.show()
+                fig, axs = plt.subplots(nrow,ncol,figsize=(10,2*nrow))
+                fig.tight_layout()
+
+                if not self.obs_data.K is None:
+                    pu = self.obs_data.K.shape[0]
+
+                    # No D
+                    if self.obs_data.D is None:
+                        pv = 0
+                        DK = self.obs_data.K
+                        DKridge = 1e-6 * np.diag(np.ones(pu + pv))  # (pu+pv, pu+pv)
+                        Lamy = np.eye(self.obs_data.y_ind.shape[0])
+                        DKprod = np.linalg.multi_dot([DK, Lamy, DK.T])  # (pu+pv, pu+pv)
+                        u = np.dot(np.linalg.inv(DKprod + DKridge), np.linalg.multi_dot([DK, Lamy, self.obs_data.y_std.T])).T
+                        nrow = int(np.ceil(pu / ncol))
+                        if u.shape[1] == w.shape[1] and not plot_sep:
+                            for i,ax in enumerate(axs.flatten()):
+                                if i < w.shape[1]:
+                                    limit = abs(max(max(w[:,i].min(), w[:,i].max(), key=abs),\
+                                                  max(u[:,i].min(), u[:,i].max(), key=abs), key=abs))
+                                    ax.set_xlim([-1.1*limit,1.1*limit])
+                                    bins_uw = np.linspace(-limit,limit,15,endpoint=True)
+                                    ax.set_xlabel('PC %d wt' % (i+1))
+                                    ax.set_xlim([-limit,limit])
+                                    ax.hist(w[:,i],bins=bins_uw,label='w',density=True)
+                                    #ax.hist(u[:,i],bins=bins_uw,alpha=.75,color='darkorange',label='u',density=True)
+                                    for j in range(min(u.shape[0],max_u_plot)): 
+                                        ax.axvline(u[j,i],color='darkorange',label='u' if j==0 else '_')
+                                    ax.legend(prop={'size': 6})
+                                else:
+                                    ax.axis('off')
+                            plt.show()
+                        else: # do u and w independently
+                            # w
+                            for i,ax in enumerate(axs.flatten()):
+                                if i < w.shape[1]:
+                                    w_abs_max = max(w[:,i].min(), w[:,i].max(), key=abs)
+                                    ax.set_xlim([-1.1*w_abs_max,1.1*w_abs_max])
+                                    ax.set_xlabel('PC %d wt : w' % (i+1))
+                                    ax.hist(w[:,i],density=True)
+                                else:
+                                    ax.axis('off')
+                            plt.show()
+                            # u
+                            pu = self.obs_data.K.shape[0]
+                            nrow = int(np.ceil(pu / ncol))
+                            fig, axs = plt.subplots(nrow,ncol,figsize=(10,2*nrow))
+                            fig.tight_layout()
+                            for i,ax in enumerate(axs.flatten()):
+                                if i < u.shape[1]:
+                                    ax.hist(u[:,i],density=True)
+                                    ax.set_xlabel('PC %d wt : u' % (i+1))
+                                else:
+                                    ax.axis('off')
+                            plt.show()
+                    else: # D
+                        pv = self.obs_data.D.shape[0]
+                        DK = np.concatenate([self.obs_data.D, self.obs_data.K])  # (pu+pv, ell_obs)
+                        DKridge = 1e-6 * np.diag(np.ones(pu + pv))  # (pu+pv, pu+pv)
+                        Lamy = np.eye(self.obs_data.y_ind.shape[0])
+                        DKprod = np.linalg.multi_dot([DK, Lamy, DK.T])  # (pu+pv, pu+pv)
+                        vu = np.dot(np.linalg.inv(DKprod + DKridge), np.linalg.multi_dot([DK, Lamy, self.obs_data.y_std.T]))
+                        v = vu[:pv, :].T
+                        u = vu[pv:, :].T
+                        if u.shape[1] == w.shape[1] and not plot_sep:
+                            for i,ax in enumerate(axs.flatten()):
+                                if i < w.shape[1]:
+                                    limit = abs(max(max(w[:,i].min(), w[:,i].max(), key=abs),\
+                                                  max(u[:,i].min(), u[:,i].max(), key=abs), key=abs))
+                                    ax.set_xlim([-1.1*limit,1.1*limit])
+                                    bins_uw = np.linspace(-limit,limit,15,endpoint=True)
+                                    ax.set_xlabel('PC %d wt' % (i+1))
+                                    ax.hist(w[:,i],bins=bins_uw,label='w',density=True)
+                                    #ax.hist(u[:,i],bins=bins_uw,alpha=.75,color='darkorange',label='u',density=True)
+                                    for j in range(min(u.shape[0],max_u_plot)): 
+                                        ax.axvline(u[j,i],color='darkorange',label='u' if j==0 else '_')
+                                    ax.legend(prop={'size': 6})
+                                else:
+                                    ax.axis('off')
+                            plt.show()
+
+                        else: # do u and w independently
+                            # w
+                            for i,ax in enumerate(axs.flatten()):
+                                if i < w.shape[1]:
+                                    w_abs_max = max(w[:,i].min(), w[:,i].max(), key=abs)
+                                    ax.set_xlim([-1.1*w_abs_max,1.1*w_abs_max])
+                                    ax.set_xlabel('PC %d wt : w' % (i+1))
+                                    ax.hist(w[:,i],density=True)
+                                else:
+                                    ax.axis('off')
+                            plt.show()
+                            # u
+                            pu = self.obs_data.K.shape[0]
+                            nrow = int(np.ceil(pu / ncol))
+                            fig, axs = plt.subplots(nrow,ncol,figsize=(10,2*nrow))
+                            fig.tight_layout()
+                            for i,ax in enumerate(axs.flatten()):
+                                if i < u.shape[1]:
+                                    ax.hist(u[:,i],density=True)
+                                    ax.set_xlabel('PC %d wt : u' % (i+1))
+                                else:
+                                    ax.axis('off')
+                            plt.show()
+
+                        # V
+                        nrow = int(np.ceil(pv / ncol))
+                        fig, axs = plt.subplots(nrow,ncol,figsize=(10,2*nrow))
+                        fig.tight_layout()
+                        for i,ax in enumerate(axs.flatten()):
+                            if i < v.shape[1]:
+                                ax.hist(v[:,i],density=True)
+                                ax.set_xlabel('D %d wt : v' % (i+1))
+                            else:
+                                ax.axis('off')
+                        plt.show()
 
     def plot_K_residuals(self):
         """
