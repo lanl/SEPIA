@@ -1,5 +1,8 @@
 ### Example notebooks
 
+These notebooks demonstrate various use cases.
+For a fast orientation, use `univariate_example.ipynb`, but see the other examples for handling multivariate-output data.
+
 #### `univariate_example.ipynb`
 A simple synthetic-data example where the response variable is univariate.
 Demonstrates setting up the model, doing MCMC, and doing predictions.
@@ -17,4 +20,4 @@ that might be observed from dropping balls off of a tower.
 
 #### Al_5083
 A real data example using features extracted from velocimetry curves in a flyer plate impact
-experiment involving aluminum.
+experiment involving aluminum. (Notebook not well explained yet)
