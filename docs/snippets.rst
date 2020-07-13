@@ -9,7 +9,13 @@ Unlike notebooks, these are not self-contained examples, but are meant to be a q
 
 :ref:`SepiaData operations`
 
-:ref:`Setup model and customize`
+:ref:`Set up model`
+
+:ref:`Customize and run MCMC`
+
+:ref:`Extracting MCMC samples`
+
+:ref:`Making predictions`
 
 
 SepiaData inputs
@@ -97,20 +103,25 @@ If the outputs are multivariate, we want to set up a principal component (PC) ba
     data.create_D_basis(D=D)            # Pass in custom D basis
 
 
-Setup model and customize
--------------------------
+Setup model
+-----------
 
 Once the data structure is set up correctly, the inputs are in the unit hypercube, the outputs are standardized,
 and basis vectors are created (for multivariate output), we are ready to set up the Sepia model::
 
     from SepiaModelSetup import setup_model
     model = setup_model(data)
+    print(model)
 
 The model parses the `SepiaData` structure to understand what kind of model is being set up and does a lot of
 precomputation of various quantities to prepare for likelihood evaluations.
 It also sets up default priors, MCMC step types and step sizes, and default starting values for MCMC.
 
-These can be customized after calling `setup_model`.
+
+Customize and run MCMC
+----------------------
+
+After calling `setup_model`, various aspects of the MCMC can be customized prior to doing MCMC.
 
 Custom start values
 ^^^^^^^^^^^^^^^^^^^
@@ -122,3 +133,41 @@ Prior to running MCMC, these can be directly modified using the `set_val` method
     model.params.theta.set_val(0.7)
     # Or pass an array of shape model.params.theta.val_shape
     model.params.theta.set_val(np.array([[0.7, 0.5, 0.1]]))
+
+
+Change prior distribution and prior parameters
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+
+Change MCMC step sizes or step types
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+
+Automatic MCMC step size tuning
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+
+Run MCMC or add more samples
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+
+Saving MCMC chains periodically
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+
+Extracting MCMC samples
+-----------------------
+
+
+Making predictions
+------------------
+
+Native vs standardized
+^^^^^^^^^^^^^^^^^^^^^^
+
+Types of predictions
+^^^^^^^^^^^^^^^^^^^^
+
+Cross-validation
+^^^^^^^^^^^^^^^^
+
