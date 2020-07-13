@@ -456,18 +456,16 @@ class SepiaData(object):
                                 ax.axis('off')
                         plt.show()
     
-    def plot_u_w_pairs(self):
+    def plot_u_w_pairs(self,max_plots=5):
         if self.scalar_out:
             print('Scalar output, no K weights to plot.')
         else:
+            print('Plotting up to',max_plots,'pairs. Change with parameter \'max_plots\'')
             if not self.sim_data.K is None:
                 pu = self.sim_data.K.shape[0]
                 ncol = 5
                 nrow = int(np.ceil(pu / ncol))
                 w = np.dot(np.linalg.pinv(self.sim_data.K).T, self.sim_data.y_std.T).T
-                col_names = []
-                for i in range(w.shape[1]): col_names.append('w{}'.format(i+1))
-                w_df = pd.DataFrame(data=w,columns=col_names)
                 
                 if not self.obs_data.K is None:
                     pu = self.obs_data.K.shape[0]
@@ -490,14 +488,21 @@ class SepiaData(object):
                         v = vu[:pv, :].T
                         u = vu[pv:, :].T
 
-                    lims = np.maximum(np.max(np.abs(w),axis=0),np.max(np.abs(u),axis=0))*1.1
+                    # change u,w to match max_plots
+                    if w.shape[1]>max_plots: w = w[:,0:max_plots]
+                    col_names = []
+                    for i in range(w.shape[1]): col_names.append('w{}'.format(i+1))
+                    w_df = pd.DataFrame(data=w,columns=col_names)
+                    if u.shape[1]>max_plots: u = u[:,0:max_plots]
+                        
+                    lims = max(np.maximum(np.max(np.abs(w),axis=0),np.max(np.abs(u),axis=0))*1.1)
                     with sns.plotting_context("notebook", font_scale=1):
                         g = sns.PairGrid(w_df)
                         g.map_diag(sns.distplot)
                         g.map_offdiag(sns.scatterplot)
                         for i in range(g.axes.shape[1]): # rows
                             for j in range(g.axes.shape[0]): # columns
-                                g.axes[i,j].set_xlim(-lims[j],lims[j]); g.axes[i,j].set_ylim(-lims[j],lims[j])
+                                g.axes[i,j].set_xlim(-lims,lims); g.axes[i,j].set_ylim(-lims,lims)
                                 if i == j:
                                     for k in range(u.shape[0]):
                                         g.axes[i,i].axvline(u[k,i],color='darkorange',label='u{}'.format(i+1) if k==0 else "_")
