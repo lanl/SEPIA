@@ -17,6 +17,10 @@ Unlike notebooks, these are not self-contained examples, but are meant to be a q
 
 :ref:`Making predictions`
 
+:ref:`Hierarchical or shared theta models`
+
+:ref:`SepiaPlot visualization utilities`
+
 
 SepiaData inputs
 ----------------
@@ -103,8 +107,8 @@ If the outputs are multivariate, we want to set up a principal component (PC) ba
     data.create_D_basis(D=D)            # Pass in custom D basis
 
 
-Setup model
------------
+Set up model
+------------
 
 Once the data structure is set up correctly, the inputs are in the unit hypercube, the outputs are standardized,
 and basis vectors are created (for multivariate output), we are ready to set up the Sepia model::
@@ -171,3 +175,10 @@ Types of predictions
 Cross-validation
 ^^^^^^^^^^^^^^^^
 
+
+Hierarchical or shared theta models
+-----------------------------------
+
+
+SepiaPlot visualization utilities
+---------------------------------
