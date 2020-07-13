@@ -293,10 +293,11 @@ class SepiaData(object):
                     self.obs_data.D /= np.sqrt(np.max(np.dot(self.obs_data.D, self.obs_data.D.T)))
 
     # Below are some initial attempts at visualization, should expand/fix
-    def plot_K_basis(self):
+    def plot_K_basis(self,max_plots=4):
         """
         Plots K basis elements for both sim and obs indices (if applicable).
 
+        :param max_plots: int -- maximum number of principle components to plot
         """
         if self.scalar_out:
             print('Scalar output, no K basis to plot.')
@@ -304,24 +305,53 @@ class SepiaData(object):
             if not self.sim_data.K is None:
                 pu = self.sim_data.K.shape[0]
                 ncol = 5
-                nrow = np.ceil(pu / ncol)
-                fig, axs = plt.subplots(1,pu,figsize=(8, 2 * nrow))
+                nrow = int(np.ceil((min(pu,max_plots) + 1) / ncol)) # add 1 for mean line
+                fig, axs = plt.subplots(nrow,ncol,figsize=(12, 2 * nrow))
                 fig.tight_layout()
-                for i,ax in enumerate(axs):
-                    ax.plot(self.sim_data.y_ind, self.sim_data.K[i,:])
-                    ax.set_title('PC %d' % (i+1))
-                    ax.set_xlabel('sim y_ind')
-                    if i == 0: ax.set_ylabel('sim K basis')
-
-            if not self.obs_data.K is None:
-                plt.figure(2)
-                for i in range(self.obs_data.K.T.shape[1]):
-                    plt.plot(self.obs_data.y_ind, self.obs_data.K.T[:,i], '--o',label='PC {}'.format(i+1))
-                plt.xlabel('obs y_ind')
-                plt.ylabel('obs K basis')
-                plt.xticks(self.obs_data.y_ind)
-                plt.legend()
+                for i,ax in enumerate(axs.flatten()):
+                    if i == 0: # plot mean line
+                        ax.plot(self.sim_data.y_ind, np.mean(self.sim_data.K,axis=0))
+                        ax.set_title('sim mean')
+                        ax.set_ylabel('sim K basis')
+                        ax.set_xlabel('sim y_ind')
+                    elif i < pu+1:
+                        ax.plot(self.sim_data.y_ind, self.sim_data.K.T[:,i-1])
+                        ax.set_title('PC %d' % (i))
+                        ax.set_xlabel('sim y_ind')
+                    else:
+                        ax.axis('off')          
                 plt.show()
+                
+            if not self.obs_data.K is None:    
+                pu = self.obs_data.K.shape[0]
+                ncol = 5
+                nrow = int(np.ceil((min(pu,max_plots) + 1) / ncol)) # add 1 for mean line
+                fig, axs = plt.subplots(nrow,ncol,figsize=(12, 2 * nrow))
+                fig.tight_layout()
+                for i,ax in enumerate(axs.flatten()):
+                    if i == 0: # plot mean line
+                        ax.plot(self.obs_data.y_ind, np.mean(self.obs_data.K,axis=0))
+                        ax.set_title('obs mean')
+                        ax.set_ylabel('obs K basis')
+                        ax.set_xlabel('obs y_ind')
+                    elif i < pu+1:
+                        ax.plot(self.obs_data.y_ind, self.obs_data.K.T[:,i-1])
+                        ax.set_title('PC %d' % (i))
+                        ax.set_xlabel('obs y_ind')
+                    else:
+                        ax.axis('off')
+                plt.show()
+                
+            #if not self.obs_data.K is None:
+            #    K_obs_mean = np.mean(self.obs_data.K,axis=0)
+            #    for i in range(self.obs_data.K.T.shape[1]):
+            #        plt.plot(self.obs_data.y_ind, self.obs_data.K.T[:,i], '-o',label='PC {}'.format(i+1))
+            #    plt.plot(self.obs_data.y_ind,K_obs_mean,'--o',label='obs mean')
+            #    plt.xlabel('obs y_ind')
+            #    plt.ylabel('obs K basis')
+            #    plt.xticks(self.obs_data.y_ind)
+            #    plt.legend()
+            #    plt.show()
 
     def plot_K_weights(self,max_u_plot=5,plot_sep=False):
         """
@@ -457,6 +487,11 @@ class SepiaData(object):
                         plt.show()
     
     def plot_u_w_pairs(self,max_plots=5):
+        """
+        Plots principle component basis weights for both sim and obs data (if applicable).
+
+        :param max_plots: int -- optional max number of principle components to plot
+        """
         if self.scalar_out:
             print('Scalar output, no K weights to plot.')
         else:
