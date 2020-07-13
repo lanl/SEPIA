@@ -1,5 +1,5 @@
 Welcome to Sepia!
-*****************
+=================
 .. automodule:: sepia
     :members:
 
@@ -12,7 +12,7 @@ Sepia is a python implementation of `GPMSA`_.
 
 .. _GPMSA: https://github.com/lanl/gpmsa
 
-.. topic:: Overview
+.. topic:: What is Sepia?
 
     Sepia implements Bayesian emulation and calibration with the ability to handle multivariate outputs.
 
@@ -23,6 +23,13 @@ Sepia is a python implementation of `GPMSA`_.
 .. _here: https://github.com/lanl/SEPIA/tree/master/sepia/Examples
 
 .. _GitHub: https://github.com/lanl/SEPIA
+
+.. topic:: Quickstart code snippets
+
+    We recommend reading through and following the notebook examples to learn how to use Sepia.
+
+    Looking for some tips on how to do common tasks? See :ref:`helpful-code-snippets`.
+
 
 API
 ***
