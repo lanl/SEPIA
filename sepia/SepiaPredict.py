@@ -121,9 +121,10 @@ class SepiaEmulatorPrediction(SepiaPrediction):
 
 class SepiaXvalEmulatorPrediction(SepiaEmulatorPrediction):
 
-    def __init__(self, leave_out_inds=None, *args, **kwrds):
+    def __init__(self, leave_out_inds=None, model=None, *args, **kwrds):
         import copy
-        super(SepiaXvalEmulatorPrediction, self).__init__(do_call=False, *args, **kwrds)
+        super(SepiaXvalEmulatorPrediction, self).__init__(do_call=False, x_pred=model.data.sim_data.x_trans,
+                                                          t_pred=model.data.sim_data.t_trans, model=model, *args, **kwrds)
         m = self.model.num.m
         orig_model = copy.deepcopy(self.model)
         # By default, leave out inds is just each simulation in turn; it is a list of lists
