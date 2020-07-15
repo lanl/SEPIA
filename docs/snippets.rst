@@ -4,6 +4,7 @@ Helpful Code Snippets
 =====================
 
 Unlike notebooks, these are not self-contained examples, but are meant to be a quick reference for specific tasks.
+These are not necessarily exhaustive examples; see full class documentation for all possible arguments and options.
 
 :ref:`SepiaData inputs`
 
@@ -139,46 +140,167 @@ Prior to running MCMC, these can be directly modified using the `set_val` method
     model.params.theta.set_val(np.array([[0.7, 0.5, 0.1]]))
 
 
+Fixing subsets of parameters
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+It may sometimes be desirable to fix the values of certain parameters.
+The `fixed` attribute of `SepiaParam` is a boolean array of size `val_shape` (all `False` by default)::
+
+    model.params.lamWOs.fixed = np.array([[True, False]])
+
 Change prior distribution and prior parameters
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Currently, there are only four distributions supported for priors: Normal, Gamma, Beta, and Uniform.
+*Note*: this user interface will probably change to be more extendable and user-friendly.
+After calling `setup_model`, we can modify priors as follows::
+
+    prior_dist_name = 'Normal'
+    prior_mu = 0.1
+    prior_sd = 2.0
+    prior_bounds = [0, 1]
+    model.params.theta.prior = SepiaPrior(model.params.theta, dist=prior_dist_name, params=[prior_mu, prior_sd],
+                                          bounds=prior_bounds)
+
+
 
 
 Change MCMC step sizes or step types
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+You can manually change MCMC step types or step sizes::
+
+    model.params.theta.mcmc.stepType = 'Uniform'
+    model.params.theta.mcmc.stepParam = np.array([[0.5, 0.1, 0.3]])
+
 
 Automatic MCMC step size tuning
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Automatic step size tuning based on YADAS::
+
+    model.tune_step_sizes(n_burn, n_levels)
 
 
 Run MCMC or add more samples
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+To do MCMC sampling, call `do_mcmc`::
+
+    model.do_mcmc(500)
+
+To append more samples to the current samples, you can call it again::
+
+    model.do_mcmc(500) # Now has 1000 total samples
+
 
 Saving MCMC chains periodically
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+We will build some functions to handle this more smoothly, but for now you could do something like::
+
+    import pickle
+    for chunk in range(10):
+        model.do_mcmc(500)
+        with open('samples%d.pkl' % chunk, 'wb') as f:
+            pickle.dump(model.get_samples(numsamples=500), f)
+
 
 
 Extracting MCMC samples
 -----------------------
 
+To extract MCMC samples to a dictionary format::
+
+    # Select a fixed set of samples
+    model.get_samples(nburn=0, sampleset=np.arange(100), flat=True, includelogpost=True)
+
+    # Select a fixed number of samples
+    model.get_samples(nburn=0, numsamples=200, flat=True, includelogpost=True)
+
+    # Discarding nburn samples
+    model.get_samples(nburn=50, numsamples=200, flat=True, includelogpost=True)
+
+    # Keep samples in array format rather than flattening along parameter dimensions
+    model.get_samples(nburn=50, numsamples=200, flat=False)
+
 
 Making predictions
 ------------------
 
-Native vs standardized
+To make predictions, use the :ref:`sepiapredict` class.
+There are different types of predictions, and predictions can be made
+in the model space (w, u, v) or output space (y), with or without standardization.
+
+Emulator predictions
+^^^^^^^^^^^^^^^^^^^^
+
+To predict from the emulator (eta portion of model), first set up the `SepiaEmulatorPrediction` object::
+
+    # Provide input settings to predict at
+    x_pred = np.linspace(0,1,9).reshape((9,1))
+    t_pred = np.tile(np.array([1,0,1]).reshape(1,3),(9,1))
+    pred_samples = model.get_samples(numsamples=10)
+    pred = SepiaEmulatorPrediction(x_pred=x_pred, samples=pred_samples, model=model, t_pred=t_pred)
+
+To get w::
+
+    predw = pred.get_w()
+
+To get y on the standardized scale::
+
+    predystd = pred.get_y_standardized()
+
+To get y on the native (original) scale::
+
+    predystd = pred.get_y_standardized()
+
+
+Full model predictions
 ^^^^^^^^^^^^^^^^^^^^^^
 
-Types of predictions
-^^^^^^^^^^^^^^^^^^^^
+To predict from full model (including observation noise, and discrepancy, if applicable)::
+
+    x_pred = np.linspace(0,1,9).reshape(9,1)
+    pred_samples = model.get_samples(numsamples=7)
+    pred = SepiaFullPrediction(x_pred, pred_samples, model)
+
+To get u, v::
+
+    predu, predv = pred.get_u_v()
+
+To get discrepancy::
+
+    preddstd = pred.get_discrepancy_standardized() # Standardized scale
+    predd = pred.get_discrepancy_native()          # Native/original scale
+
+To get y::
+    predysimstd = pred.get_ysim_standardized() # Standardized scale
+    predyobs=pred.get_yobs_native()            # Native/original scale
 
 Cross-validation
 ^^^^^^^^^^^^^^^^
+
+By default, leave-one-out cross validation is done on the emulator model::
+
+    pred_samples = model.get_samples(numsamples=10)
+    CVpred = SepiaXvalEmulatorPrediction(samples=pred_samples, model=model)
+
+You can also provide custom sets of indices to leave out in turn, such as leaving out chunks of 10 examples at a time,
+and you can add residual variance to the predictions::
+
+        leave_out_inds = np.array_split(np.arange(m), 5)
+        pred_samples = model.get_samples(numsamples=7)
+        CVpred = SepiaXvalEmulatorPrediction(samples=pred_samples, model=model, leave_out_inds=leave_out_inds, addResidVar=True)
 
 
 Hierarchical or shared theta models
 -----------------------------------
 
+Coming soon
+
 
 SepiaPlot visualization utilities
 ---------------------------------
+
+Coming soon
