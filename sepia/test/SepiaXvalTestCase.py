@@ -65,9 +65,7 @@ class SepiaXvalTestCase(unittest.TestCase):
 
         # Call with default leave out inds (leave each out in turn)
         pred_samples = model.get_samples(numsamples=7)
-        CVpred = SepiaXvalEmulatorPrediction(samples=pred_samples, model=model,
-                                             x_pred=model.data.sim_data.x_trans,
-                                             t_pred=model.data.sim_data.t_trans) # Note: don't really need x_pred, t_pred...
+        CVpred = SepiaXvalEmulatorPrediction(samples=pred_samples, model=model)
         w_pred = CVpred.get_w()
         y_pred_std = CVpred.get_y_standardized()
         y_pred_nat = CVpred.get_y_native()
@@ -75,9 +73,7 @@ class SepiaXvalTestCase(unittest.TestCase):
         # Call with custom leave out inds 1
         loo_inds = [[i] for i in np.arange(1, model.num.m, 20)]
         pred_samples = model.get_samples(numsamples=7)
-        CVpred = SepiaXvalEmulatorPrediction(samples=pred_samples, model=model, leave_out_inds=loo_inds,
-                                             x_pred=model.data.sim_data.x_trans,
-                                             t_pred=model.data.sim_data.t_trans) # Note: don't really need x_pred, t_pred...
+        CVpred = SepiaXvalEmulatorPrediction(samples=pred_samples, model=model, leave_out_inds=loo_inds)
         w_pred = CVpred.get_w()
         y_pred_std = CVpred.get_y_standardized()
         y_pred_nat = CVpred.get_y_native()
@@ -85,9 +81,7 @@ class SepiaXvalTestCase(unittest.TestCase):
         # Call with custom leave out inds 2
         loo_inds = [[1,2,3,4], [7,6,5], [20]]
         pred_samples = model.get_samples(numsamples=7)
-        CVpred = SepiaXvalEmulatorPrediction(samples=pred_samples, model=model, leave_out_inds=loo_inds,
-                                             x_pred=model.data.sim_data.x_trans,
-                                             t_pred=model.data.sim_data.t_trans) # Note: don't really need x_pred, t_pred...
+        CVpred = SepiaXvalEmulatorPrediction(samples=pred_samples, model=model, leave_out_inds=loo_inds)
         w_pred = CVpred.get_w()
         y_pred_std = CVpred.get_y_standardized()
         y_pred_nat = CVpred.get_y_native()
@@ -101,14 +95,12 @@ class SepiaXvalTestCase(unittest.TestCase):
 
         model = self.multi_sim_only_model
 
-        model.tune_step_sizes(50, 10)
-        model.do_mcmc(100)
+        model.tune_step_sizes(10, 10)
+        model.do_mcmc(10)
 
         # Call with default leave out inds (leave each out in turn)
         pred_samples = model.get_samples(numsamples=7)
-        CVpred = SepiaXvalEmulatorPrediction(samples=pred_samples, model=model,
-                                             x_pred=model.data.sim_data.x_trans,
-                                             t_pred=model.data.sim_data.t_trans)  # Note: don't really need x_pred, t_pred...
+        CVpred = SepiaXvalEmulatorPrediction(samples=pred_samples, model=model)
         w_pred = CVpred.get_w()
         y_pred_std = CVpred.get_y_standardized()
         y_pred_nat = CVpred.get_y_native()
@@ -116,9 +108,7 @@ class SepiaXvalTestCase(unittest.TestCase):
         # Call with custom leave out inds 1
         loo_inds = [[i] for i in np.arange(1, model.num.m, 20)]
         pred_samples = model.get_samples(numsamples=7)
-        CVpred = SepiaXvalEmulatorPrediction(samples=pred_samples, model=model, leave_out_inds=loo_inds,
-                                             x_pred=model.data.sim_data.x_trans,
-                                             t_pred=model.data.sim_data.t_trans)  # Note: don't really need x_pred, t_pred...
+        CVpred = SepiaXvalEmulatorPrediction(samples=pred_samples, model=model, leave_out_inds=loo_inds)
         w_pred = CVpred.get_w()
         y_pred_std = CVpred.get_y_standardized()
         y_pred_nat = CVpred.get_y_native()
@@ -126,9 +116,7 @@ class SepiaXvalTestCase(unittest.TestCase):
         # Call with custom leave out inds 2
         loo_inds = [[1, 2, 3, 4], [7, 6, 5], [20]]
         pred_samples = model.get_samples(numsamples=7)
-        CVpred = SepiaXvalEmulatorPrediction(samples=pred_samples, model=model, leave_out_inds=loo_inds,
-                                             x_pred=model.data.sim_data.x_trans,
-                                             t_pred=model.data.sim_data.t_trans)  # Note: don't really need x_pred, t_pred...
+        CVpred = SepiaXvalEmulatorPrediction(samples=pred_samples, model=model, leave_out_inds=loo_inds)
         w_pred = CVpred.get_w()
         y_pred_std = CVpred.get_y_standardized()
         y_pred_nat = CVpred.get_y_native()
