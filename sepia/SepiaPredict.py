@@ -126,6 +126,7 @@ class SepiaXvalEmulatorPrediction(SepiaEmulatorPrediction):
         super(SepiaXvalEmulatorPrediction, self).__init__(do_call=False, x_pred=model.data.sim_data.x_trans,
                                                           t_pred=model.data.sim_data.t_trans, model=model, *args, **kwrds)
         m = self.model.num.m
+        pu = self.model.num.pu
         orig_model = copy.deepcopy(self.model)
         # By default, leave out inds is just each simulation in turn; it is a list of lists
         if leave_out_inds is None:
@@ -143,8 +144,11 @@ class SepiaXvalEmulatorPrediction(SepiaEmulatorPrediction):
             # Subset x/t to predict inds
             self.xpred = sub_model.data.sim_data.x_trans[li, :]
             self.t_pred = sub_model.data.sim_data.t_trans[li, :]
-            # Subset w's
-            sub_model.num.w = sub_model.num.w[fit_inds, :]
+            # Subset w's -- need to index for each pu
+            w_inds = np.zeros(m)
+            w_inds[fit_inds] = 1
+            w_inds = np.tile(w_inds, pu)
+            sub_model.num.w = sub_model.num.w[w_inds == 1, :]
             # Set up sub model and call wPred
             self.model = sub_model
             wPred(self)
