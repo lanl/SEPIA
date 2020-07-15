@@ -7,6 +7,9 @@ This will be the python version of [GPMSA](https://github.com/lanl/gpmsa)
 Basic functionality (model setup, likelihood evaluation, and mcmc sampling, multivariate calibration, predictions) is complete and has been tested against GPMSA matlab.
 Some features are untested or still being developed (like auto step size tuning and sensitivity analysis).
 
+Users should pull the newest code frequently, particularly if you encounter errors.
+If you have installed using the instructions below, you should not need to reinstall -- the updated code should automatically be tied into your existing sepia installation.
+
 ### Examples
 Basic usage is demonstrated in the Examples directory. 
 Follow one ofthese example, plugging in your own data.
