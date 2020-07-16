@@ -28,16 +28,21 @@ y_ind = np.arange(1, n_features+1)
 data = SepiaData(t_sim=design, y_sim=y_sim, y_ind_sim=y_ind, y_obs=y_obs, y_ind_obs=y_ind)
 data.standardize_y()
 data.transform_xt()
-data.create_K_basis(n_features)
+data.create_K_basis(n_features - 1)
 print(data)
 
 # Setup model
 # We have a known observation error
-Sigy = np.diag(np.squeeze((0.01 * np.ones(n_features) * y_obs)/data.sim_data.y_sd**2))
+Sigy = np.diag(np.squeeze((0.01 * np.ones(n_features) * y_obs)/data.sim_data.orig_y_sd**2))
 model = setup_model(data, Sigy)
 
+# Modify priors to match Matlab
+model.params.lamWs.prior.bounds[1] = np.inf
+model.params.lamWs.prior.params = [np.ones((1, 11)), np.zeros((1, 11))]
+
 # Do mcmc
-model.do_mcmc(5000)
+model.tune_step_sizes(100, 25)
+model.do_mcmc(10000)
 samples_dict = {p.name: p.mcmc_to_array(untransform_theta=True) for p in model.params.mcmcList}
 
 with open('data/sepia_mcmc_samples1-5000.pkl', 'wb') as f:
