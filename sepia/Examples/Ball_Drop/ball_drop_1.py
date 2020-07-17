@@ -6,10 +6,8 @@ Created on Tue Jun 30 16:07:42 2020
 @author: granthutchings
 """
 #%%
-import sys
-sys.path.append('/Users/granthutchings/opt/anaconda3/lib/python3.7/site-packages')
 import numpy as np
-import pyDOE # Latin Hypercube
+#import pyDOE # Latin Hypercube
 import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
@@ -17,11 +15,10 @@ from invertH import invertHsim, invertHtrue
 from sepia.SepiaModelSetup import setup_model
 from sepia.SepiaData import SepiaData
 from scipy.stats import norm
-from importlib import reload
 
 #%%
 # directory where data files should be written
-datadir = '/Users/granthutchings/Documents/LANL/SEPIA/sepia/Examples/Ball_Drop/data/'
+datadir = '/data/ball_drop_1'
 
 #%%
 # =============================================================================
@@ -276,8 +273,15 @@ data.plot_K_residuals()
 # Markov chain Monte Carlo (MCMC). Before performing MCMC, we call 
 # tune_step_sizes() to optimize proposal widths for each parameter.
 model = setup_model(data)
-model.tune_step_sizes(50, 20)
-model.do_mcmc(5000)
+cachefile_name='ball_drop_1.pkl'
+import os.path
+import pickle
+if os.path.isfile(cachefile_name):
+   model=pickle.load(open(cachefile_name, "rb" ))
+else:
+    model.tune_step_sizes(50, 20)
+    model.do_mcmc(5000)
+    pickle.dump(model, open( cachefile_name, "w+b" ))
 
 # Extract MCMC samples into dictionary with parameter names
 samples_dict = {p.name: p.mcmc_to_array(trim=1000,untransform_theta=True)\
@@ -297,3 +301,19 @@ for i, k in enumerate(samples_dict.keys()):
         plt.hist(samples_dict[k][:, j])
         plt.xlabel(k)
         print(k,np.mean(samples_dict[k][:, j]),np.std(samples_dict[k][:, j]))
+        
+#%% Rho box plots
+p = 1
+q = 1
+pu = 2
+# rho box plots
+bu = samples_dict['betaU']
+ru = np.exp(-bu / 4)
+for i in range(pu):
+    r = ru[:, ((p+q)*i):((p+q)*i)+(p+q)]
+    plt.boxplot(r)
+    plt.xticks([1,2],[r'$R_{ball}$','C'])
+    plt.yticks(np.arange(0,1.2,.2))
+    plt.ylabel(r'$\rho$')
+    plt.title('PC {}'.format(i+1))
+    plt.show()
