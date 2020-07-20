@@ -179,7 +179,7 @@ class SepiaModelSetupMultiOutputTestCase(unittest.TestCase):
         d.create_D_basis(type='constant')
         d.create_D_basis(type='linear')
         custom_D = np.vstack([np.ones(d.obs_data.y.shape[1]), d.obs_data.y_ind])
-        d.create_D_basis(D=custom_D)
+        d.create_D_basis(D_obs=custom_D)
         model = setup_model(d)
 
         # Check that either way gives same transformation
