@@ -57,7 +57,7 @@ def setup_model(data, Sigy=None, lamVzGroup=None):
         else:
             if not data.sim_only:
                 if data.ragged_obs:
-                    obs_K_shapes = [k.shape[0] for k in data.obs_data.K]
+                    obs_K_shapes = np.array([k.shape[0] for k in data.obs_data.K])
                     if not np.all(data.sim_data.K.shape[0] == obs_K_shapes):
                         raise ValueError('Sim and obs K shapes not conformal.')
                 else:
