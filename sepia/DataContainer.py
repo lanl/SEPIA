@@ -29,9 +29,9 @@ class DataContainer(object):
         """
         Initializes DataContainer object.
 
-        :param x: GP inputs (the ones known for both sim and obs), shape (n, p)
+        :param x: GP inputs (controllable/experimental conditions, ie the ones known for both sim and obs), shape (n, p)
         :param y: GP outputs, shape (n, ell) or list of 1D arrays for ragged observations
-        :param t: optional GP inputs (the ones known only for sim), shape (n, q)
+        :param t: optional GP inputs (not controllable, ie the ones known only for sim), shape (n, q)
         :param y_ind: optional y indices (needed if ell > 1) or list of 1D arrays for ragged observations
         """
         self.x = x

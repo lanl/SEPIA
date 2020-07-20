@@ -3,6 +3,7 @@
 
 
 import numpy as np
+import scipy.interpolate
 import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
@@ -19,12 +20,12 @@ class SepiaData(object):
 
     Many arguments are optional, but users should instantiate object with all data needed for the desired model.
 
-    :param x_sim: (n, p) matrix
-    :param t_sim: (n, q) matrix, can be None (BUT at least one of x_sim and t_sim must be provided)
-    :param y_sim: (n, ell_sim) matrix (REQUIRED)
-    :param y_ind_sim: (ell_sim, ) vector of indices for multivariate y
-    :param x_obs: (m, p) matrix
-    :param y_obs: (m, ell_obs) matrix or list length m of 1D arrays (for ragged y_ind_obs)
+    :param x_sim: nparray -- (n, p) matrix of controllable inputs/experimental conditions (optional)
+    :param t_sim: nparray -- (n, q) matrix of non-controllable inputs, can be None (at least one of x_sim and t_sim must be provided)
+    :param y_sim: nparray -- (n, ell_sim) matrix of outputs (REQUIRED)
+    :param y_ind_sim: nparray -- (ell_sim, ) vector of indices for multivariate y, required if ell_sim > 1
+    :param x_obs: nparray -- (m, p) matrix of controllable inputs for observation data (optional)
+    :param y_obs:  nparray -- (m, ell_obs) matrix of obs outputs, or list length m of 1D arrays (for ragged y_ind_obs)
     :param y_ind_obs: (l_obs, ) vector of indices for multivariate y or list length m of 1D arrays (for ragged y_ind_obs)
     :raises: TypeError if shapes not conformal or required data missing.
 
@@ -114,9 +115,10 @@ class SepiaData(object):
         Transforms sim_data x and t and obs_data x to lie in [xt_min, xt_max], columnwise.
 
         If min/max of inputs in a column are equal, it does nothing to that column.
+        Stores original min/max as orig_t_min/max, orig_x_min/max for untransforming.
 
-        :param xt_min: minimum x or t value
-        :param xt_max: maximum x or t value
+        :param xt_min: scalar -- minimum x or t value
+        :param xt_max: scalar -- maximum x or t value
         """
         def trans(x, a, b, x_min, x_max):
             a_vec = a * np.ones_like(x_min)
@@ -147,8 +149,12 @@ class SepiaData(object):
         """
         Standardizes both sim_data and obs_data GP outputs (y) based on sim_data.y mean/SD.
 
-        :param center: boolean -- whether to subtract simulation mean
-        :param scale: 'scalar', 'columnwise', or False -- how to rescale the data
+        Stores orig_y_mean, orig_y_sd for untransforming.
+
+        :param center: boolean -- whether to subtract simulation mean (across observations)
+        :param scale: string/boolean -- how to rescale: 'scalar': single SD over all demeaned data,
+                                                        'columnwise': SD for each column of demeaned data,
+                                                        False: no rescaling
         """
         if center:
             self.sim_data.orig_y_mean = np.mean(self.sim_data.y, 0)
@@ -199,7 +205,7 @@ class SepiaData(object):
         Creates K_sim and K_obs using PCA on sim_data.y_std; should be called after standardize_y.
 
         :param n_pc: float, int -- proportion in [0, 1] of variance, or an integer number of components
-        :param K: nparray -- optional, a basis matrix to use of shape (n_basis_elements, ell_sim)
+        :param K: nparray -- optional, a basis matrix on sim indices of shape (n_basis_elements, ell_sim)
         """
         if self.scalar_out:
             if n_pc == 1:
@@ -231,11 +237,9 @@ class SepiaData(object):
             self.obs_data.K = K_obs
 
     def compute_sim_PCA_basis(self, n_pc):
-        """
-        Does PCA basis computation on sim_data.y_std attribute, sets K attribute to calculated basis.
-
-        :param n_pc: int -- number of components or a proportion of variance explained, in [0, 1].
-        """
+        # Does PCA basis computation on sim_data.y_std attribute, sets K attribute to calculated basis.
+        # Used internally by create_K_basis.
+        # :param n_pc: int -- number of components or a proportion of variance explained, in [0, 1].
         y_std = self.sim_data.y_std
         if y_std is None:
             print('WARNING: y not standardized, doing default standardization before PCA...')
@@ -252,14 +256,14 @@ class SepiaData(object):
 
     def create_D_basis(self, type='constant', D=None, norm=True):
         """
-        Create D_obs discrepancy basis. Either type or D must be provided.
+        Create D_obs, D_sim discrepancy bases. Can specify a type of default basis (constant/linear) or provide matrix D.
 
-        :param type: 'constant' or 'linear' -- optionally sets up default constant or linear D
-        :param D: nparray -- a basis matrix to use of shape (n_basis_elements, ell_obs), or list of matrices for
-                  ragged obs; supercedes use of basis specified by type parameter
+        :param type: string -- 'constant' or 'linear' -- optionally sets up default constant or linear D
+        :param D: nparray -- a basis matrix on obs indices of shape (n_basis_elements, ell_obs), or list of matrices for
+                  ragged obs; if D is given, type parameter is ignored.
         :param norm: boolean -- whether to normalize D matrix
         """
-        # TODO add D_sim
+        # TODO add D_sim -- want D passed on sim indices and interpolated to obs? or pass both D sim and D obs?
         if self.sim_only:
             print('Sim only, skipping discrepancy...')
             return
@@ -273,6 +277,7 @@ class SepiaData(object):
                     if not D.shape[1] == self.obs_data.y.shape[1]:
                         raise TypeError('D basis shape incorrect; second dim should match ell_obs')
                 self.obs_data.D = D
+                #self.sim_data.D = scipy.interpolate.interp1d()
             elif type == 'constant':
                 if self.ragged_obs:
                     self.obs_data.D = [np.ones((1, self.obs_data.y[i].shape[0])) for i in range(len(self.obs_data.y))]
@@ -292,12 +297,11 @@ class SepiaData(object):
                 else:
                     self.obs_data.D /= np.sqrt(np.max(np.dot(self.obs_data.D, self.obs_data.D.T)))
 
-    # Below are some initial attempts at visualization, should expand/fix
-    def plot_K_basis(self,max_plots=4):
+    def plot_K_basis(self, max_plots=4):
         """
         Plots K basis elements for both sim and obs indices (if applicable).
 
-        :param max_plots: int -- maximum number of principle components to plot
+        :param max_plots: int -- maximum number of principal components to plot
         """
         if self.scalar_out:
             print('Scalar output, no K basis to plot.')
@@ -353,7 +357,7 @@ class SepiaData(object):
             #    plt.legend()
             #    plt.show()
 
-    def plot_K_weights(self,max_u_plot=5,plot_sep=False):
+    def plot_K_weights(self, max_u_plot=5, plot_sep=False):
         """
         Plots K basis weights for both sim and obs data (if applicable).
 
@@ -486,9 +490,9 @@ class SepiaData(object):
                                 ax.axis('off')
                         plt.show()
     
-    def plot_u_w_pairs(self,max_plots=5):
+    def plot_u_w_pairs(self, max_plots=5):
         """
-        Plots principle component basis weights for both sim and obs data (if applicable).
+        Plots principal component basis weights for both sim and obs data (if applicable).
 
         :param max_plots: int -- optional max number of principle components to plot
         """

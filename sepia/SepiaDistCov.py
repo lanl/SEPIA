@@ -4,7 +4,7 @@ import numpy as np
 
 class SepiaDistCov(object):
     """
-    Class for computing/storing distances and covariance matrix.
+    Class for computing/storing distances and covariance matrix, typically not called directly by user but used in model.
 
     If only one data set is given, the auto-distance is computed, else computes distance between data and data2.
 

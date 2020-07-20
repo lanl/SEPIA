@@ -16,11 +16,11 @@ from sepia.SepiaDistCov import SepiaDistCov
 
 def compute_log_lik(g, cvar='all', cindex=None):
     """
-    Compute log likelihood.
+    Compute log likelihood. Returns value and stores in num.logLik of model object.
 
     :param g: SepiaModel object
     :param cvar: name of changed variable (to avoid recomputing things)
-    :param cindex: index of changed varaible (to avoid recomputing things)
+    :param cindex: index (flattened) of changed variable (to avoid recomputing things)
     :return: numeric log likelihood value
     """
 
@@ -28,7 +28,6 @@ def compute_log_lik(g, cvar='all', cindex=None):
         print('Entering SepiaLogLik')
 
     def doLogLik(cov, w):
-        #chCov = np.linalg.cholesky(cov)
         try:
             chCov = scipy.linalg.cholesky(cov, lower=True)
         except np.linalg.LinAlgError:
@@ -91,7 +90,7 @@ def compute_log_lik(g, cvar='all', cindex=None):
 
     if (do_betaU or do_lamUz or do_lamWs or do_lamWOs):
         if   cvar is 'all': jinds = np.arange(pu)
-        elif cvar is 'betaU': jinds = [int(np.ceil( (cindex+1)/(p+q) ) - 1)] # watch for 0 vs 1 indexing compared to matlab TODO double check this indexing
+        elif cvar is 'betaU': jinds = [int(np.ceil( (cindex+1)/(p+q) ) - 1)]
         elif cvar in ['lamUz', 'lamWs']: jinds = [cindex]
         elif cvar is 'lamWOs': jinds = np.arange(pu)
 
