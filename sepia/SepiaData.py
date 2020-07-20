@@ -326,36 +326,32 @@ class SepiaData(object):
                         ax.axis('off')          
                 plt.show()
                 
-            if not self.obs_data.K is None:    
-                pu = self.obs_data.K.shape[0]
+            if not self.obs_data.K is None: 
+                if self.ragged_obs:
+                    pu = np.array([k.shape[0] for k in self.obs_data.K])
+                    if np.all(pu == pu[0]): pu = pu[0]
+                    else: raise ValueError('first dimension in lists not equal') 
+                else:
+                    pu = self.obs_data.K.shape[0]
                 ncol = 5
                 nrow = int(np.ceil((min(pu,max_plots) + 1) / ncol)) # add 1 for mean line
                 fig, axs = plt.subplots(nrow,ncol,figsize=(12, 2 * nrow))
                 fig.tight_layout()
                 for i,ax in enumerate(axs.flatten()):
                     if i == 0: # plot mean line
-                        ax.plot(self.obs_data.y_ind, np.mean(self.obs_data.K,axis=0))
+                        if self.ragged_obs: ax.plot(self.obs_data.y_ind[i],np.mean(self.obs_data.K[i],axis=0))
+                        else: ax.plot(self.obs_data.y_ind, np.mean(self.obs_data.K,axis=0))
                         ax.set_title('obs mean')
                         ax.set_ylabel('obs K basis')
                         ax.set_xlabel('obs y_ind')
                     elif i < pu+1:
-                        ax.plot(self.obs_data.y_ind, self.obs_data.K.T[:,i-1])
+                        if self.ragged_obs: ax.plot(self.obs_data.y_ind[i],self.obs_data.K[i].T[:,i-1])
+                        else: ax.plot(self.obs_data.y_ind, self.obs_data.K.T[:,i-1])
                         ax.set_title('PC %d' % (i))
                         ax.set_xlabel('obs y_ind')
                     else:
                         ax.axis('off')
                 plt.show()
-                
-            #if not self.obs_data.K is None:
-            #    K_obs_mean = np.mean(self.obs_data.K,axis=0)
-            #    for i in range(self.obs_data.K.T.shape[1]):
-            #        plt.plot(self.obs_data.y_ind, self.obs_data.K.T[:,i], '-o',label='PC {}'.format(i+1))
-            #    plt.plot(self.obs_data.y_ind,K_obs_mean,'--o',label='obs mean')
-            #    plt.xlabel('obs y_ind')
-            #    plt.ylabel('obs K basis')
-            #    plt.xticks(self.obs_data.y_ind)
-            #    plt.legend()
-            #    plt.show()
 
     def plot_K_weights(self, max_u_plot=5, plot_sep=False):
         """
@@ -507,49 +503,56 @@ class SepiaData(object):
                 w = np.dot(np.linalg.pinv(self.sim_data.K).T, self.sim_data.y_std.T).T
                 
                 if not self.obs_data.K is None:
-                    pu = self.obs_data.K.shape[0]
-
-                    # No D
-                    if self.obs_data.D is None:
-                        pv = 0
-                        DK = self.obs_data.K
-                        DKridge = 1e-6 * np.diag(np.ones(pu + pv))  # (pu+pv, pu+pv)
-                        Lamy = np.eye(self.obs_data.y_ind.shape[0])
-                        DKprod = np.linalg.multi_dot([DK, Lamy, DK.T])  # (pu+pv, pu+pv)
-                        u = np.dot(np.linalg.inv(DKprod + DKridge), np.linalg.multi_dot([DK, Lamy, self.obs_data.y_std.T])).T
-                    else: # D
-                        pv = self.obs_data.D.shape[0]
-                        DK = np.concatenate([self.obs_data.D, self.obs_data.K])  # (pu+pv, ell_obs)
-                        DKridge = 1e-6 * np.diag(np.ones(pu + pv))  # (pu+pv, pu+pv)
-                        Lamy = np.eye(self.obs_data.y_ind.shape[0])
-                        DKprod = np.linalg.multi_dot([DK, Lamy, DK.T])  # (pu+pv, pu+pv)
-                        vu = np.dot(np.linalg.inv(DKprod + DKridge), np.linalg.multi_dot([DK, Lamy, self.obs_data.y_std.T]))
-                        v = vu[:pv, :].T
-                        u = vu[pv:, :].T
-
-                    # change u,w to match max_plots
-                    if w.shape[1]>max_plots: w = w[:,0:max_plots]
-                    col_names = []
-                    for i in range(w.shape[1]): col_names.append('w{}'.format(i+1))
-                    w_df = pd.DataFrame(data=w,columns=col_names)
-                    if u.shape[1]>max_plots: u = u[:,0:max_plots]
+                    if isinstance(self.obs_data.K, list):
+                        print('plot_u_w_pairs with ragged observations is currently under development')
+                        pu = np.array([k.shape[0] for k in self.obs_data.K])
+                        if np.all(pu) == pu[0]: pu = pu[0]
+                        else: raise ValueError('first dimension in lists not equal')
                         
-                    lims = max(np.maximum(np.max(np.abs(w),axis=0),np.max(np.abs(u),axis=0))*1.1)
-                    with sns.plotting_context("notebook", font_scale=1):
-                        g = sns.PairGrid(w_df)
-                        g.map_diag(sns.distplot)
-                        g.map_offdiag(sns.scatterplot)
-                        for i in range(g.axes.shape[1]): # rows
-                            for j in range(g.axes.shape[0]): # columns
-                                g.axes[i,j].set_xlim(-lims,lims); g.axes[i,j].set_ylim(-lims,lims)
-                                if i == j:
-                                    for k in range(u.shape[0]):
-                                        g.axes[i,i].axvline(u[k,i],color='darkorange',label='u{}'.format(i+1) if k==0 else "_")
-                                    g.axes[i,i].legend(facecolor='white')
-                                else:
-                                    g.axes[i,j].scatter(u[:,j],u[:,i],c='darkorange',label='(u{},u{})'.format(j+1,i+1))
-                                    g.axes[i,j].legend(facecolor='white')
-                    plt.show()
+                    else:
+                        pu = self.obs_data.K.shape[0]
+
+                        # No D
+                        if self.obs_data.D is None:
+                            pv = 0
+                            DK = self.obs_data.K
+                            DKridge = 1e-6 * np.diag(np.ones(pu + pv))  # (pu+pv, pu+pv)
+                            Lamy = np.eye(self.obs_data.y_ind.shape[0])
+                            DKprod = np.linalg.multi_dot([DK, Lamy, DK.T])  # (pu+pv, pu+pv)
+                            u = np.dot(np.linalg.inv(DKprod + DKridge), np.linalg.multi_dot([DK, Lamy, self.obs_data.y_std.T])).T
+                        else: # D
+                            pv = self.obs_data.D.shape[0]
+                            DK = np.concatenate([self.obs_data.D, self.obs_data.K])  # (pu+pv, ell_obs)
+                            DKridge = 1e-6 * np.diag(np.ones(pu + pv))  # (pu+pv, pu+pv)
+                            Lamy = np.eye(self.obs_data.y_ind.shape[0])
+                            DKprod = np.linalg.multi_dot([DK, Lamy, DK.T])  # (pu+pv, pu+pv)
+                            vu = np.dot(np.linalg.inv(DKprod + DKridge), np.linalg.multi_dot([DK, Lamy, self.obs_data.y_std.T]))
+                            v = vu[:pv, :].T
+                            u = vu[pv:, :].T
+
+                        # change u,w to match max_plots
+                        if w.shape[1]>max_plots: w = w[:,0:max_plots]
+                        col_names = []
+                        for i in range(w.shape[1]): col_names.append('w{}'.format(i+1))
+                        w_df = pd.DataFrame(data=w,columns=col_names)
+                        if u.shape[1]>max_plots: u = u[:,0:max_plots]
+
+                        lims = max(np.maximum(np.max(np.abs(w),axis=0),np.max(np.abs(u),axis=0))*1.1)
+                        with sns.plotting_context("notebook", font_scale=1):
+                            g = sns.PairGrid(w_df)
+                            g.map_diag(sns.distplot)
+                            g.map_offdiag(sns.scatterplot)
+                            for i in range(g.axes.shape[1]): # rows
+                                for j in range(g.axes.shape[0]): # columns
+                                    g.axes[i,j].set_xlim(-lims,lims); g.axes[i,j].set_ylim(-lims,lims)
+                                    if i == j:
+                                        for k in range(u.shape[0]):
+                                            g.axes[i,i].axvline(u[k,i],color='darkorange',label='u{}'.format(i+1) if k==0 else "_")
+                                        g.axes[i,i].legend(facecolor='white')
+                                    else:
+                                        g.axes[i,j].scatter(u[:,j],u[:,i],c='darkorange',label='(u{},u{})'.format(j+1,i+1))
+                                        g.axes[i,j].legend(facecolor='white')
+                        plt.show()
 
     def plot_K_residuals(self):
         """
@@ -560,55 +563,58 @@ class SepiaData(object):
             print('Scalar output, no K weights to plot.')
         else:
             if not self.obs_data.K is None:
-                pu = self.obs_data.K.shape[0]
-                if self.obs_data.D is None:
-                    pv = 0
-                    DK = self.obs_data.K
-                    DKridge = 1e-6 * np.diag(np.ones(pu + pv))  # (pu+pv, pu+pv)
-                    Lamy = np.eye(self.obs_data.y_ind.shape[0])
-                    DKprod = np.linalg.multi_dot([DK, Lamy, DK.T])  # (pu+pv, pu+pv)
-                    u = np.dot(np.linalg.inv(DKprod + DKridge), np.linalg.multi_dot([DK, Lamy, self.obs_data.y_std.T])).T
-                    proj = np.dot(u, DK)
-                    resid = self.obs_data.y_std - proj
-                    plt.figure(1, figsize=(4, 6))
-                    plt.subplot(311)
-                    plt.plot(self.obs_data.y_ind, self.obs_data.y_std.squeeze())
-                    plt.title('obs y_std')
-                    plt.xlabel('obs y_ind')
-                    plt.subplot(312)
-                    plt.plot(self.obs_data.y_ind, proj.squeeze())
-                    plt.title('obs projection reconstruction')
-                    plt.xlabel('obs y_ind')
-                    plt.subplot(313)
-                    sns.lineplot(x=self.obs_data.y_ind, y=resid.squeeze())
-                    plt.title('obs projection residual')
-                    plt.xlabel('obs y_ind')
-                    plt.show()
+                if isinstance(self.obs_data.K, list):
+                    print('plot_K_residuals cannot yet handle ragged observations')
                 else:
-                    pv = self.obs_data.D.shape[0]
-                    DK = np.concatenate([self.obs_data.D, self.obs_data.K])  # (pu+pv, ell_obs)
-                    DKridge = 1e-6 * np.diag(np.ones(pu + pv))  # (pu+pv, pu+pv)
-                    Lamy = np.eye(self.obs_data.y_ind.shape[0])
-                    DKprod = np.linalg.multi_dot([DK, Lamy, DK.T])  # (pu+pv, pu+pv)
-                    vu = np.dot(np.linalg.inv(DKprod + DKridge), np.linalg.multi_dot([DK, Lamy, self.obs_data.y_std.T]))
-                    v = vu[:pv, :].T
-                    u = vu[pv:, :].T
-                    ncol = 5
-                    nrow = np.ceil(pu / ncol)
-                    plt.figure(2, figsize=(8, 2 * nrow))
-                    for i in range(pu):
-                        plt.subplot(nrow, ncol, i+1)
-                        plt.hist(u[:, i])
-                        plt.xlabel('PC %d wt' % (i+1))
-                    plt.show()
-                    ncol = 5
-                    nrow = np.ceil(pv / ncol)
-                    plt.figure(3, figsize=(8, 2 * nrow))
-                    for i in range(pu):
-                        plt.subplot(nrow, ncol, i+1)
-                        plt.hist(v[:, i])
-                        plt.xlabel('D %d wt' % (i+1))
-                    plt.show()
+                    pu = self.obs_data.K.shape[0]
+                    if self.obs_data.D is None:
+                        pv = 0
+                        DK = self.obs_data.K
+                        DKridge = 1e-6 * np.diag(np.ones(pu + pv))  # (pu+pv, pu+pv)
+                        Lamy = np.eye(self.obs_data.y_ind.shape[0])
+                        DKprod = np.linalg.multi_dot([DK, Lamy, DK.T])  # (pu+pv, pu+pv)
+                        u = np.dot(np.linalg.inv(DKprod + DKridge), np.linalg.multi_dot([DK, Lamy, self.obs_data.y_std.T])).T
+                        proj = np.dot(u, DK)
+                        resid = self.obs_data.y_std - proj
+                        plt.figure(1, figsize=(4, 6))
+                        plt.subplot(311)
+                        plt.plot(self.obs_data.y_ind, self.obs_data.y_std.squeeze())
+                        plt.title('obs y_std')
+                        plt.xlabel('obs y_ind')
+                        plt.subplot(312)
+                        plt.plot(self.obs_data.y_ind, proj.squeeze())
+                        plt.title('obs projection reconstruction')
+                        plt.xlabel('obs y_ind')
+                        plt.subplot(313)
+                        sns.lineplot(x=self.obs_data.y_ind, y=resid.squeeze())
+                        plt.title('obs projection residual')
+                        plt.xlabel('obs y_ind')
+                        plt.show()
+                    else:
+                        pv = self.obs_data.D.shape[0]
+                        DK = np.concatenate([self.obs_data.D, self.obs_data.K])  # (pu+pv, ell_obs)
+                        DKridge = 1e-6 * np.diag(np.ones(pu + pv))  # (pu+pv, pu+pv)
+                        Lamy = np.eye(self.obs_data.y_ind.shape[0])
+                        DKprod = np.linalg.multi_dot([DK, Lamy, DK.T])  # (pu+pv, pu+pv)
+                        vu = np.dot(np.linalg.inv(DKprod + DKridge), np.linalg.multi_dot([DK, Lamy, self.obs_data.y_std.T]))
+                        v = vu[:pv, :].T
+                        u = vu[pv:, :].T
+                        ncol = 5
+                        nrow = np.ceil(pu / ncol)
+                        plt.figure(2, figsize=(8, 2 * nrow))
+                        for i in range(pu):
+                            plt.subplot(nrow, ncol, i+1)
+                            plt.hist(u[:, i])
+                            plt.xlabel('PC %d wt' % (i+1))
+                        plt.show()
+                        ncol = 5
+                        nrow = np.ceil(pv / ncol)
+                        plt.figure(3, figsize=(8, 2 * nrow))
+                        for i in range(pu):
+                            plt.subplot(nrow, ncol, i+1)
+                            plt.hist(v[:, i])
+                            plt.xlabel('D %d wt' % (i+1))
+                        plt.show()
 
     def plot_data(self,which_x = [],x_min=None,x_max=None,y_min=None,y_max=None,n_neighbors=3,max_sims=50):
         """
