@@ -32,7 +32,7 @@ data = SepiaData(x_sim=x_sim[:, 0][:, None], t_sim=x_sim[:, 1][:, None], y_sim=y
 data.standardize_y()
 data.transform_xt()
 data.create_K_basis(n_pc=2)
-data.create_D_basis(D=matfile['Dsim'].T)
+data.create_D_basis(D_sim=matfile['Dsim'].T)
 model = setup_model(data)
 
 @timeit

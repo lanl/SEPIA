@@ -250,7 +250,7 @@ D_max = np.max(np.matmul(D_sim,D_sim.T))
 D_sim = D_sim / np.sqrt(D_max)
 D_dense = D_dense / np.sqrt(D_max)
 
-data.create_D_basis(D=D_obs.T)
+data.create_D_basis(D_obs=D_obs.T)
 
 plt.ylim(-.5,1.5)
 plt.xlim(0,25)

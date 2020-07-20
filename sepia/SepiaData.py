@@ -254,48 +254,65 @@ class SepiaData(object):
         self.sim_data.K = np.transpose(np.dot(U[:, :pu], np.diag(s[:pu])) / np.sqrt(y_std.shape[0]))
 
 
-    def create_D_basis(self, type='constant', D=None, norm=True):
+    def create_D_basis(self, type='constant', D_obs=None, D_sim=None, norm=True):
         """
-        Create D_obs, D_sim discrepancy bases. Can specify a type of default basis (constant/linear) or provide matrix D.
+        Create D_obs, D_sim discrepancy bases. Can specify a type of default basis (constant/linear) or provide matrices.
 
         :param type: string -- 'constant' or 'linear' -- optionally sets up default constant or linear D
-        :param D: nparray -- a basis matrix on obs indices of shape (n_basis_elements, ell_obs), or list of matrices for
-                  ragged obs; if D is given, type parameter is ignored.
-        :param norm: boolean -- whether to normalize D matrix
+        :param D_obs: nparray -- a basis matrix on obs indices of shape (n_basis_elements, ell_obs), or list of matrices
+                                 for ragged obs; if D is given, type parameter is ignored.
+        :param D_sim: nparray -- a basis matrix on sim indices of shape (n_basis_elements, sim_obs); optional, not
+                                 needed to fit model, but if missing certain types of predictions are not available.
+        :param norm: boolean -- whether to normalize D matrices
         """
-        # TODO add D_sim -- want D passed on sim indices and interpolated to obs? or pass both D sim and D obs?
         if self.sim_only:
             print('Sim only, skipping discrepancy...')
             return
         if not self.sim_only:
-            if D is not None:
+            if D_sim is not None:
+                if not D_sim.shape[1] == self.sim_data.y.shape[1]:
+                    raise TypeError('D_sim basis shape incorrect; second dim should match ell_sim')
+                self.sim_data.D = D_sim
+
+            if D_obs is not None:
                 if self.ragged_obs:
-                    for i in range(len(D)):
-                        if not D[i].shape[1] == self.obs_data.y[i].shape[1]:
+                    for i in range(len(D_obs)):
+                        if not D_obs[i].shape[1] == self.obs_data.y[i].shape[1]:
                             raise TypeError('D basis shape incorrect; second dim should match ell_obs')
                 else:
-                    if not D.shape[1] == self.obs_data.y.shape[1]:
-                        raise TypeError('D basis shape incorrect; second dim should match ell_obs')
-                self.obs_data.D = D
-                #self.sim_data.D = scipy.interpolate.interp1d()
+                    if not D_obs.shape[1] == self.obs_data.y.shape[1]:
+                        raise TypeError('D_obs basis shape incorrect; second dim should match ell_obs')
+                self.obs_data.D = D_obs
             elif type == 'constant':
                 if self.ragged_obs:
                     self.obs_data.D = [np.ones((1, self.obs_data.y[i].shape[0])) for i in range(len(self.obs_data.y))]
                 else:
                     self.obs_data.D = np.ones((1, self.obs_data.y.shape[1]))
+                self.sim_data.D = np.ones((1, self.sim_data.y.shape[1]))
             elif type == 'linear' and not self.scalar_out:
-                self.obs_data.D = np.vstack([np.ones(self.obs_data.y.shape[1]), self.obs_data.y_ind])
+                self.sim_data.D = np.vstack([np.ones(self.sim_data.y.shape[1]), self.sim_data.y_ind])
                 if self.ragged_obs:
                     self.obs_data.D = [np.vstack([np.ones(self.obs_data.y[i].shape[0]), self.obs_data.y_ind[i]]) for i in range(len(self.obs_data.y))]
                 else:
                     self.obs_data.D = np.vstack([np.ones(self.obs_data.y.shape[1]), self.obs_data.y_ind])
             # Normalize D to match priors
             if norm:
-                if self.ragged_obs:
-                    for i in range(len(self.obs_data.D)):
-                        self.obs_data.D[i] /= np.sqrt(np.max(np.dot(self.obs_data.D[i], self.obs_data.D[i].T)))
+                if D_sim is not None:
+                    norm_scl = np.sqrt(np.max(np.dot(self.sim_data.D, self.sim_data.D.T)))
+                    self.sim_data.D /= norm_scl
+                    if self.ragged_obs:
+                        for i in range(len(self.obs_data.D)):
+                            self.obs_data.D[i] /= norm_scl
+                    else:
+                        self.obs_data.D /= norm_scl
                 else:
-                    self.obs_data.D /= np.sqrt(np.max(np.dot(self.obs_data.D, self.obs_data.D.T)))
+                    if self.ragged_obs:
+                        norm_scl = np.sqrt(np.max(np.dot(self.sim_data.D[0], self.sim_data.D[0].T)))
+                        for i in range(len(self.obs_data.D)):
+                            self.obs_data.D[i] /= norm_scl
+                    else:
+                        norm_scl = np.sqrt(np.max(np.dot(self.obs_data.D, self.obs_data.D.T)))
+                        self.obs_data.D /= norm_scl
 
     def plot_K_basis(self, max_plots=4):
         """

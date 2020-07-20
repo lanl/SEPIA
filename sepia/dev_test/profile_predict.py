@@ -56,7 +56,7 @@ data = SepiaData(x_sim=xt_sim[:, 0][:, None], t_sim=xt_sim[:, 1][:, None], y_sim
 data.standardize_y()
 data.transform_xt()
 data.create_K_basis(n_pc=n_pc)
-data.create_D_basis(D=matfile['Dobs'].T)
+data.create_D_basis(D_obs=matfile['Dobs'].T)
 print(data)
 
 np.random.seed(int(seed))
