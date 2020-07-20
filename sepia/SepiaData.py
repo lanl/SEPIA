@@ -311,7 +311,7 @@ class SepiaData(object):
                         for i in range(len(self.obs_data.D)):
                             self.obs_data.D[i] /= norm_scl
                     else:
-                        norm_scl = np.sqrt(np.max(np.dot(self.sim_data.D, self.sim_data.D.T)))
+                        norm_scl = np.sqrt(np.max(np.dot(self.obs_data.D, self.obs_data.D.T)))
                         self.obs_data.D /= norm_scl
 
     def plot_K_basis(self, max_plots=4):
