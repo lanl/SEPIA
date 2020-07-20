@@ -204,13 +204,11 @@ class SepiaModel:
         self.params.mcmcList = [self.params.theta, self.params.betaV, self.params.betaU, self.params.lamVz, self.params.lamUz,
                                     self.params.lamWs, self.params.lamWOs,  self.params.lamOs]
 
-
-
     def log_prior(self):
         """
-        Evalutes log prior.
+        Evaluates log prior.
 
-        :return: float -- summed log prior
+        :return: float -- summed log prior over all parameters
         """
         if self.params is None:
             raise Exception("sepia model params must be set up first.")
@@ -219,20 +217,30 @@ class SepiaModel:
             lp_tmp = param.prior.compute_log_prior()
             #print('Prior value for %s: %f'%(param.name, lp_tmp))
             lp += lp_tmp
-        #self.num.logPrior=lp
+        #self.num.logPrior=lp # commented out since we don't use this, and it could be problematic to set it each time called?
         return lp
 
-    def do_mcmc(self, nsamp, prog=True, do_propMH=True, noInit=False):
+    def do_mcmc(self, nsamp, prog=True, do_propMH=True, no_init=False):
+        """
+        Run MCMC sampling on initialized SepiaModel object.
+
+        Note that calling again appends samples to existing samples, so you can run in chunks.
+
+        :param nsamp: float -- number of MCMC samples
+        :param prog: bool -- whether to show progress bar
+        :param do_propMH: bool -- whether to use propMH sampling for variables with that step type
+        :param no_init: bool -- skip initialization (if model has already been sampled; need to initialize on first call)
+        """
         if self.num.auto_stepsize:
             do_propMH = False
-        if not noInit:
+        if not no_init:
             self.params.lp.set_val(self.logPost()) # Need to call once with cvar='all' (default) to initialize
         #self.params.lp.mcmc.record(self.params.lp.val)
         for _ in tqdm(range(nsamp), desc='MCMC sampling', mininterval=0.5, disable=not(prog)):
             self.mcmc_step(do_propMH)
 
-
     def mcmc_step(self, do_propMH=True):
+        # Does a single MCMC step; not typically called by users
         # Loop over parameters
         for prm in self.params.mcmcList:
             # Loop over indices within parameter
@@ -266,20 +274,35 @@ class SepiaModel:
         self.params.lp.mcmc.record()
 
     def logLik(self, cvar='all', cindex=None):
+        """
+        Compute model log lik with current values of variables.
+
+        :param cvar: string -- name of variables changed since last call (controls recomputation of num components), or 'all'
+        :param cindex: int -- index of flattened cvar that has changed since last call (or None)
+        :return: scalar -- log lik value
+        """
         L = compute_log_lik(self, cvar, cindex)
         return L
         
     def logPost(self, cvar='all', cindex=None):
-        ll=self.logLik(cvar, cindex)
-        lp=sum([prm.prior.compute_log_prior() for prm in self.params.mcmcList])
-        #print(f'{lp}') 
-        return ll+lp
+        """
+        Compute model log posterior with current values of variables.
+
+        :param cvar: string -- name of variables changed since last call (controls recomputation of num components), or 'all'
+        :param cindex: int -- index of flattened cvar that has changed since last call (or None)
+        :return: scalar -- log posterior value
+        """
+        ll = self.logLik(cvar, cindex)
+        lp = sum([prm.prior.compute_log_prior() for prm in self.params.mcmcList])
+        return ll + lp
 
     def tune_step_sizes(self, n_burn, n_levels, prog=True, diagnostics=False):
         """ Find step size with YADAS approach.
         TODO does not handle hierModels/tiedThetaModels, passes a sim only univ test pretty well (lamWOs slightly different ss)
-        @param n_burn: number of samples for each step size
-        @param n_levels: number of levels for step size
+        :param n_burn: int -- number of samples for each step size
+        :param n_levels: int -- number of levels for step size
+        :param prog: bool -- whether to show progress bar
+        :param diagnostics: bool -- whether to return some information on acceptance rates used inside step size tuning
         """
         print('tuning step sizes...')
         self.num.auto_stepsize = True
@@ -311,7 +334,7 @@ class SepiaModel:
             for i, lev in enumerate(range(n_levels)):
                 for p in mod_tmp.params.mcmcList:
                     p.mcmc.stepParam = step_sizes[p.name][i]
-                mod_tmp.do_mcmc(1, do_propMH=False, noInit=True, prog=False)
+                mod_tmp.do_mcmc(1, do_propMH=False, no_init=True, prog=False)
         # Get acceptance
         for p in mod_tmp.params.mcmcList:
             acc[p.name].append(np.transpose(p.calc_accept().reshape((n_burn, n_levels, *p.val_shape)), [1,0,2,3]))
@@ -337,45 +360,4 @@ class SepiaModel:
         if diagnostics:
             return step_sizes, acc
 
-
-#########
-#
-#########
-if __name__ == "__main__":
-    # TODO temporary testing code, need to move to unit test or delete
-    np.random.seed(1)
-    from sepia.SepiaData import SepiaData
-    from sepia.SepiaModelSetup import setup_model
-    m = 700  # number of simulations
-    p = 3  # dimension of x (simulation inputs)
-    ell_sim = 1000  # dimension of y output sim
-    ell_obs = 258  # dimension of y output obs
-    pu = 3  # number of PCs
-    q = 2  # dimension of t (extra sim inputs)
-    n = 5  # number of observed observations
-
-    x_sim = 0.5 * np.random.uniform(-1, 3, (m, p))
-    t = np.random.uniform(-10, 10, (m, q))
-    y_ind_sim = np.linspace(0, 100, ell_sim)
-    K_true_sim = np.vstack([0.5 * (np.sin(y_ind_sim) + 1), np.square(-y_ind_sim + 50) / 2500, y_ind_sim / 100])
-    y_sim = np.transpose(np.log(1 + y_ind_sim)[:, None] + \
-                         np.dot(K_true_sim.T, 2 * np.array([1, 0.5, 0.2])[:, None] * np.random.normal(0, 1, (pu, m))))
-
-
-    y_ind_obs = np.linspace(0, 100, ell_obs) + np.random.uniform(-3, 3, ell_obs)
-    y_ind_obs[y_ind_obs < 0] = 0
-    K_true_obs = np.vstack([0.5 * (np.sin(y_ind_obs) + 1), np.square(-y_ind_obs + 50) / 2500, y_ind_obs / 100])
-    y_obs = 10 + np.transpose(np.log(1 + y_ind_obs)[:, None] + \
-                              np.dot(K_true_obs.T, 2 * np.array([1, 0.5, 0.2])[:, None] * np.random.normal(0, 1, (pu, n))))
-    x_obs = 0.5 * np.random.uniform(-1, 3, (n, p))
-
-    d = SepiaData(x_sim=x_sim, y_sim=y_sim, t_sim=t, y_ind_sim=y_ind_sim, x_obs=x_obs, y_obs=y_obs, y_ind_obs=y_ind_obs)
-    d.standardize_y()
-    d.transform_xt()
-    d.create_K_basis()
-    d.create_D_basis()
-
-    model = setup_model(d)
-    print(model.log_prior())
-    print(model.logPost())
 
