@@ -82,34 +82,49 @@ class SepiaModel:
 
     def __str__(self):
         if self.data is None:
-            print('SepiaModel is not set up; call setup_model(data)')
+            print('SepiaModel is not set up; call setup_model(SepiaData_object)')
         else:
             print(self.data)
 
-    def get_samples(self, nburn=0, sampleset=False, numsamples=False, flat=True, includelogpost=True):
+    def get_samples(self, nburn=0, sampleset=False, numsamples=False, flat=True, includelogpost=True, untransform_theta=True):
         """
-        Extract MCMC samples into dictionary format.
+        Extract MCMC samples into dictionary format. By default, all samples are returned, or samples can be
+        subset using nburn/sampleset/numsamples. Provide either sampleset or numsamples, or neither.
 
-        :param nburn: number of samples to discard at beginning of chain
-        :param sampleset: indices of samples to include
-        :param numsamples: return num_samples of samples, evenly spaced from first to last
-        :param flat: whether to flatten the resulting array
-        :param includelogpost: whether to also get samples of log posterior
+        :param nburn: int -- number of samples to discard at beginning of chain
+        :param sampleset: list -- indices of samples to include
+        :param numsamples: int -- return num_samples of samples, evenly spaced from first to last
+        :param flat: bool -- whether to flatten the resulting arrays (for parameters stored as matrices)
+        :param includelogpost: bool -- whether to also get samples of log posterior
+        :param untransform_theta: bool -- whether or not to untransform theta to original scale (if theta in model)
         :return: dict -- array of samples for each parameter, keyed by parameter name
+        :raises: TypeError if no samples exist or nburn inconsistent with number of draws
         """
-        total_samples=self.params.lp.get_num_samples()
+        total_samples = self.params.lp.get_num_samples()
+        if total_samples == 0:
+            raise TypeError('No MCMC samples; call do_mcmc() first.')
 
+        if numsamples and sampleset:
+            print("warning: set both numsamples and sampleset, defaulting to use sampleset.")
+
+        # By default, use all samples
+        ss = np.arange(total_samples)
+
+        # Parse sampleset/numsamples
         if numsamples is not False:
-            if numsamples>=total_samples:
-                sampleset=np.arange(total_samples)
+            if numsamples >= total_samples:
+                print('numsamples larger than number of draws; truncating to number of draws (%d).' % total_samples)
             else:
-                sampleset=[int(ii) for ii in np.linspace(0,total_samples-1,numsamples)]
-        else:
-            sampleset=[ii for ii in sampleset if ii<total_samples and ii>=0]
+                ss = [int(ii) for ii in np.linspace(0, total_samples-1, numsamples)]
+        if sampleset is not False:
+            if max(sampleset) > total_samples:
+                print('sampleset includes indices larger than number of draws; truncating to valid draws.')
+            ss = [ii for ii in sampleset if ii < total_samples and ii >= 0]
+
         plist = self.params.mcmcList
         if includelogpost: plist.append(self.params.lp)
-        samples={p.name: p.mcmc_to_array(trim=nburn,sampleset=sampleset, flat=flat)
-                 for p in plist}
+        samples = {p.name: p.mcmc_to_array(trim=nburn, sampleset=ss, flat=flat, untransform_theta=untransform_theta)
+                   for p in plist}
         return samples
 
     def set_params_sim_only(self, lamWOs_a_corr=0, lamWOs_b_corr=0):
