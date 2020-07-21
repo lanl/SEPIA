@@ -390,48 +390,64 @@ class SepiaData(object):
                 fig.tight_layout()
 
                 if not self.obs_data.K is None:
-                    pu = self.obs_data.K.shape[0]
-
+                    
+                    # set pu
+                    if self.ragged_obs:
+                        pu = np.array([k.shape[0] for k in self.obs_data.K])
+                        if np.all(pu == pu[0]): pu = pu[0]
+                        else: raise ValueError('first dimension in lists not equal') 
+                    else:
+                        pu = self.obs_data.K.shape[0]
+                    
                     # No D
                     if self.obs_data.D is None:
                         pv = 0
-                        DK = self.obs_data.K
                         DKridge = 1e-6 * np.diag(np.ones(pu + pv))  # (pu+pv, pu+pv)
-                        Lamy = np.eye(self.obs_data.y_ind.shape[0])
-                        DKprod = np.linalg.multi_dot([DK, Lamy, DK.T])  # (pu+pv, pu+pv)
-                        u = np.dot(np.linalg.inv(DKprod + DKridge), np.linalg.multi_dot([DK, Lamy, self.obs_data.y_std.T])).T
+                        
+                        # compute u
+                        if self.ragged_obs:
+                            u = []
+                            for i in range(len(self.obs_data.y_ind)):
+                                DK = self.obs_data.K[i]
+                                Lamy = np.eye(self.obs_data.y_ind[i].shape[0])
+                                DKprod = np.linalg.multi_dot([DK, Lamy, DK.T])
+                                u.append(np.dot(np.linalg.inv(DKprod + DKridge), np.linalg.multi_dot([DK, Lamy, self.obs_data.y_std[i].T])).T)
+                            u = np.array(u)
+                        else:
+                            Lamy = np.eye(self.obs_data.y_ind.shape[0]) # Identity with size len(y_ind) how to do this with ragged?
+                            DKprod = np.linalg.multi_dot([DK, Lamy, DK.T])  # (pu+pv, pu+pv)
+                            u = np.dot(np.linalg.inv(DKprod + DKridge), np.linalg.multi_dot([DK, Lamy, self.obs_data.y_std.T])).T
+                            
                         nrow = int(np.ceil(pu / ncol))
                         if u.shape[1] == w.shape[1] and not plot_sep:
                             for i,ax in enumerate(axs.flatten()):
                                 if i < w.shape[1]:
                                     limit = abs(max(max(w[:,i].min(), w[:,i].max(), key=abs),\
                                                   max(u[:,i].min(), u[:,i].max(), key=abs), key=abs))
-                                    ax.set_xlim([-1.1*limit,1.1*limit])
+                                    ax.set_xlim([-1.25*limit,1.25*limit])
                                     bins_uw = np.linspace(-limit,limit,15,endpoint=True)
                                     ax.set_xlabel('PC %d wt' % (i+1))
                                     ax.set_xlim([-limit,limit])
                                     ax.hist(w[:,i],bins=bins_uw,label='w',density=True)
-                                    #ax.hist(u[:,i],bins=bins_uw,alpha=.75,color='darkorange',label='u',density=True)
                                     for j in range(min(u.shape[0],max_u_plot)): 
                                         ax.axvline(u[j,i],color='darkorange',label='u' if j==0 else '_')
                                     ax.legend(prop={'size': 6})
                                 else:
                                     ax.axis('off')
                             plt.show()
+                            
                         else: # do u and w independently
                             # w
                             for i,ax in enumerate(axs.flatten()):
                                 if i < w.shape[1]:
                                     w_abs_max = max(w[:,i].min(), w[:,i].max(), key=abs)
-                                    ax.set_xlim([-1.1*w_abs_max,1.1*w_abs_max])
+                                    ax.set_xlim([-1.25*w_abs_max,1.25*w_abs_max])
                                     ax.set_xlabel('PC %d wt : w' % (i+1))
                                     ax.hist(w[:,i],density=True)
                                 else:
                                     ax.axis('off')
                             plt.show()
                             # u
-                            pu = self.obs_data.K.shape[0]
-                            nrow = int(np.ceil(pu / ncol))
                             fig, axs = plt.subplots(nrow,ncol,figsize=(10,2*nrow))
                             fig.tight_layout()
                             for i,ax in enumerate(axs.flatten()):
@@ -441,15 +457,34 @@ class SepiaData(object):
                                 else:
                                     ax.axis('off')
                             plt.show()
+                                
                     else: # D
-                        pv = self.obs_data.D.shape[0]
-                        DK = np.concatenate([self.obs_data.D, self.obs_data.K])  # (pu+pv, ell_obs)
-                        DKridge = 1e-6 * np.diag(np.ones(pu + pv))  # (pu+pv, pu+pv)
-                        Lamy = np.eye(self.obs_data.y_ind.shape[0])
-                        DKprod = np.linalg.multi_dot([DK, Lamy, DK.T])  # (pu+pv, pu+pv)
-                        vu = np.dot(np.linalg.inv(DKprod + DKridge), np.linalg.multi_dot([DK, Lamy, self.obs_data.y_std.T]))
-                        v = vu[:pv, :].T
-                        u = vu[pv:, :].T
+                        if self.ragged_obs:
+                            pv = np.array([d.shape[0] for d in self.obs_data.D])
+                            if np.all(pv == pv[0]): pv = pv[0]
+                            else: raise ValueError('first dimension in lists not equal')
+                            DKridge = 1e-6 * np.diag(np.ones(pu + pv))  # (pu+pv, pu+pv)
+                            u = []
+                            v = []
+                            for i in range(len(self.obs_data.D)):
+                                DK = np.concatenate([self.obs_data.D[i], self.obs_data.K[i]])
+                                Lamy = np.eye(self.obs_data.y_ind[i].shape[0])
+                                DKprod = np.linalg.multi_dot([DK, Lamy, DK.T])  # (pu+pv, pu+pv)
+                                vu = np.dot(np.linalg.inv(DKprod + DKridge), np.linalg.multi_dot([DK, Lamy, self.obs_data.y_std[i].T]))
+                                v.append(vu[:pv].T)
+                                u.append(vu[pv:].T)
+                            u = np.array(u)
+                            v = np.array(v)
+                        else:
+                            pv = self.obs_data.D.shape[0]
+                            DK = np.concatenate([self.obs_data.D, self.obs_data.K])  # (pu+pv, ell_obs)
+                            DKridge = 1e-6 * np.diag(np.ones(pu + pv))  # (pu+pv, pu+pv)
+                            Lamy = np.eye(self.obs_data.y_ind.shape[0])
+                            DKprod = np.linalg.multi_dot([DK, Lamy, DK.T])  # (pu+pv, pu+pv)
+                            vu = np.dot(np.linalg.inv(DKprod + DKridge), np.linalg.multi_dot([DK, Lamy, self.obs_data.y_std.T]))
+                            v = vu[:pv, :].T
+                            u = vu[pv:, :].T
+                            
                         if u.shape[1] == w.shape[1] and not plot_sep:
                             for i,ax in enumerate(axs.flatten()):
                                 if i < w.shape[1]:
@@ -459,7 +494,6 @@ class SepiaData(object):
                                     bins_uw = np.linspace(-limit,limit,15,endpoint=True)
                                     ax.set_xlabel('PC %d wt' % (i+1))
                                     ax.hist(w[:,i],bins=bins_uw,label='w',density=True)
-                                    #ax.hist(u[:,i],bins=bins_uw,alpha=.75,color='darkorange',label='u',density=True)
                                     for j in range(min(u.shape[0],max_u_plot)): 
                                         ax.axvline(u[j,i],color='darkorange',label='u' if j==0 else '_')
                                     ax.legend(prop={'size': 6})
@@ -501,7 +535,8 @@ class SepiaData(object):
                                 ax.set_xlabel('D %d wt : v' % (i+1))
                             else:
                                 ax.axis('off')
-                        plt.show()
+                        plt.show()            
+
     
     def plot_u_w_pairs(self, max_plots=5):
         """
