@@ -366,6 +366,6 @@ class SepiaModel:
             print('%s' % param.name)
             print(param.mcmc.stepParam)
         if diagnostics:
-            return step_sizes, acc
+            return step_sizes, acc, mod_tmp
 
 
