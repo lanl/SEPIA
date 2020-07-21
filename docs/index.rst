@@ -3,9 +3,9 @@ Welcome to Sepia!
 .. automodule:: sepia
     :members:
 
-.. image:: Sepia_officinalis.jpg
+.. image:: sepia.png
     :align: center
-    :height: 100px
+    :height: 250px
     :width: 200px
 
 Sepia is a python implementation of `GPMSA`_.
