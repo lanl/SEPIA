@@ -80,11 +80,11 @@ class SepiaModel:
         self.num = ModelContainer() # num for numeric state
         self.params = None
 
-    def __str__(self):
-        if self.data is None:
-            print('SepiaModel is not set up; call setup_model(SepiaData_object)')
-        else:
-            print(self.data)
+    #def __str__(self):
+    #    if self.data is None:
+    #        print('SepiaModel is not set up; call setup_model(SepiaData_object)')
+    #    else:
+    #        print(self.data)
 
     def get_samples(self, nburn=0, sampleset=False, numsamples=False, flat=True, includelogpost=True, untransform_theta=True):
         """
