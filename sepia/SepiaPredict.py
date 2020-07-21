@@ -6,6 +6,7 @@ Sepia Model Predictions
 """
 import scipy.linalg
 import numpy as np
+from tqdm import tqdm
 from scipy.stats import norm
 from sepia.SepiaDistCov import SepiaDistCov
 
@@ -134,7 +135,7 @@ class SepiaXvalEmulatorPrediction(SepiaEmulatorPrediction):
         w_cv = []
         x_cv = []
         t_cv = []
-        for li in leave_out_inds:
+        for li in tqdm(leave_out_inds, desc='Cross validation...', mininterval=0.5):
             fit_inds = [i for i in np.arange(m) if i not in li]
             sub_model = copy.deepcopy(orig_model)
             # Subset zt to fit inds, update ztDist
