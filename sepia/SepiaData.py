@@ -555,24 +555,49 @@ class SepiaData(object):
                 w = np.dot(np.linalg.pinv(self.sim_data.K).T, self.sim_data.y_std.T).T
                 
                 if not self.obs_data.K is None:
-                    if isinstance(self.obs_data.K, list):
-                        print('plot_u_w_pairs with ragged observations is currently under development')
+                    if self.ragged_obs:
                         pu = np.array([k.shape[0] for k in self.obs_data.K])
-                        if np.all(pu) == pu[0]: pu = pu[0]
-                        else: raise ValueError('first dimension in lists not equal')
-                        
+                        if np.all(pu == pu[0]): pu = pu[0]
+                        else: raise ValueError('first dimension in lists not equal')   
                     else:
                         pu = self.obs_data.K.shape[0]
 
-                        # No D
-                        if self.obs_data.D is None:
-                            pv = 0
+                    # No D
+                    if self.obs_data.D is None:
+                        pv = 0
+                        DKridge = 1e-6 * np.diag(np.ones(pu + pv))  # (pu+pv, pu+pv)
+                        if self.ragged_obs:
+                            u = []
+                            for i in range(len(self.obs_data.K)):
+                                DK = self.obs_data.K[i]
+                                Lamy = np.eye(self.obs_data.y_ind[i].shape[0])
+                                DKprod = np.linalg.multi_dot([DK, Lamy, DK.T])  # (pu+pv, pu+pv)
+                                u.append(np.dot(np.linalg.inv(DKprod + DKridge), np.linalg.multi_dot([DK, Lamy, self.obs_data.y_std[i].T])).T)
+                            u = np.array(u)
+                        else:
                             DK = self.obs_data.K
-                            DKridge = 1e-6 * np.diag(np.ones(pu + pv))  # (pu+pv, pu+pv)
                             Lamy = np.eye(self.obs_data.y_ind.shape[0])
                             DKprod = np.linalg.multi_dot([DK, Lamy, DK.T])  # (pu+pv, pu+pv)
                             u = np.dot(np.linalg.inv(DKprod + DKridge), np.linalg.multi_dot([DK, Lamy, self.obs_data.y_std.T])).T
-                        else: # D
+                            
+                    else: # D
+                        if self.ragged_obs:
+                            pv = np.array([d.shape[0] for d in self.obs_data.D])
+                            if np.all(pv == pv[0]): pv = pv[0]
+                            else: raise ValueError('first dimension in lists not equal')
+                            DKridge = 1e-6 * np.diag(np.ones(pu + pv))  # (pu+pv, pu+pv)
+                            u = []
+                            v = []
+                            for i in range(len(self.obs_data.D)):
+                                DK = np.concatenate([self.obs_data.D[i], self.obs_data.K[i]])
+                                Lamy = np.eye(self.obs_data.y_ind[i].shape[0])
+                                DKprod = np.linalg.multi_dot([DK, Lamy, DK.T])  # (pu+pv, pu+pv)
+                                vu = np.dot(np.linalg.inv(DKprod + DKridge), np.linalg.multi_dot([DK, Lamy, self.obs_data.y_std[i].T]))
+                                v.append(vu[:pv].T)
+                                u.append(vu[pv:].T)
+                            u = np.array(u)
+                            v = np.array(v)
+                        else:
                             pv = self.obs_data.D.shape[0]
                             DK = np.concatenate([self.obs_data.D, self.obs_data.K])  # (pu+pv, ell_obs)
                             DKridge = 1e-6 * np.diag(np.ones(pu + pv))  # (pu+pv, pu+pv)
