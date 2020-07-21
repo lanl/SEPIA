@@ -722,10 +722,16 @@ class SepiaData(object):
         n_plots = x_plot.shape[0]
 
         # get axis limits
-        if x_min is None: x_min = min(np.amin(self.obs_data.y_ind),np.amin(self.sim_data.y_ind))
-        if x_max is None: x_max = max(np.amax(self.obs_data.y_ind),np.amax(self.sim_data.y_ind))    
-        if y_min is None: y_min = min(np.amin(self.obs_data.y),np.amin(self.sim_data.y))
-        if y_max is None: y_max = max(np.amax(self.obs_data.y),np.amax(self.sim_data.y))
+        if self.ragged_obs:
+            if x_min is None: x_min = min(min([min(k) for k in self.obs_data.y_ind]),np.amin(self.sim_data.y_ind))
+            if x_max is None: x_max = max(max([max(k) for k in self.obs_data.y_ind]),np.amax(self.sim_data.y_ind))
+            if y_min is None: y_min = min(min([min(k) for k in self.obs_data.y]),np.amin(self.sim_data.y))
+            if y_max is None: y_max = max(max([max(k) for k in self.obs_data.y]),np.amax(self.sim_data.y))
+        else:
+            if x_min is None: x_min = min(np.amin(self.obs_data.y_ind),np.amin(self.sim_data.y_ind))
+            if x_max is None: x_max = max(np.amax(self.obs_data.y_ind),np.amax(self.sim_data.y_ind))    
+            if y_min is None: y_min = min(np.amin(self.obs_data.y),np.amin(self.sim_data.y))
+            if y_max is None: y_max = max(np.amax(self.obs_data.y),np.amax(self.sim_data.y))
 
         # nearest neighbots
         # find closest sim input points to each x_plot observed input points
@@ -777,7 +783,7 @@ class SepiaData(object):
                                 color=colors[j],label="Nearest Sim {}".format(j+1))
 
                 # true data curve and "real data points"
-                axs[i].plot(self.obs_data.y_ind, self.obs_data.y[which_x[i],:],'--ko',label="Obs data")
+                axs[i].plot(self.obs_data.y_ind[i], self.obs_data.y[which_x[i]],'--ko',label="Obs data")
 
                 # legend
                 axs[i].legend()
