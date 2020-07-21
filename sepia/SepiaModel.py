@@ -304,7 +304,11 @@ class SepiaModel:
         :param prog: bool -- whether to show progress bar
         :param diagnostics: bool -- whether to return some information on acceptance rates used inside step size tuning
         """
-        print('tuning step sizes...')
+        print('Starting tune_step_sizes...')
+        print('Default step sizes:')
+        for param in self.params.mcmcList:
+            print('%s' % param.name)
+            print(param.mcmc.stepParam)
         self.num.auto_stepsize = True
         import copy
         # Set up ranges, step sizes
@@ -326,7 +330,7 @@ class SepiaModel:
                 step_sizes[mcmc_param.name].append(mcmc_param.mcmc.stepParam * np.power(base, ex[lev]))
         # Do sampling for each step size, collect acceptance rates/ step sizes into lists
         acc = {k.name: [] for k in self.params.mcmcList}
-        ss = {k.name: [] for k in self.params.mcmcList}
+        #ss = {k.name: [] for k in self.params.mcmcList}
         mod_tmp = copy.deepcopy(self)
         # initialize model
         mod_tmp.do_mcmc(0, do_propMH=False, prog=False)
@@ -356,7 +360,11 @@ class SepiaModel:
                 opt_ss = np.exp((logit-coefs[0])/coefs[1])
                 new_ss[arr_ind] = opt_ss
             p.mcmc.stepParam = new_ss
-        print('done with step size selection')
+        print('Done with tune_step_size.')
+        print('Selected step sizes:')
+        for param in self.params.mcmcList:
+            print('%s' % param.name)
+            print(param.mcmc.stepParam)
         if diagnostics:
             return step_sizes, acc
 
