@@ -30,15 +30,15 @@ class SepiaMCMC:
         :return: scalar candidate value
         """
         self.aCorr = 1
-        if self.stepType is 'Uniform':
+        if self.stepType == 'Uniform':
             cand = self.parent.val[arr_ind] + self.stepParam[arr_ind] * np.random.uniform(-0.5, 0.5)
-        elif self.stepType is 'BetaRho':
+        elif self.stepType == 'BetaRho':
             cand = np.exp(-0.25 * self.parent.val[arr_ind]) + self.stepParam[arr_ind] * np.random.uniform(-0.5, 0.5)
             if cand <= 0:
                 cand = np.inf
             else:
                 cand = -4 * np.log(cand)
-        elif self.stepType is 'PropMH':
+        elif self.stepType == 'PropMH':
             if do_propMH:
                 cval = self.parent.val[arr_ind]
                 w = np.max([1, cval/3])
