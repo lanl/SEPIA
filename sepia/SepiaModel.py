@@ -330,21 +330,20 @@ class SepiaModel:
                 step_sizes[mcmc_param.name].append(mcmc_param.mcmc.stepParam * np.power(base, ex[lev]))
         # Do sampling for each step size, collect acceptance rates/ step sizes into lists
         acc = {k.name: [] for k in self.params.mcmcList}
-        #ss = {k.name: [] for k in self.params.mcmcList}
         mod_tmp = copy.deepcopy(self)
-        # initialize model
-        mod_tmp.do_mcmc(0, do_propMH=False, prog=False)
+        # initialize model by calling log post
+        mod_tmp.logPost()
         for _ in tqdm(range(n_burn), desc='Step size tuning', mininterval=0.5, disable=not(prog)):
             for i, lev in enumerate(range(n_levels)):
                 for p in mod_tmp.params.mcmcList:
-                    p.mcmc.stepParam = step_sizes[p.name][i]
+                    p.mcmc.stepParam = step_sizes[p.name][i].copy()
                 mod_tmp.do_mcmc(1, do_propMH=False, no_init=True, prog=False)
         # Get acceptance
         for p in mod_tmp.params.mcmcList:
             acc[p.name].append(np.transpose(p.calc_accept().reshape((n_burn, n_levels, *p.val_shape)), [1,0,2,3]))
         # Compute GLM for each parameter
         logit = np.log(1 / (np.exp(1) - 1))
-        for p in self.params.mcmcList:
+        for pi, p in enumerate(self.params.mcmcList):
             new_ss = np.zeros_like(p.mcmc.stepParam)
             p_acc = np.array(acc[p.name]) # (n_levels, n_burn, dim of param)
             p_ss = np.array(step_sizes[p.name])   # (n_levels, dim of param)
@@ -359,7 +358,8 @@ class SepiaModel:
                 coefs = res.params
                 opt_ss = np.exp((logit-coefs[0])/coefs[1])
                 new_ss[arr_ind] = opt_ss
-            p.mcmc.stepParam = new_ss
+            p.mcmc.stepParam = new_ss.copy()
+            p.val = mod_tmp.params.mcmcList[pi].val.copy()
         print('Done with tune_step_size.')
         print('Selected step sizes:')
         for param in self.params.mcmcList:
