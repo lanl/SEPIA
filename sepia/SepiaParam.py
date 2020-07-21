@@ -87,6 +87,10 @@ class SepiaParam:
             draws = draws_flat
         return draws
 
+    def calc_accept_rate(self):
+        tlist=self.calc_accept()
+        return np.sum(tlist,axis=0) / tlist.shape[0]
+
     def calc_accept(self):
         """
         Calculate whether each draw was rejected or accepted.
