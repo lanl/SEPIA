@@ -263,7 +263,7 @@ def setup_model(data, Sigy=None, lamVzGroup=None):
             if data.ragged_obs:
                 DKvu = [np.dot(DK[i].T, np.concatenate([v[None, i, :], u[None, i, :]], axis=1).T) for i in range(n)]
                 for i in range(n):
-                    resid = obs_data.y_std[i] - DKvu[i]
+                    resid = obs_data.y_std[i] - DKvu[i].squeeze()
                     lamOs_b_corr += 0.5 * np.sum(np.linalg.multi_dot([resid, Lamy[i], resid]))
             else:
                 DKvu = np.dot(DK.T, np.concatenate([v, u], axis=1).T)
