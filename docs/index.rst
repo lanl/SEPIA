@@ -5,18 +5,18 @@ Welcome to Sepia!
 
 .. image:: sepia.png
     :align: center
-    :height: 250px
-    :width: 200px
-
-Sepia is a python implementation of `GPMSA`_.
+    :height: 200px
+    :width: 160px
 
 .. _GPMSA: https://github.com/lanl/gpmsa
 
 .. topic:: What is Sepia?
 
+    Sepia is a Python implementation of `GPMSA`_.
+
     Sepia implements Bayesian emulation and calibration with the ability to handle multivariate outputs.
 
-    Example jupyter notebooks are found `here`_.
+    Example jupyter notebooks are found `here`_. These self-contained examples may be helpful for setting up your code.
 
     Full source code on `GitHub`_.
 
@@ -24,11 +24,13 @@ Sepia is a python implementation of `GPMSA`_.
 
 .. _GitHub: https://github.com/lanl/SEPIA
 
-.. topic:: Quickstart code snippets
+.. topic:: Read before starting: general workflow
 
-    We recommend reading through and following the notebook examples to learn how to use Sepia.
+    Before getting started, we highly recommend reading the :ref:`workflow`.
 
-    Looking for some tips on how to do common tasks? See :ref:`helpful-code-snippets`.
+.. topic:: Code snippets
+
+    Familiar with the general workflow but looking for some tips on how to do common tasks? See :ref:`helpful-code-snippets`.
 
 
 API

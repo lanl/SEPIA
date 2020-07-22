@@ -253,7 +253,7 @@ To get y on the standardized scale::
 
 To get y on the native (original) scale::
 
-    predystd = pred.get_y_standardized()
+    predystd = pred.get_y_native()
 
 
 Full model predictions
@@ -275,6 +275,7 @@ To get discrepancy::
     predd = pred.get_discrepancy_native()          # Native/original scale
 
 To get y::
+
     predysimstd = pred.get_ysim_standardized() # Standardized scale
     predyobs=pred.get_yobs_native()            # Native/original scale
 
