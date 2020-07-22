@@ -54,13 +54,16 @@ model = setup_model(data)
 cachefile_name='multivariate_example_with_prediction.pkl'
 import os.path
 import pickle
-if os.path.isfile(cachefile_name):
+
+use_save_file=False
+
+if use_save_file and os.path.isfile(cachefile_name):
    model=pickle.load(open(cachefile_name, "rb" ))
 else:
-    #model.tune_step_sizes(50, 20)
+    model.tune_step_sizes(50, 20)
     model.do_mcmc(1000)
-    pickle.dump(model, open( cachefile_name, "w+b" ))
-
+    if use_save_file:
+        pickle.dump(model, open( cachefile_name, "w+b" ))
 
 #%%
 
