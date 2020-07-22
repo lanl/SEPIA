@@ -471,15 +471,9 @@ class SepiaData(object):
                                 DK = np.concatenate([self.obs_data.D[i], self.obs_data.K[i]])
                                 Lamy = np.eye(self.obs_data.y_ind[i].shape[0])
                                 DKprod = np.linalg.multi_dot([DK, Lamy, DK.T])  # (pu+pv, pu+pv)
-                                print('DK',DK)
-                                print('DKridge',DKridge)
-                                print('Lamy',Lamy)
-                                print('DKprod',DKprod)
                                 vu = np.dot(np.linalg.inv(DKprod + DKridge), np.linalg.multi_dot([DK, Lamy, self.obs_data.y_std[i].T]))
                                 v.append(vu[:pv].T)
                                 u.append(vu[pv:].T)
-                            
-                            print('u',u)
                             u = np.array(u)
                             v = np.array(v)
                         else:
@@ -488,14 +482,9 @@ class SepiaData(object):
                             DKridge = 1e-6 * np.diag(np.ones(pu + pv))  # (pu+pv, pu+pv)
                             Lamy = np.eye(self.obs_data.y_ind.shape[0])
                             DKprod = np.linalg.multi_dot([DK, Lamy, DK.T])  # (pu+pv, pu+pv)
-                            print('DK',DK)
-                            print('DKridge',DKridge)
-                            print('Lamy',Lamy)
-                            print('DKprod',DKprod)
                             vu = np.dot(np.linalg.inv(DKprod + DKridge), np.linalg.multi_dot([DK, Lamy, self.obs_data.y_std.T]))
                             v = vu[:pv, :].T
                             u = vu[pv:, :].T
-                            print(u)
                             
                         if u.shape[1] == w.shape[1] and not plot_sep:
                             for i,ax in enumerate(axs.flatten()):
