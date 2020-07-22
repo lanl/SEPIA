@@ -220,7 +220,7 @@ class SepiaModel:
         #self.num.logPrior=lp # commented out since we don't use this, and it could be problematic to set it each time called?
         return lp
 
-    def do_mcmc(self, nsamp, prog=True, do_propMH=True, no_init=False):
+    def do_mcmc(self, nsamp, prog=True, do_propMH=True, no_init=False, seed=None):
         """
         Run MCMC sampling on initialized SepiaModel object.
 
@@ -231,6 +231,8 @@ class SepiaModel:
         :param do_propMH: bool -- whether to use propMH sampling for variables with that step type
         :param no_init: bool -- skip initialization (if model has already been sampled; need to initialize on first call)
         """
+        if seed is not None:
+            np.random.seed(seed)
         if self.num.auto_stepsize:
             do_propMH = False
         if not no_init:
