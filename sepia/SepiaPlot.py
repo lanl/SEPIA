@@ -33,39 +33,58 @@ def theta_pairs(samples_dict,design_names=[]):
         sns.distplot(theta_df.loc[:, theta_df.columns != 'idx'],hist=True,axlabel=design_names[0])
         plt.show()
         
-def mcmc_trace(samples_dict,theta_names=None,by_group=False,max_print=5):
+def mcmc_trace(samples_dict,theta_names=None,start=0,end=None,n_to_plot=500,by_group=True,max_print=5):
+    # trim samples dict
+    n_samples = samples_dict['theta'].shape[0]
+    if n_to_plot>n_samples:
+        n_to_plot = n_samples
+    # default end
+    if end is None:
+        end = n_samples-1
+    # check start is valid
+    if not isinstance(start,int) or start<0 :
+        raise TypeError('invalid start index')
+    # check end is valid
+    if end is not None and (start>end or end<0 or not isinstance(end,int) or end > n_samples):
+        raise TypeError('invalid end index')
+    # which indices to plot  
+    if (end-start) > n_to_plot:
+        plot_idx = np.unique(np.linspace(start,end,n_to_plot,dtype=int))
+    else:
+        plot_idx = np.arange(start,end,1,dtype=int)
+    
     if not by_group:
         for i, k in enumerate(samples_dict.keys()):
             n_row = min(samples_dict[k].shape[1],max_print)
             fig, axs = plt.subplots(n_row,1,sharex=True,figsize=[10,1.5*n_row])
-            fig.tight_layout()
+            fig.subplots_adjust(hspace=0)
             if n_row > 1:
                 for j in range(n_row):
-                    sns.lineplot(data=samples_dict[k][:,j], palette="tab10", linewidth=.75, ax = axs[j])
-                    if i == 0 and theta_names is not None: axs[j].set_xlabel(theta_names[j])
-                    else: axs[j].set_xlabel(k+'_'+str(j+1))
+                    sns.lineplot(x=plot_idx,y=samples_dict[k][plot_idx,j], palette="tab10", linewidth=.75, ax = axs[j])
+                    if i == 0 and theta_names is not None: axs[j].set_ylabel(theta_names[j])
+                    else: axs[j].set_ylabel(k+'_'+str(j+1))
                 plt.show()
             else:
-                sns.lineplot(data=samples_dict[k][:,0], palette="tab10", linewidth=.75, ax = axs)
-                if i == 0 and theta_names is not None: axs.set_xlabel(theta_names[0])
-                else: axs.set_xlabel(k)
+                sns.lineplot(x=plot_idx,y=samples_dict[k][plot_idx,0], palette="tab10", linewidth=.75, ax = axs)
+                if i == 0 and theta_names is not None: axs.set_ylabel(theta_names[0])
+                else: axs.set_ylabel(k)
                 plt.show()
     else:
+        n_axes = len(samples_dict)
+        fig, axs = plt.subplots(n_axes,1,sharex=True,figsize=[10,1.5*n_axes])
+        fig.subplots_adjust(hspace=0)
         for i, k in enumerate(samples_dict.keys()):
-            n_row = min(samples_dict[k].shape[1],max_print)
-            fig, axs = plt.subplots(1,1,figsize=[10,1.5*n_row])
-            if n_row > 1:
-                for j in range(n_row):
-                    sns.lineplot(data=samples_dict[k][:,j], palette="tab10", linewidth=.75, ax = axs,
-                                label=k+str(j+1))
-                    if i == 0: axs.set_xlabel('theta')
-                axs.legend()
-                plt.show()
+            n_lines = min(samples_dict[k].shape[1],max_print)
+            if n_lines > 1:
+                for j in range(n_lines):
+                    sns.lineplot(x=plot_idx,y=samples_dict[k][plot_idx,j], palette="tab10", linewidth=.75, ax = axs[i],
+                                label= theta_names[j] if (i==0 and theta_names is not None) else k+str(j+1))
+                axs[i].set_ylabel(k)
+                axs[i].legend(bbox_to_anchor=(1.025, 1), loc='upper left', borderaxespad=0.)
             else:
-                sns.lineplot(data=samples_dict[k][:,0], palette="tab10", linewidth=.75, ax = axs)
-                if i == 0: axs.set_xlabel('theta')
-                else: axs.set_xlabel(k)
-                plt.show()
+                sns.lineplot(x=plot_idx,y=samples_dict[k][plot_idx,0], palette="tab10", linewidth=.75, ax = axs[i])
+                axs[i].set_ylabel(theta_names[0] if (i==0 and theta_names is not None) else k)
+        plt.show()
          
 def param_stats(samples_dict,theta_names=None,q1=0.05,q2=0.95,digits=4):
     # theta_names : list
