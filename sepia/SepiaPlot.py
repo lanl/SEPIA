@@ -33,7 +33,7 @@ def theta_pairs(samples_dict,design_names=[]):
         sns.distplot(theta_df.loc[:, theta_df.columns != 'idx'],hist=True,axlabel=design_names[0])
         plt.show()
         
-def mcmc_trace(samples_dict,theta_names=None,start=0,end=None,n_to_plot=500,by_group=True,max_print=5):
+def mcmc_trace(samples_dict,theta_names=None,start=0,end=None,n_to_plot=500,by_group=True,max_print=10):
     # trim samples dict
     n_samples = samples_dict['theta'].shape[0]
     if n_to_plot>n_samples:
@@ -80,7 +80,7 @@ def mcmc_trace(samples_dict,theta_names=None,start=0,end=None,n_to_plot=500,by_g
                     sns.lineplot(x=plot_idx,y=samples_dict[k][plot_idx,j], palette="tab10", linewidth=.75, ax = axs[i],
                                 label= theta_names[j] if (i==0 and theta_names is not None) else k+str(j+1))
                 axs[i].set_ylabel(k)
-                axs[i].legend(bbox_to_anchor=(1.025, 1), loc='upper left', borderaxespad=0.)
+                axs[i].legend(bbox_to_anchor=(1.025, 1), loc='upper left', borderaxespad=0., ncol=int(np.ceil(n_lines/5)))
             else:
                 sns.lineplot(x=plot_idx,y=samples_dict[k][plot_idx,0], palette="tab10", linewidth=.75, ax = axs[i])
                 axs[i].set_ylabel(theta_names[0] if (i==0 and theta_names is not None) else k)
