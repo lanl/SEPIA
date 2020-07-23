@@ -1,7 +1,9 @@
 # SEPIA
 
 Simulation-Enabled Prediction, Inference, and Analysis: physics-informed statistical learning.
-This will be the python version of [GPMSA](https://github.com/lanl/gpmsa)
+This is a Python adaptation of [GPMSA](https://github.com/lanl/gpmsa).
+
+<img src="docs/sepia.png" alt="sepia cuttlefish logo" width="150"/>
 
 ### Warning: Construction Area. SEPIA is under development!
 Basic functionality (model setup, likelihood evaluation, and mcmc sampling, multivariate calibration, predictions) is complete and has been tested against GPMSA matlab.
