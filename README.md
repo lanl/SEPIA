@@ -7,18 +7,22 @@ This is a Python adaptation of [GPMSA](https://github.com/lanl/gpmsa).
 
 ### Warning: Construction Area. SEPIA is under development!
 Basic functionality (model setup, likelihood evaluation, and mcmc sampling, multivariate calibration, predictions) is complete and has been tested against GPMSA matlab.
-Some features are untested or still being developed (like auto step size tuning and sensitivity analysis).
+Some features are untested or still being developed (visualization and diagnostics, sensitivity analysis).
 
 Users should pull the newest code frequently, particularly if you encounter errors.
-If you have installed using the instructions below, you should not need to reinstall -- the updated code should automatically be tied into your existing sepia installation.
+If you have installed using the instructions below, you should not need to reinstall after pulling new code -- the updated code should automatically be tied into your existing sepia installation.
+
+### Documentation
+Current documentation is at [Read the Docs](http://sepia-lanl.readthedocs.io).
+The documentation contains a workflow guide that is helpful for new users to read, and also contains a quick reference for basic commands as well as an API.
 
 ### Examples
 Basic usage is demonstrated in the Examples directory. 
-Follow one ofthese example, plugging in your own data.
+After looking at the documentation, check out the examples.
 
 ### Install package locally
- I recommend doing this inside a python conda environment.
- The packages installed in the development environment are listed in `environment.yml`.
+We recommend doing this inside a python conda environment.
+The packages installed in the development environment are listed in `environment.yml`.
 Use `conda env create -f environment.yml` to create the environment, then activate as `source activate sepia` before installing sepia.
 
 Then use the following command from this directory to install sepia locally.
@@ -26,9 +30,7 @@ Then use the following command from this directory to install sepia locally.
 `pip install -e .[sepia]`
 
 
-### Documentation
-You can build it locally if you wish following docs/README.md, or view version on
-[Read the Docs](http://sepia-lanl.readthedocs.io).
+
 
 ---
 
