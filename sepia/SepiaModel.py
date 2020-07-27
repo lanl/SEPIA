@@ -86,7 +86,7 @@ class SepiaModel:
     #    else:
     #        print(self.data)
 
-    def get_samples(self, nburn=0, sampleset=False, numsamples=False, flat=True, includelogpost=True, untransform_theta=True):
+    def get_samples(self, nburn=0, sampleset=False, numsamples=False, flat=True, includelogpost=True, untransform_theta=False):
         """
         Extract MCMC samples into dictionary format. By default, all samples are returned, or samples can be
         subset using nburn/sampleset/numsamples. Provide either sampleset or numsamples, or neither.
