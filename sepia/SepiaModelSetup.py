@@ -112,7 +112,7 @@ def setup_model(data, Sigy=None, lamVzGroup=None):
     if not data.sim_only:
         if Sigy is None:
             if data.ragged_obs:
-                Sigy = [np.diag(np.ones(ell_obs[i])) for i in range(len(ell_obs))]
+                Sigy = [np.atleast_2d(np.diag(np.ones(ell_obs[i]))) for i in range(len(ell_obs))]
             else:
                 Sigy = np.diag(np.ones(ell_obs))
         if data.scalar_out:
