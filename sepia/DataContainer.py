@@ -46,9 +46,9 @@ class DataContainer(object):
             raise ValueError('y_ind required when y has multivariate output.')
         if y_ind is not None:
             if isinstance(y_ind, list):
-                y_shapes = [ytmp.shape for ytmp in self.y]
-                y_ind_shapes = [ytmp.shape for ytmp in y_ind]
-                if not np.alltrue(y_shapes == y_ind_shapes):
+                y_shapes = np.array([ytmp.shape for ytmp in self.y])
+                y_ind_shapes = np.array([ytmp.shape for ytmp in y_ind])
+                if not np.all(y_shapes[:,0] == y_ind_shapes[:,0]):
                     raise ValueError('Dimension 1 of y must match dimension 0 of y_ind.')
             else:
                 if self.y.shape[1] != y_ind.shape[0]:
