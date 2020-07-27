@@ -83,6 +83,7 @@ for i in range(n):
     plt.scatter(h_field,y_field[i,:])
 plt.xlabel('Height (m)');plt.ylabel("Time (s)");plt.title("Experimental Data")
 plt.legend()
+plt.show()
 
 #%% For simulation design points, we use a scaled latin hypercube to select 
 # $m=25\;(R,C)$ pairs. We then scale the design so $R\in[0.05,0.45]$ to better 
@@ -125,17 +126,15 @@ C_sim = sim_design[:,1]
 plt.scatter(R_sim,C_sim) # consider this the "native scale for R and C"
 plt.xlabel("R design points");plt.ylabel("C design points")
 plt.title("Simulator Design")
+plt.show()
 
 #%%
 # Compute simulated data
 h_sim = np.arange(1.5,25,1.5)
 y_sim = invertHsim(h_sim, g, C_sim, R_sim)
 
-# plot on dense grid
+# dense grid for plotting later
 y_sim_dense = invertHsim(h_dense, g, C_sim, R_sim)
-for i in range(m): plt.plot(h_dense,y_sim_dense[i,:])
-plt.xlabel('Height (m)'); plt.ylabel("Time (s)")
-plt.title("Simulator Output for m=25 (R,C) Pairs")
 
 #%% See invertH.py for details on solving and inverting equations (1) and (2) 
 # to obtain experimental and simulated data. Below we show, for each Radius R, 
@@ -197,6 +196,7 @@ for i in range(len(R)):
     inset_ax.scatter(R_sim[R_nearest_des[:,i]],C_sim[R_nearest_des[:,i]],s=15,\
                      color=colors)
     inset_ax.axvline(x=R[i], ymin=0, ymax=1,color='k',linewidth=.5)
+plt.show()
 
 #%% # Preparing the data for Sepia
 # To use Sepia, we must package our data into a SepiaData object. In this 
