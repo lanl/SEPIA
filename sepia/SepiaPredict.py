@@ -192,14 +192,20 @@ class SepiaFullPrediction(SepiaPrediction):
         '''
         return np.tensordot(self.u,self.model.data.sim_data.K,axes=[[2],[0]])
 
-    def get_ysim_asobs_standardized(self):
+    def get_ysim_asobs_standardized(self,obs_ref=0):
         '''
         Project u through the Kobs basis to provide predictions of ysim on the native scale at obs locations.
         (native refers to not the mean=0 and sd=1 standardization process in model setup)
 
+        :param obs_ref: if this is a ragged_obs problem, selects the reference observation index
+         to use for transformation parameters; default index 0
         :return: predictions of native ysim, (#samples x #x_pred x py_obs)
         '''
-        return np.tensordot(self.u,self.model.data.obs_data.K,axes=[[2],[0]])
+        if self.model.data.ragged_obs:
+            K = self.model.data.obs_data[obs_ref].K
+        else:
+            K = self.model.data.obs_data.K
+        return np.tensordot(self.u,K,axes=[[2],[0]])
 
     def get_ysim_native(self):
         '''
@@ -211,52 +217,70 @@ class SepiaFullPrediction(SepiaPrediction):
         ysd_inpredshape, ymean_inpredshape = self.calc_sim_standardizations_inpredshape()
         return self.get_ysim_standardized()*ysd_inpredshape+ymean_inpredshape
 
-    def get_ysim_asobs_native(self):
+    def get_ysim_asobs_native(self,obs_ref=0):
         '''
         Project u through the Kobs basis to provide predictions of ysim on the native scale at obs locations.
         (native refers to not the mean=0 and sd=1 standardization process in model setup)
 
+        :param obs_ref: if this is a ragged_obs problem, selects the reference observation index
+         to use for transformation parameters; default index 0
         :return: predictions of native ysim, (#samples x #x_pred x py_obs)
         '''
-        ysd_inpredshape, ymean_inpredshape = self.calc_obs_standardizations_inpredshape()
-        return self.get_ysim_asobs_standardized()*ysd_inpredshape+ymean_inpredshape
+        ysd_inpredshape, ymean_inpredshape = self.calc_obs_standardizations_inpredshape(obs_ref=obs_ref)
+        return self.get_ysim_asobs_standardized(obs_ref=obs_ref)*ysd_inpredshape+ymean_inpredshape
 
-    def get_discrepancy_standardized(self):
+    def get_discrepancy_standardized(self, obs_ref=0):
         '''
         return Dobs*v to provide predictions of discrepancy on the standardized scale at obs locations.
         (standardized refers to the sd=1 standardization process in model setup)
 
+        :param obs_ref: if this is a ragged_obs problem, selects the reference observation index
+         to use for transformation parameters; default index 0
         :return: predictions of standardized discrepancy, (#samples x #x_pred x py_obs)
         '''
-        return np.tensordot(self.v,self.model.data.obs_data.D,axes=[[2],[0]])
+        if self.model.data.ragged_obs:
+            D = self.model.data.obs_data[obs_ref].D
+        else:
+            D = self.model.data.obs_data.D
+        return np.tensordot(self.v,D,axes=[[2],[0]])
 
-    def get_discrepancy_native(self):
+    def get_discrepancy_native(self,obs_ref=0):
         '''
         return Dobs*v to provide predictions of discrepancy on the native scale at obs locations.
         (native refers to not the sd=1 standardization process in model setup)
 
+        :param obs_ref: if this is a ragged_obs problem, selects the reference observation index
+         to use for transformation parameters; default index 0
         :return: predictions of native discrepancy, (#samples x #x_pred x py_obs)
         '''
-        ysd_inpredshape,_ = self.calc_obs_standardizations_inpredshape()
-        return np.tensordot(self.v,self.model.data.obs_data.D,axes=[[2],[0]])*ysd_inpredshape
+        ysd_inpredshape,_ = self.calc_obs_standardizations_inpredshape(obs_ref=obs_ref)
+        if self.model.data.ragged_obs:
+            D = self.model.data.obs_data[obs_ref].D
+        else:
+            D = self.model.data.obs_data.D
+        return np.tensordot(self.v,D,axes=[[2],[0]])*ysd_inpredshape
 
-    def get_yobs_standardized(self):
+    def get_yobs_standardized(self,obs_ref=0):
         '''
         return y=Kobs*u+Dobs*v to provide predictions of y on the standardized scale at obs locations.
         (standardized refers to the mean=0 and sd=1 standardization process in model setup)
 
+        :param obs_ref: if this is a ragged_obs problem, selects the reference observation index
+         to use for transformation parameters; default index 0
         :return: predictions of standardized y, (#samples x #x_pred x py_obs)
         '''
-        return self.get_ysim_asobs_standardized()+self.get_discrepancy_standardized()
+        return self.get_ysim_asobs_standardized(obs_ref=obs_ref)+self.get_discrepancy_standardized(obs_ref=obs_ref)
 
-    def get_yobs_native(self):
+    def get_yobs_native(self, obs_ref=0):
         '''
         return y=Kobs*u+Dobs*v to provide predictions of y on the native scale at obs locations.
         (native refers to not the mean=0 and sd=1 standardization process in model setup)
 
+        :param obs_ref: if this is a ragged_obs problem, selects the reference observation index
+         to use for transformation parameters; default index 0
         :return: predictions of native y, (#samples x #x_pred x py_obs)
         '''
-        ysd_inpredshape, ymean_inpredshape = self.calc_obs_standardizations_inpredshape()
+        ysd_inpredshape, ymean_inpredshape = self.calc_obs_standardizations_inpredshape(obs_ref=obs_ref)
         return (self.get_ysim_asobs_standardized()+self.get_discrepancy_standardized())*ysd_inpredshape+ymean_inpredshape
 
     def get_mu_sigma(self):
@@ -279,16 +303,24 @@ class SepiaFullPrediction(SepiaPrediction):
         ymean_inpredshape = np.tile(self.model.data.sim_data.orig_y_mean, (ushape[0], ushape[1], 1))
         return ysd_inpredshape, ymean_inpredshape
 
-    def calc_obs_standardizations_inpredshape(self):
+    def calc_obs_standardizations_inpredshape(self,obs_ref):
         # internal function, calculate the ysd and ymean arrays
         # tile out the standardization vectors to the full prediction shape (is this this only way?!?)
+        if self.model.data.ragged_obs:
+            if obs_ref<0 or obs_ref>len(self.model.data.obs_data):
+                raise ValueError('obs_ref index specified in predictions is not within obs_data size')
+            orig_y_sd = self.model.data.obs_data[obs_ref].orig_y_sd
+            orig_y_mean = self.model.data.obs_data[obs_ref].orig_y_mean
+        else:
+            orig_y_sd = self.model.data.obs_data.orig_y_sd
+            orig_y_mean = self.model.data.obs_data.orig_y_mean
         ushape=self.u.shape
-        if isinstance(self.model.data.obs_data.orig_y_sd,np.ndarray):
-            ysd_inpredshape = np.tile(self.model.data.obs_data.orig_y_sd, (ushape[0], ushape[1], 1))
+        if isinstance(orig_y_sd,np.ndarray):
+            ysd_inpredshape = np.tile(orig_y_sd, (ushape[0], ushape[1], 1))
         else:
             # cheating a bit, if it's scalar it doesn't have to be tiled out
-            ysd_inpredshape=self.model.data.obs_data.orig_y_sd
-        ymean_inpredshape = np.tile(self.model.data.obs_data.orig_y_mean, (ushape[0], ushape[1], 1))
+            ysd_inpredshape=orig_y_sd
+        ymean_inpredshape = np.tile(orig_y_mean, (ushape[0], ushape[1], 1))
         return ysd_inpredshape, ymean_inpredshape
 
 '''
