@@ -26,6 +26,7 @@ class ModelContainer():
     :var p:
     :var q:
     :var lamVzGroup:
+    :var lamVzGnum:
     :var SigV:
     :var SigU:
     :var SigWl:
@@ -41,6 +42,7 @@ class ModelContainer():
         self.LamSim = self.LamObs = self.SigObs = None  # Precomputed cov stuff
         self.n = self.m = self.pu = self.pv = self.p = self.q = None  # Dimensions
         self.lamVzGroup = None
+        self.lamVzGnum = 1
         #self.x0Dist = self.xzDist = self.xthetaDist = self.ztDist = None  # distances for covariance
         self.SigV = self.SigU = self.SigWl = self.SigWi = self.SigUW = None
         self.auto_stepsize = False
@@ -221,7 +223,7 @@ class SepiaModel:
                                        bounds=[0, 1], mcmcStepParam=0.2, mcmcStepType='Uniform', orig_range=theta_range)
         self.params.betaV = SepiaParam(val=0.1, name='betaV', val_shape=(self.num.p, self.num.lamVzGnum), dist='Beta', params=[1., 0.1],
                                        bounds=[0, np.inf], mcmcStepParam=0.1, mcmcStepType='BetaRho')
-        self.params.lamVz = SepiaParam(val=20., name='lamVz', val_shape=(1, 1), dist='Gamma', params=[1., 1e-3],
+        self.params.lamVz = SepiaParam(val=20., name='lamVz', val_shape=(1, self.num.lamVzGnum), dist='Gamma', params=[1., 1e-3],
                                        bounds=[0., np.inf], mcmcStepParam=10., mcmcStepType='PropMH')
         self.params.lamOs = SepiaParam(val=lamOs_init, name='lamOs', val_shape=(1, 1), dist='Gamma',
                                        params=[lamOs_a, lamOs_b], bounds=[0, np.inf], mcmcStepParam=lamOs_init/2, mcmcStepType='PropMH')
