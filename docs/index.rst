@@ -20,12 +20,12 @@ Welcome to Sepia!
 
     Full source code on `GitHub`_.
 
-    Warning: Sepia is still in development. Basic functionality (model setup, likelihood evaluation, MCMC sampling,
-    multivariate calibration, predictions) is complete and has been tested. Some features are untested or still being
-    developed (visualization and diagnostics, sensitivity analysis).
+    .. note:: Warning: Sepia is still in development. Basic functionality (model setup, likelihood evaluation, MCMC sampling,
+        multivariate calibration, predictions) is complete and has been tested. Some features are untested or still being
+        developed (visualization and diagnostics, sensitivity analysis).
 
-    Users should pull the newest code frequently, particularly if you encounter errors. If you have installed using the
-    instructions on GitHub, you should not need to reinstall after pulling new code.
+        Users should pull the newest code frequently, particularly if you encounter errors. If you have installed using the
+        instructions on GitHub, you should not need to reinstall after pulling new code.
 
 .. _here: https://github.com/lanl/SEPIA/tree/master/sepia/Examples
 
@@ -73,6 +73,7 @@ API
     mcmc
     model_internals
     predict
+    plot
 
 
 

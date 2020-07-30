@@ -1,10 +1,5 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""
-Created on Tue Jul  7 14:26:27 2020
-
-@author: granthutchings
-"""
 
 import seaborn as sns
 import pandas as pd
@@ -14,6 +9,12 @@ import numpy as np
 sns.set(style="ticks")
 
 def theta_pairs(samples_dict,design_names=[]):
+    """
+    Create pairs plot of sampled thetas.
+
+    :param samples_dict: dictionary -- samples from model.get_samples()
+    :param design_names: list -- names for thetas, optional
+    """
     theta = samples_dict['theta']  
     if not design_names:
         for i in range(theta.shape[1]):
@@ -34,6 +35,17 @@ def theta_pairs(samples_dict,design_names=[]):
         plt.show()
         
 def mcmc_trace(samples_dict,theta_names=None,start=0,end=None,n_to_plot=500,by_group=True,max_print=10):
+    """
+    Create trace plot of MCMC.
+
+    :param samples_dict: dictionary -- samples from model.get_samples()
+    :param theta_names: list -- names for thetas, optional
+    :param start: int -- where to start plotting traces (sample index)
+    :param end: int -- where to end plotting traces (sample index)
+    :param n_to_plot: int -- how many samples to show
+    :param by_group: boolean -- whether to group params of the same name
+    :param max_print: int -- maximum number of traces to plot
+    """
     # trim samples dict
     n_samples = samples_dict['theta'].shape[0]
     if n_to_plot>n_samples:
@@ -87,6 +99,16 @@ def mcmc_trace(samples_dict,theta_names=None,start=0,end=None,n_to_plot=500,by_g
         plt.show()
          
 def param_stats(samples_dict,theta_names=None,q1=0.05,q2=0.95,digits=4):
+    """
+    Compute statistics on the samples.
+
+    :param samples_dict: dictionary -- samples from model.get_samples()
+    :param theta_names: list -- names for thetas, optional
+    :param q1: float -- lower quantile in [0, 1]
+    :param q2: float -- upper quantile in [0, 1]
+    :param digits: int -- how many digits to show in output
+
+    """
     # theta_names : list
     # samples_dict : dictionary of samples
     # stats : dataframe with mean and std of all parameters
@@ -115,6 +137,12 @@ def param_stats(samples_dict,theta_names=None,q1=0.05,q2=0.95,digits=4):
     return(stats)
 
 def rho_box_plots(model,labels=None):
+    """
+    Show rho box plots. (Transformed betaU, lengthscale)
+
+    :param model: SepiaModel object
+    :param labels: list
+    """
     samples_dict = {p.name: p.mcmc_to_array(trim=1000,untransform_theta=True) for p in model.params.mcmcList}
     p = model.num.p
     q = model.num.q

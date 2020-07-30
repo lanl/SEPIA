@@ -1,18 +1,5 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""
-Set up model based on input SepiaData structure.
-
-"""
-
-# Compared to Matlab:
-#     - No categorical vars
-#     - No KP structure
-#     - No lamVzGroups
-#     - Obs data assumed to be on same grid
-#
-# At end should set up:
-#     - num object, params incl. priors, bounds, default mcmc objects
 
 from sepia.SepiaModel import SepiaModel
 from sepia.SepiaData import SepiaData
@@ -26,8 +13,8 @@ def setup_model(data, Sigy=None, lamVzGroup=None):
     Sets up SepiaModel object based on SepiaData object.
 
     :param data: SepiaData object
-    :param Sigy: observation covariance matrix
-    :param lamVzGroup: groups for discrepancy variance
+    :param Sigy: observation covariance matrix (default is identity)
+    :param lamVzGroup: groups for lamVz (otherwise single lamVz for all D basis functions)
     :return: instantiated SepiaModel object
     """
 

@@ -7,23 +7,20 @@ class DataContainer(object):
     """
     DataContainer serves to contain all data structures for a single data source (simulation or observation).
 
-    This is constructed as part of SepiaData and generally won't be used directly by a user.
+    This is constructed as part of SepiaData and generally won't be used directly by a user. Instance attributes:
 
+    :var x: nparray or None -- x values, controllable inputs/experimental variables (n, p)
+    :var y: nparray -- y values (n, ell)
+    :var t: nparray or None -- t values, non-controllable inputs (n, q)
+    :var y_ind: nparray or None -- indices for multivariate y outputs (ell, )
+    :var K: nparray or list -- (pu, ell) PCA basis, or list of K matrices for ragged observations
+    :var D: nparray or list or None -- (pv, ell) discrepancy basis, or list of D matrices for ragged observations
+    :var y_sd: nparray -- standard deviation of original y values (may be scalar or array size ell)
+    :var y_mean: nparray -- mean of original y values (may be salar or array size ell)
+    :var y_std: nparray -- standardized y values (n, ell)
+    :var x_trans: nparray -- x values translated to unit hypercube (n, p)
+    :var t_trans: nparray -- t values translated to unit hypercube (n, q)
     """
-
-    # Attributes passed to constructor:
-    #     x      x values (n, p)
-    #     y      y values (n, ell)
-    #     t      (optional, not needed for obs data) t values (n, q)
-    #     y_ind  (optional, needed if ell == 1) multivariate y indices (ell, )
-    # Attributes added by class methods (set manually at your own risk):
-    #     K        PCA basis
-    #     D        discrepancy basis
-    #     y_sd     SD of original y values
-    #     y_mean   mean of original y values
-    #     y_std    standardized y values
-    #     x_trans  rescaled/transformed x values
-    #     t_trans  rescaled/transformed t values
 
     def __init__(self, x, y, t=None, y_ind=None):
         """

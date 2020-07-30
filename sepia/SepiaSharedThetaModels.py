@@ -1,9 +1,3 @@
-"""
-@author: nklein
-
-Class for holding multiple models with shared thetas
-
-"""
 
 import numpy as np
 import statsmodels.api as sm
@@ -16,16 +10,23 @@ from sepia.SepiaModel import SepiaModel
 
 class SepiaSharedThetaModels:
     """
-    Container for multiple models with selected thetas shared across models.
+    Container for multiple models with sharing of selected thetas between models.
 
-    :param model_list: list of instantiated SepiaModel objects
-    :param shared_theta_inds: nparray -- (n_shared_theta, n_models) where each row corresponds to one group of shared
-                              thetas, and each column gives the index of the theta within a particular model, with
-                             -1 used to indicate no theta from a particular model is part of the shared group.
+    :var model_list: list of SepiaModel objects
+    :var shared_theta_inds: indices showing which thetas are shared across models, size (n_shared_theta, n_models)
 
     """
 
     def __init__(self, model_list=None, shared_theta_inds=None):
+        """
+        Instantiate shared theta model object.
+
+        :param model_list: list of instantiated SepiaModel objects
+        :param shared_theta_inds: nparray -- (n_shared_theta, n_models) where each row corresponds to one group of shared
+                                  thetas, and each column gives the index of the theta within a particular model, with
+                                 -1 used to indicate no theta from a particular model is part of the shared group.
+
+        """
         self.model_list = model_list                # List of instantiated SepiaModel objects
         self.shared_theta_inds = shared_theta_inds  # Matrix (n_shared_theta, n_models) indicating shared indices, -1 means not in a model
         # Example: shared_theta_inds = np.array([(1, 1, 1), (2, -1, 4)) for 3 models, theta index 1 tied in all,
@@ -56,6 +57,14 @@ class SepiaSharedThetaModels:
         self.to_update = to_update
 
     def do_mcmc(self, nsamp, do_propMH=True, prog=True):
+        """
+        Does MCMC for shared theta model.
+
+        :param nsamp: int -- how many MCMC samples
+        :param do_propMH: boolean -- whether to use propMH sampling for params with stepType propMH
+        :param prog: boolean -- whether to show progress bar for sampling
+        :param do_lockstep: boolean -- whether to do lockstep update
+        """
         # Initialize all models
         for model in self.model_list:
             model.params.lp.set_val(model.logPost())

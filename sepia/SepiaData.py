@@ -18,32 +18,35 @@ class SepiaData(object):
     """
     Data object used for SepiaModel, containing potentially both sim_data and obs_data.
 
-    Many arguments are optional, but users should instantiate object with all data needed for the desired model.
-
-    :param x_sim: nparray -- (n, p) matrix of controllable inputs/experimental conditions (optional)
-    :param t_sim: nparray -- (n, q) matrix of non-controllable inputs, can be None (at least one of x_sim and t_sim must be provided)
-    :param y_sim: nparray -- (n, ell_sim) matrix of outputs (REQUIRED)
-    :param y_ind_sim: nparray -- (ell_sim, ) vector of indices for multivariate y, required if ell_sim > 1
-    :param x_obs: nparray -- (m, p) matrix of controllable inputs for observation data (optional)
-    :param y_obs:  nparray -- (m, ell_obs) matrix of obs outputs, or list length m of 1D arrays (for ragged y_ind_obs)
-    :param y_ind_obs: (l_obs, ) vector of indices for multivariate y or list length m of 1D arrays (for ragged y_ind_obs)
-    :raises: TypeError if shapes not conformal or required data missing.
-
+    :var x_sim: nparray -- (n, p) matrix of controllable inputs/experimental conditions (optional)
+    :var t_sim: nparray -- (n, q) matrix of non-controllable inputs, can be None (at least one of x_sim and t_sim must be provided)
+    :var y_sim: nparray -- (n, ell_sim) matrix of outputs (REQUIRED)
+    :var y_ind_sim: nparray -- (ell_sim, ) vector of indices for multivariate y, required if ell_sim > 1
+    :var x_obs: nparray -- (m, p) matrix of controllable inputs for observation data (optional)
+    :var y_obs:  nparray -- (m, ell_obs) matrix of obs outputs, or list length m of 1D arrays (for ragged y_ind_obs)
+    :var y_ind_obs: (l_obs, ) vector of indices for multivariate y or list length m of 1D arrays (for ragged y_ind_obs)
+    :var sim_only: boolean -- whether or not it is simulation-only data
+    :var scalar_out: boolean -- whether or not the output y is scalar
+    :var ragged_obs: boolean -- whether or not observations have ragged (non-shared) multivariate indices
     """
 
-    # Creates DataContainer objects internally to store data.
-    # Attributes passed to constructor:
-    #     x_sim      simulation GP inputs (the ones known for obs as well), (m, p)
-    #     t_sim      simulation GP inputs (the ones not known for obs), (m, q)
-    #     y_sim      simulation GP outputs (m, ell_sim)
-    #     y_ind_sim  y indices for simulation data (needed if ell_sim > 1)
-    #     x_obs      (optional) observation GP inputs, (n, p)
-    #     y_obs      (optional) observation GP outputs, (n, ell_obs) or list of ragged
-    #     y_ind_obs  (optional) y indices for observation data (needed if ell_obs > 1) or list of ragged
-    # Attributes set internally based on input data:
-    #     sim_only    boolean, whether it's simulation data only or both simulation and observed
-    #     scalar_out  boolean, whether GP has scalar output
     def __init__(self, x_sim=None, t_sim=None, y_sim=None, y_ind_sim=None, x_obs=None, y_obs=None, y_ind_obs=None):
+        """
+        Create SepiaData object.
+
+        Many arguments are optional, but users should instantiate object with all data needed for the desired model.
+
+        :param x_sim: nparray -- (n, p) matrix of controllable inputs/experimental conditions (optional)
+        :param t_sim: nparray -- (n, q) matrix of non-controllable inputs, can be None (at least one of x_sim and t_sim must be provided)
+        :param y_sim: nparray -- (n, ell_sim) matrix of outputs (REQUIRED)
+        :param y_ind_sim: nparray -- (ell_sim, ) vector of indices for multivariate y, required if ell_sim > 1
+        :param x_obs: nparray -- (m, p) matrix of controllable inputs for observation data (optional)
+        :param y_obs:  nparray -- (m, ell_obs) matrix of obs outputs, or list length m of 1D arrays (for ragged y_ind_obs)
+        :param y_ind_obs: (l_obs, ) vector of indices for multivariate y or list length m of 1D arrays (for ragged y_ind_obs)
+        :raises: TypeError if shapes not conformal or required data missing.
+
+        """
+
         if y_sim is None:
             raise TypeError('y_sim is required to set up model.')
         if x_sim is None and t_sim is None:

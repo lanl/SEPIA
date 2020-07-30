@@ -1,9 +1,4 @@
-"""
-@author: gatt
 
-Sepia root class
-
-"""
 
 import numpy as np
 from sepia.SepiaParam import SepiaParam, SepiaParamList
@@ -13,6 +8,31 @@ from tqdm import tqdm
 
 # container to group a number of misc. model pre-calculated info
 class ModelContainer():
+    """
+    Internally used to contain numeric elements computed for the model/likelihood evaluations.
+
+    :var scalar_out: boolean -- is y a scalar or multivariate
+    :var sim_only: boolean -- is it simulation-only or is there obs data
+    :var x:
+    :var theta:
+    :var zt:
+    :var LamSim:
+    :var LamObs:
+    :var SigObs:
+    :var n:
+    :var m:
+    :var pu:
+    :var pv:
+    :var p:
+    :var q:
+    :var lamVzGroup:
+    :var SigV:
+    :var SigU:
+    :var SigWl:
+    :var SigWi:
+    :var SigUW:
+    :var auto_stepsize:
+    """
 
     def __init__(self):
         self.scalar_out = self.sim_only = None  # Useful flags
@@ -70,8 +90,12 @@ class ModelContainer():
 
 class SepiaModel:
     """
-    Sepia model class.
+    Sepia model class contains data, SepiaParam objects, and precomputed elements for the likelihood.
 
+    :var data: SepiaData object
+    :var num: ModelContainer for computed numerical elements for use in evaluating likelihood/posterior
+    :var params: SepiaParamList containing all SepiaParam objects for the model and mcmcList (references to params involved in MCMC)
+    :var verbose: boolean -- whether to print verbose output for this model
     """
 
     def __init__(self):

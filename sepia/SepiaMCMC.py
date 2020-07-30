@@ -6,12 +6,20 @@ class SepiaMCMC:
     """
     MCMC object to store step type, step parameters, draw candidates, accept/reject, and record draws.
 
-    :param parent: SepiaParam object that this MCMC belongs to
-    :param stepType: 'Normal', 'PropMH', 'Uniform', or 'BetaRho'
-    :param stepParam: scalar step size parameter
+    :var stepType: string -- MCMC step type in 'Normal', 'PropMH', 'Uniform', 'BetaRho'
+    :var parent: SepiaParam object -- which parameter this MCMC object corresponds to
+    :var draws: list -- list of MCMC draws
+    :var aCorr: for MH correction
     """
 
     def __init__(self, parent, stepType='Normal', stepParam=0.1):
+        """
+        Initialize MCMC object.
+
+        :param parent: SepiaParam object that this MCMC belongs to
+        :param stepType: 'Normal', 'PropMH', 'Uniform', or 'BetaRho'
+        :param stepParam: nparray -- step size parameter for each element of matrix-valued parameter
+        """
         self.stepType = stepType
         self.parent = parent
         if self.stepType is 'Recorder':
