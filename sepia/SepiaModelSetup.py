@@ -8,6 +8,9 @@ from sepia.SepiaDistCov import SepiaDistCov
 import scipy.linalg
 import numpy as np
 
+
+# TODO no categorical indicator, or separable cov structure
+# TODO process optional thetaconstraints object
 def setup_model(data, Sigy=None, lamVzGroup=None):
     """
     Sets up SepiaModel object based on SepiaData object.
@@ -25,10 +28,7 @@ def setup_model(data, Sigy=None, lamVzGroup=None):
         print('To customize, call data.standardize_y on your SepiaData object first, or do manual standardization.')
         data.standardize_y(center=True, scale='scalar')
 
-    # TODO this could get printed even if transform_xt was called, in the case that there is no t...
-    # Trying this as a quick fix, need to make sure it works.
-    #if data.sim_data.x_trans is None or data.sim_data.t_trans is None:
-    if data.sim_data.x_trans is None:
+    if data.sim_data.x_trans is None and data.sim_data.t_trans is None:
         print('Warning: you did not rescale x/t to unit cube!')
         print('Continuing with default transformation to unit cube.')
         print('To customize, call data.transform_xt on your SepiaData object first, or do manual transformation.')
@@ -122,9 +122,8 @@ def setup_model(data, Sigy=None, lamVzGroup=None):
         data.zt = sim_data.x_trans
     num.ztDist = SepiaDistCov(data.zt)
 
-    # TODO not yet handling lamVzGroups; see line 115 in Matlab code
     if not data.sim_only:
-        # Check for lamVzGroups
+        # Check for lamVzGroups, validate
         if lamVzGroup is not None:
             lamVzGnum = np.unique(lamVzGroup).shape[0]
         else:
@@ -132,6 +131,7 @@ def setup_model(data, Sigy=None, lamVzGroup=None):
             lamVzGnum = 1
         num.lamVzGroup = lamVzGroup
         num.lamVzGnum = lamVzGnum
+        #assert (lamVzGnum == np.unique(lamVzGroup).shape[0])
 
     # Transform obs data using D, Kobs -> v, u
     if not data.sim_only:
@@ -227,7 +227,6 @@ def setup_model(data, Sigy=None, lamVzGroup=None):
     else:
         rankLO = 0
 
-    # TODO Process optional inputs for lamWOs, lamOs
     # Compute prior correction for lamOs, lamWOs
     if not data.sim_only:
         if data.ragged_obs:
@@ -272,10 +271,6 @@ def setup_model(data, Sigy=None, lamVzGroup=None):
         model.set_params_noD(lamOs_a_corr, lamOs_b_corr, lamWOs_a_corr, lamWOs_b_corr)
     else:
         model.set_params_full(lamOs_a_corr, lamOs_b_corr, lamWOs_a_corr, lamWOs_b_corr)
-
-    # TODO no categorical indicator, or separable cov structure
-
-    # TODO process optional thetaconstraints object
 
     return model
 
