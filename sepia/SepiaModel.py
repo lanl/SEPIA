@@ -298,9 +298,11 @@ class SepiaModel:
         lp = sum([prm.prior.compute_log_prior() for prm in self.params.mcmcList])
         return ll + lp
 
+    #TODO: does not handle hierModels/tiedThetaModels, passes a sim only univ test pretty well (lamWOs slightly different ss)
+    #TODO: set start value to maximum posterior instead of last sample?
     def tune_step_sizes(self, n_burn, n_levels, prog=True, diagnostics=False):
-        """ Find step size with YADAS approach.
-        TODO does not handle hierModels/tiedThetaModels, passes a sim only univ test pretty well (lamWOs slightly different ss)
+        """ Atuo-tune step size based on acceptance rate with YADAS approach.
+
         :param n_burn: int -- number of samples for each step size
         :param n_levels: int -- number of levels for step size
         :param prog: bool -- whether to show progress bar
