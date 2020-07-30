@@ -396,4 +396,52 @@ class SepiaModel:
         if diagnostics:
             return step_sizes, acc, mod_tmp
 
+    def print_prior_info(self, pnames=None):
+        """
+        Print some information about the priors.
 
+        :param pnames: list -- list of parameter names to print information about; default is to print all.
+        """
+
+        if pnames is None:
+            pnames = [p.name for p in self.params]
+        for p in self.params:
+            if p.name in pnames:
+                print('%s prior distribution: %s' % (p.name, p.prior.dist))
+                print('bounds: ')
+                print(p.prior.bounds)
+                for i in range(len(p.prior.params)):
+                    print('prior param %d' % i)
+                    print(p.prior.params[i])
+
+    def print_value_info(self, pnames=None):
+        """
+        Print some information about the parameter values. (Shows initial values if called before MCMC)
+
+        :param pnames: list -- list of parameter names to print information about; default is to print all.
+        """
+
+        if pnames is None:
+            pnames = [p.name for p in self.params]
+        for p in self.params:
+            if p.name in pnames:
+                print('%s shape (%d, %d):' % (p.name, p.val_shape[0], p.val_shape[1]))
+                print('value:')
+                print(p.val)
+                print('is fixed?:')
+                print(p.fixed)
+
+    def print_mcmc_info(self, pnames=None):
+        """
+        Print some information about the MCMC setup.
+
+        :param pnames: list -- list of parameter names to print information about; default is to print all.
+        """
+
+        if pnames is None:
+            pnames = [p.name for p in self.params]
+        for p in self.params:
+            if p.name in pnames:
+                print('%s stepType: %s' % (p.name, p.mcmc.stepType))
+                print('stepParam:')
+                print(p.mcmc.stepParam)
