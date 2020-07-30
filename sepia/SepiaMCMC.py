@@ -7,6 +7,7 @@ class SepiaMCMC:
     MCMC object to store step type, step parameters, draw candidates, accept/reject, and record draws.
 
     :var stepType: string -- MCMC step type in 'Normal', 'PropMH', 'Uniform', 'BetaRho'
+    :var stepParam: ndarray -- step size params, or None if using 'recorder'
     :var parent: SepiaParam object -- which parameter this MCMC object corresponds to
     :var draws: list -- list of MCMC draws
     :var aCorr: for MH correction
@@ -24,6 +25,7 @@ class SepiaMCMC:
         self.parent = parent
         if self.stepType is 'Recorder':
             self.draws = []
+            self.stepParam = None
         else:
             self.stepParam = stepParam
             self.draws = []
