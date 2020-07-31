@@ -6,14 +6,24 @@ class SepiaDistCov(object):
     """
     Class for computing/storing distances and covariance matrix, typically not called directly by user but used in model.
 
-    If only one data set is given, the auto-distance is computed, else computes distance between data and data2.
-
-    :param data: nparray -- input data, shape (n_samples, _)
-    :param data2: nparray -- optional, second data set to compute distances with data
+    :var type: int -- 1: self-distance for single input data, 2: cross-distance for two input data
+    :var n: int -- number of observations in data set 1
+    :var m: int -- number of observations in data set 2
+    :var ind: nparray -- indices into matrix upper triangle
+    :var sqdist: nparray -- squared distances for upper triangle
 
     """
 
     def __init__(self, data, data2=None, catInd=False):
+        """
+        Instantiate SepiaDistCov.
+
+        If only one data set is given, the auto-distance is computed, else computes distance between data and data2.
+
+        :param data: nparray -- input data, shape (n_samples, _)
+        :param data2: nparray -- optional, second data set to compute distances with data
+
+        """
         if data2 is None:
             self.type = 1
             self.n = data.shape[0]

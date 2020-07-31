@@ -122,6 +122,12 @@ The model parses the `SepiaData` structure to understand what kind of model is b
 precomputation of various quantities to prepare for likelihood evaluations.
 It also sets up default priors, MCMC step types and step sizes, and default starting values for MCMC.
 
+To see information about the default setup, you can use::
+
+    model.print_prior_info()
+    model.print_value_info()
+    model.print_mcmc_info()
+
 
 Customize and run MCMC
 ----------------------

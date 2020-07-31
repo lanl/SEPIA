@@ -1,13 +1,7 @@
 #### Development needs, with questions, issues, observations, discussion. 
 At the top level, the big coding issues are, first cut of priority:
 1. sensitivity analysis (started translating from matlab but put aside for now)
-2. cross-validation wrapper
-3. kron enabling
-
-The Examples priorities: (are the first two notebooks?)
-1. Tower parallel to the tech report 
-2. BasicOpEx with some documentation
-3. Neddermeyer - recreate the 2008 paper results (uneven grid will matter here)
+2. kron enabling
 
 Documentation:
 1. View current build on [Read the Docs](https://sepia-lanl.readthedocs.io/en/latest/)
@@ -45,24 +39,13 @@ some items of model.num into model.num and model.info, be more clear about what 
 
 ##### Additions to SepiaModelSetup
 - lamVzGroups : functionality should be in the code, maybe just add to setup
-- experimental data with different "time" observation points
 - thetaconstraints option
-
-##### Linked models
-- models that share variables: setup and mcmc (basic is there, tune_step_sizes doesn't work with it though)
-
-##### Hierachical modeling
-- Setup and mcmc (basic is there, tune_step_sizes doesn't work with it though)
 
 ##### fledging out the predict class
 - Establish semantics for prediction calls and data structures
-- Tapping the data class for de-transforming 
 
 ##### Analysis helpers
-- Cross-validation analysis wrapper
 - Quantile estimation
-- PCA diagnostics
-- Plot helpers? 
 
 ##### Performance Profiling and Optimization
 - Seems OK for now
@@ -71,9 +54,6 @@ some items of model.num into model.num and model.info, be more clear about what 
 - Pickle? Want to be sure loaded models will be compatible with new code
 
 ##### Examples, worked and documented 
-- BasicOpEx
-- Neddermeyer (requires ragged obs capability in data class)
-- Tower example, and parallel documentation to the report.
 - The other examples in "Examples"?
 
 ##### Development principles going forward

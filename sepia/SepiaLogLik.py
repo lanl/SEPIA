@@ -1,11 +1,9 @@
 """
-@author: gatt
-
 Computing the Log Likelihood for a model.
 
 Handles an indicator of what variable was changed, so that 
-    partial recomputation and updating of precomputed/saved
-    components is done where possible. 
+partial recomputation and updating of precomputed/saved
+components is done where possible.
 
 """
 

@@ -1,7 +1,11 @@
-Model Internals (SepiaDistCov, SepiaLogLik)
-=============================================
+Model Internals (ModelContainer, SepiaDistCov, SepiaLogLik)
+===========================================================
 
-The classes SepiaDistCov and SepiaLogLik are used internally by the model, but not usually accessed directly by the user.
+The classes `ModelContainer`, `SepiaDistCov`, `SepiaLogLik` are used internally by the model,
+but are not usually accessed directly by the user.
+
+.. autoclass:: sepia.ModelContainer
+    :members:
 
 .. autoclass:: sepia.SepiaDistCov
     :members:

@@ -10,3 +10,4 @@ project = 'Sepia'
 exclude_patterns = ['_build']
 pygments_style = 'sphinx'
 html_theme = 'bizstyle'
+autoclass_content = 'both'

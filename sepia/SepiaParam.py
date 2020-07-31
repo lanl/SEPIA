@@ -25,27 +25,40 @@ class SepiaParamList:
 
 class SepiaParam:
     """
-    Object containing value, shape, name, prior for a single matrix-valued parameter in the model.
+    SepiaParam class contains current value, shape, name, and prior for a single matrix-valued parameter in the model.
+    The attributes of a SepiaParam instance:
 
-    :param val: ndarray -- starting value (can be scalar and will then be expanded to val_shape)
-    :param name: string -- parameter name
-    :param val_shape: int, tuple -- shape of parameter
-    :param dist: string -- prior distribution name ('Normal', 'Gamma', 'Beta', 'Uniform')
-    :param params: list -- list of ndarrays, params for prior
-    :param bounds: list -- bounds for parameter values (can be inf)
-    :param mcmcStepType: string -- step type for MCMC ('Normal', 'Uniform', 'PropMH')
-    :param mcmcStepParam: ndarray, scalar -- step size parameter (has val_shape or scalar is expanded to that shape)
-    :param orig_range: list, size 2 -- range for untransformed parameter (applicable for theta)
-    :raises: Exception if non scalar val doesn't match val_shape
+    :var val: nparray -- current value
+    :var val_shape: tuple -- shape of current value
+    :var fixed: boolean nparray -- whether certain elements of the parameter should be fixed (will not be sampled)
+    :var name: string -- name of parameter (eg 'betaU', 'theta')
+    :var refVal: nparray -- reference value, used during MCMC to store previous value in case proposal is rejected
+    :var prior: SepiaPrior object -- encapsulates prior for this parameter
+    :var mcmc: SepiaMCMC object -- encapsulates MCMC information and draws for this parameter
+    :var orig_range: list -- range for untransformed parameter, if transformation was applied (typically for 'theta' only)
     """
 
     def __init__(self, val, name, val_shape=1, dist='Normal', params=[], bounds=False, mcmcStepType='Normal',
                  mcmcStepParam=0.1, orig_range=None):
+        """
+        Initialize SepiaParam object, which initializes the contained SepiaPrior and SepiaMCMC objects as well.
+
+        :param val: ndarray -- starting value (can be scalar and will then be expanded to val_shape)
+        :param name: string -- parameter name
+        :param val_shape: int, tuple -- shape of parameter
+        :param dist: string -- prior distribution name ('Normal', 'Gamma', 'Beta', 'Uniform')
+        :param params: list -- list of ndarrays, params for prior
+        :param bounds: list -- bounds for parameter values (can be inf)
+        :param mcmcStepType: string -- step type for MCMC ('Normal', 'Uniform', 'PropMH')
+        :param mcmcStepParam: ndarray, scalar -- step size parameter (has val_shape or scalar is expanded to that shape)
+        :param orig_range: list, size 2 -- range for untransformed parameter (applicable for theta)
+        :raises: ValueError if non-scalar val doesn't match val_shape
+        """
         if np.isscalar(val):
             self.val = val * np.ones(val_shape)
         else:
             if val.shape != val_shape:
-                raise Exception('initial non-scalar value does not match shape')
+                raise ValueError('Initial non-scalar value does not match val_shape')
             self.val = val
         self.fixed = np.zeros_like(self.val, dtype=bool)
         self.name = name

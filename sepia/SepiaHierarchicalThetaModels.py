@@ -1,9 +1,4 @@
-"""
-@author: nklein
 
-Class for holding multiple models with hierarchical distribution on some thetas
-
-"""
 
 import numpy as np
 import statsmodels.api as sm
@@ -19,14 +14,21 @@ class SepiaHierarchicalThetaModels:
     """
     Container for multiple models with hierarchical Normal model on selected thetas.
 
-    :param model_list: list of instantiated SepiaModel objects
-    :param hier_theta_inds: nparray -- (n_hier_theta, n_models) where each row corresponds to one group of hierarchically
-                            modeled thetas, and each column gives the index of the theta within a particular model, with
-                            -1 used to indicate no theta from a particular model is part of the hierarchical group.
+    :var model_list: list of SepiaModel objects
+    :var hier_theta_inds: indices showing which thetas are hierarchically linked, size (n_hier_theta, n_models)
 
     """
 
     def __init__(self, model_list=None, hier_theta_inds=None):
+        """
+        Instantiate hierarchical model container.
+
+        :param model_list: list of instantiated SepiaModel objects
+        :param hier_theta_inds: nparray -- (n_hier_theta, n_models) where each row corresponds to one group of hierarchically
+                                modeled thetas, and each column gives the index of the theta within a particular model, with
+                                -1 used to indicate no theta from a particular model is part of the hierarchical group.
+
+        """
         self.model_list = model_list            # List of instantiated SepiaModel objects
         self.hier_theta_inds = hier_theta_inds  # Matrix (n_hier_theta, n_models) indicating hier indices, -1 means not in a model
         # Example: hier_theta_inds = np.array([(1, 1, 1), (2, -1, 4)) for 3 models, theta index 1 hierarchical across all models,
@@ -73,6 +75,14 @@ class SepiaHierarchicalThetaModels:
                     self.model_list[j].params.theta.prior.params[1][0, r[j]] = np.sqrt(1./hier_lambda[i].val.copy())
 
     def do_mcmc(self, nsamp, do_propMH=True, prog=True, do_lockstep=True):
+        """
+        Does MCMC for hierarchical model.
+
+        :param nsamp: int -- how many MCMC samples
+        :param do_propMH: boolean -- whether to use propMH sampling for params with stepType propMH
+        :param prog: boolean -- whether to show progress bar for sampling
+        :param do_lockstep: boolean -- whether to do lockstep update
+        """
         # Initialize all models
         for model in self.model_list:
             model.params.lp.set_val(model.logPost())

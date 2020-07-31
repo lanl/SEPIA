@@ -1,9 +1,4 @@
-"""
-@author: gatt
 
-Sepia Model Predictions
-
-"""
 import scipy.linalg
 import numpy as np
 from tqdm import tqdm
@@ -11,7 +6,7 @@ from scipy.stats import norm
 from sepia.SepiaDistCov import SepiaDistCov
 
 class SepiaPrediction():
-    '''
+    """
     Base class inherited for predictions. Defines all parameters:
 
     :param x_pred: (npred x p) matrix, x values for which to predict
@@ -24,9 +19,24 @@ class SepiaPrediction():
     :param storeMuSigma: store the mean and sigma for the GP posterior for each x_pred / sample combination
     :param do_call: boolean -- whether to call wPred/uvPred upon initialization
 
-    '''
+    """
+
     def __init__(self, x_pred=None, samples=None, model=None, t_pred=None,
                  addResidVar=False, storeRlz=True, storeMuSigma=False, do_call=True):
+        """
+        Instantiate SepiaPredict object (usually called by subclass init).
+
+        :param x_pred: (npred x p) matrix, x values for which to predict
+        :param samples: sample set, as provided by SepiaModel.get_samples; predict for each sample
+        :param model: the SepiaModel object
+        :param t_pred: (npred x q) matrix, optional; if present concatenate with x_pred for predictions, \
+        otherwise thetas will be taken from theta posterior samples provided. Required for emulator model.
+        :param addResidVar: add the posterior residual variability to the samples
+        :param storeRlz: make and store a process realizations for each x_pred / sample combination
+        :param storeMuSigma: store the mean and sigma for the GP posterior for each x_pred / sample combination
+        :param do_call: boolean -- whether to call wPred/uvPred upon initialization
+
+        """
 
         # make a list or scalar into an ndarray
         if not isinstance(x_pred,np.ndarray) or len(x_pred.shape)!=2:
@@ -61,14 +71,15 @@ class SepiaPrediction():
         self.sigma=[]
 
 class SepiaEmulatorPrediction(SepiaPrediction):
-    '''
+    """
     Make predictions of the emulator ('eta') component of the model. This functions with an emulator-only model
     or a full model, but predicts the posterior simulation estimates
 
     :param all: init parameters are parsed by SepiaPrediction (inherited init)
 
     Predictions are performed on init and stored in the object for access methods:
-    '''
+    """
+
     def __init__(self,*args,**kwrds):
         super(SepiaEmulatorPrediction,self).__init__(*args,**kwrds)
         # prediction is samples x prediction points (xpreds) x pu (basis)

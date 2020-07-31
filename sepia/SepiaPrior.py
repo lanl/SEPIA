@@ -6,12 +6,21 @@ class SepiaPrior:
     """
     Sepia prior class, containing prior distribution name, parameters, and bounds.
 
-    :param parent: SepiaParam -- parent object
-    :param dist: string -- prior distribution name ('Normal', 'Gamma', 'Beta', 'Uniform')
-    :param params: list -- each element of list is a different parameter to the distribution, can be ndarray or scalar
-    :param bounds: list -- list of bounds for prior
+    :var parent: SepiaParam -- which parameter this prior corresponds to
+    :var dist: string -- which prior distribution, in 'Normal', 'Gamma', 'Beta', 'Uniform'
+    :var params: list -- each element is a different parameter to the distribution (ie first is mean, second is SD), can be matrix valued
+    :var bounds: list -- bounds for each prior (can be np.inf)
     """
+
     def __init__(self, parent, dist='Normal', params=False, bounds=False):
+        """
+        Instantiate SepiaPrior object.
+
+        :param parent: SepiaParam -- parent object
+        :param dist: string -- prior distribution name ('Normal', 'Gamma', 'Beta', 'Uniform')
+        :param params: list -- each element of list is a different parameter to the distribution, can be ndarray or scalar
+        :param bounds: list -- list of bounds for prior
+        """
         self.parent = parent
         self.dist = dist 
         if not (dist is 'Normal' or dist is 'Gamma' or  dist is 'Beta' or dist is 'Uniform'):

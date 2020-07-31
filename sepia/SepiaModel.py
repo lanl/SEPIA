@@ -1,9 +1,4 @@
-"""
-@author: gatt
 
-Sepia root class
-
-"""
 
 import numpy as np
 from sepia.SepiaParam import SepiaParam, SepiaParamList
@@ -13,6 +8,32 @@ from tqdm import tqdm
 
 # container to group a number of misc. model pre-calculated info
 class ModelContainer():
+    """
+    Internally used to contain numeric elements computed for the model/likelihood evaluations.
+
+    :var scalar_out: boolean -- is y a scalar or multivariate
+    :var sim_only: boolean -- is it simulation-only or is there obs data
+    :var x:
+    :var theta:
+    :var zt:
+    :var LamSim:
+    :var LamObs:
+    :var SigObs:
+    :var n:
+    :var m:
+    :var pu:
+    :var pv:
+    :var p:
+    :var q:
+    :var lamVzGroup:
+    :var lamVzGnum:
+    :var SigV:
+    :var SigU:
+    :var SigWl:
+    :var SigWi:
+    :var SigUW:
+    :var auto_stepsize:
+    """
 
     def __init__(self):
         self.scalar_out = self.sim_only = None  # Useful flags
@@ -21,6 +42,7 @@ class ModelContainer():
         self.LamSim = self.LamObs = self.SigObs = None  # Precomputed cov stuff
         self.n = self.m = self.pu = self.pv = self.p = self.q = None  # Dimensions
         self.lamVzGroup = None
+        self.lamVzGnum = 1
         #self.x0Dist = self.xzDist = self.xthetaDist = self.ztDist = None  # distances for covariance
         self.SigV = self.SigU = self.SigWl = self.SigWi = self.SigUW = None
         self.auto_stepsize = False
@@ -70,8 +92,12 @@ class ModelContainer():
 
 class SepiaModel:
     """
-    Sepia model class.
+    Sepia model class contains data, SepiaParam objects, and precomputed elements for the likelihood.
 
+    :var data: SepiaData object
+    :var num: ModelContainer for computed numerical elements for use in evaluating likelihood/posterior
+    :var params: SepiaParamList containing all SepiaParam objects for the model and mcmcList (references to params involved in MCMC)
+    :var verbose: boolean -- whether to print verbose output for this model
     """
 
     def __init__(self):
@@ -197,7 +223,7 @@ class SepiaModel:
                                        bounds=[0, 1], mcmcStepParam=0.2, mcmcStepType='Uniform', orig_range=theta_range)
         self.params.betaV = SepiaParam(val=0.1, name='betaV', val_shape=(self.num.p, self.num.lamVzGnum), dist='Beta', params=[1., 0.1],
                                        bounds=[0, np.inf], mcmcStepParam=0.1, mcmcStepType='BetaRho')
-        self.params.lamVz = SepiaParam(val=20., name='lamVz', val_shape=(1, 1), dist='Gamma', params=[1., 1e-3],
+        self.params.lamVz = SepiaParam(val=20., name='lamVz', val_shape=(1, self.num.lamVzGnum), dist='Gamma', params=[1., 1e-3],
                                        bounds=[0., np.inf], mcmcStepParam=10., mcmcStepType='PropMH')
         self.params.lamOs = SepiaParam(val=lamOs_init, name='lamOs', val_shape=(1, 1), dist='Gamma',
                                        params=[lamOs_a, lamOs_b], bounds=[0, np.inf], mcmcStepParam=lamOs_init/2, mcmcStepType='PropMH')
@@ -298,9 +324,11 @@ class SepiaModel:
         lp = sum([prm.prior.compute_log_prior() for prm in self.params.mcmcList])
         return ll + lp
 
+    #TODO: does not handle hierModels/tiedThetaModels, passes a sim only univ test pretty well (lamWOs slightly different ss)
+    #TODO: set start value to maximum posterior instead of last sample?
     def tune_step_sizes(self, n_burn, n_levels, prog=True, diagnostics=False):
-        """ Find step size with YADAS approach.
-        TODO does not handle hierModels/tiedThetaModels, passes a sim only univ test pretty well (lamWOs slightly different ss)
+        """ Atuo-tune step size based on acceptance rate with YADAS approach.
+
         :param n_burn: int -- number of samples for each step size
         :param n_levels: int -- number of levels for step size
         :param prog: bool -- whether to show progress bar
@@ -370,4 +398,52 @@ class SepiaModel:
         if diagnostics:
             return step_sizes, acc, mod_tmp
 
+    def print_prior_info(self, pnames=None):
+        """
+        Print some information about the priors.
 
+        :param pnames: list -- list of parameter names to print information about; default is to print all.
+        """
+
+        if pnames is None:
+            pnames = [p.name for p in self.params]
+        for p in self.params:
+            if p.name in pnames:
+                print('%s prior distribution: %s' % (p.name, p.prior.dist))
+                print('bounds: ')
+                print(p.prior.bounds)
+                for i in range(len(p.prior.params)):
+                    print('prior param %d' % i)
+                    print(p.prior.params[i])
+
+    def print_value_info(self, pnames=None):
+        """
+        Print some information about the parameter values. (Shows initial values if called before MCMC)
+
+        :param pnames: list -- list of parameter names to print information about; default is to print all.
+        """
+
+        if pnames is None:
+            pnames = [p.name for p in self.params]
+        for p in self.params:
+            if p.name in pnames:
+                print('%s shape (%d, %d):' % (p.name, p.val_shape[0], p.val_shape[1]))
+                print('value:')
+                print(p.val)
+                print('is fixed?:')
+                print(p.fixed)
+
+    def print_mcmc_info(self, pnames=None):
+        """
+        Print some information about the MCMC setup.
+
+        :param pnames: list -- list of parameter names to print information about; default is to print all.
+        """
+
+        if pnames is None:
+            pnames = [p.name for p in self.params]
+        for p in self.params:
+            if p.name in pnames:
+                print('%s stepType: %s' % (p.name, p.mcmc.stepType))
+                print('stepParam:')
+                print(p.mcmc.stepParam)
