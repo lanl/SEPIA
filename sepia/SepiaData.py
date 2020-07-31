@@ -277,7 +277,7 @@ class SepiaData(object):
             if D_obs is not None:
                 if self.ragged_obs:
                     for i in range(len(D_obs)):
-                        if not D_obs[i].shape[1] == self.obs_data.y[i].shape[1]:
+                        if not D_obs[i].shape[1] == (self.obs_data.y[i].shape[1] if self.obs_data.y[i].ndim == 2 else self.obs_data.y[i].shape[0]):
                             raise TypeError('D basis shape incorrect; second dim should match ell_obs')
                 else:
                     if not D_obs.shape[1] == self.obs_data.y.shape[1]:
@@ -328,6 +328,7 @@ class SepiaData(object):
                 ncol = 5
                 nrow = int(np.ceil((min(pu,max_plots) + 1) / ncol)) # add 1 for mean line
                 fig, axs = plt.subplots(nrow,ncol,figsize=(12, 2 * nrow))
+                print(axs.shape)
                 fig.tight_layout()
                 for i,ax in enumerate(axs.flatten()):
                     if i == 0: # plot mean line
@@ -724,10 +725,10 @@ class SepiaData(object):
 
         # get axis limits
         if self.ragged_obs:
-            if x_min is None: x_min = min(min([min(k) for k in self.obs_data.y_ind]),np.amin(self.sim_data.y_ind))
-            if x_max is None: x_max = max(max([max(k) for k in self.obs_data.y_ind]),np.amax(self.sim_data.y_ind))
-            if y_min is None: y_min = min(min([min(k) for k in self.obs_data.y]),np.amin(self.sim_data.y))
-            if y_max is None: y_max = max(max([max(k) for k in self.obs_data.y]),np.amax(self.sim_data.y))
+            if x_min is None: x_min = min(min([np.amin(k) for k in self.obs_data.y_ind]),np.amin(self.sim_data.y_ind))
+            if x_max is None: x_max = max(max([np.amax(k) for k in self.obs_data.y_ind]),np.amax(self.sim_data.y_ind))
+            if y_min is None: y_min = min(min([np.amin(k) for k in self.obs_data.y]),np.amin(self.sim_data.y))
+            if y_max is None: y_max = max(max([np.amax(k) for k in self.obs_data.y]),np.amax(self.sim_data.y))
         else:
             if x_min is None: x_min = min(np.amin(self.obs_data.y_ind),np.amin(self.sim_data.y_ind))
             if x_max is None: x_max = max(np.amax(self.obs_data.y_ind),np.amax(self.sim_data.y_ind))    
@@ -784,7 +785,10 @@ class SepiaData(object):
                                 color=colors[j],label="Nearest Sim {}".format(j+1))
 
                 # true data curve and "real data points"
-                axs[i].plot(self.obs_data.y_ind[i], self.obs_data.y[which_x[i]],'--ko',label="Obs data")
+                if self.ragged_obs:
+                    axs[i].plot(self.obs_data.y_ind[i], self.obs_data.y[which_x[i]],'--ko',label="Obs data")
+                else:
+                    axs[i].plot(self.obs_data.y_ind, self.obs_data.y[which_x[i]],'--ko',label="Obs data")
 
                 # legend
                 axs[i].legend()
