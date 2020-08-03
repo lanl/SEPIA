@@ -194,6 +194,49 @@ class SepiaFullPrediction(SepiaPrediction):
         '''
         return self.u, self.v
 
+    def get_ysim(self, as_obs=False, std=False, obs_ref=0):
+        if std:
+            if as_obs:
+                if self.model.data.ragged_obs:
+                    K = self.model.data.obs_data.K[obs_ref]
+                else:
+                    K = self.model.data.obs_data.K
+                return np.tensordot(self.u,K,axes=[[2],[0]])
+            else:
+                return np.tensordot(self.u,self.model.data.sim_data.K,axes=[[2],[0]])
+        else:
+            if as_obs:
+                ysd_inpredshape, ymean_inpredshape = self.calc_obs_standardizations_inpredshape(obs_ref=obs_ref)
+                return self.get_ysim_as_obs_standardized(obs_ref=obs_ref)*ysd_inpredshape+ymean_inpredshape
+            else:
+                ysd_inpredshape, ymean_inpredshape = self.calc_sim_standardizations_inpredshape()
+                return self.get_ysim_standardized()*ysd_inpredshape+ymean_inpredshape
+       
+    
+    def get_discrepancy(self, as_obs=False, std=False, obs_ref=0):
+        if std:
+            if as_obs:
+                if self.model.data.ragged_obs:
+                    D = self.model.data.obs_data.D[obs_ref]
+                else:
+                    D = self.model.data.obs_data.D
+                return np.tensordot(self.v,D,axes=[[2],[0]]) 
+            else:
+                return np.tensordot(self.v,self.model.data.sim_data.D.T,axes=[[2],[0]])
+        else:
+            ysd_inpredshape,_ = self.calc_obs_standardizations_inpredshape(obs_ref=obs_ref)
+            if as_obs:  
+                if self.model.data.ragged_obs:
+                    D = self.model.data.obs_data.D[obs_ref]
+                else:
+                    D = self.model.data.obs_data.D
+                return np.tensordot(self.v,D,axes=[[2],[0]])*ysd_inpredshape
+            else:
+                return np.tensordot(self.v,self.model.data.sim_data.D.T,axes=[[2],[0]])*ysd_inpredshape
+
+    def get_yobs(self, as_obs=False, std=False, obs_ref=0):
+        return self.get_ysim(as_obs=as_obs,std=std,obs_ref=obs_ref)+self.get_discrepancy(as_obs=as_obs,std=std,obs_ref=obs_ref)
+    
     def get_ysim_standardized(self):
         '''
         Project u through the Ksim basis to provide predictions of ysim on the standardized scale.
@@ -203,7 +246,7 @@ class SepiaFullPrediction(SepiaPrediction):
         '''
         return np.tensordot(self.u,self.model.data.sim_data.K,axes=[[2],[0]])
 
-    def get_ysim_asobs_standardized(self,obs_ref=0):
+    def get_ysim_as_obs_standardized(self,obs_ref=0):
         '''
         Project u through the Kobs basis to provide predictions of ysim on the native scale at obs locations.
         (native refers to not the mean=0 and sd=1 standardization process in model setup)
@@ -228,7 +271,7 @@ class SepiaFullPrediction(SepiaPrediction):
         ysd_inpredshape, ymean_inpredshape = self.calc_sim_standardizations_inpredshape()
         return self.get_ysim_standardized()*ysd_inpredshape+ymean_inpredshape
 
-    def get_ysim_asobs_native(self,obs_ref=0):
+    def get_ysim_as_obs_native(self,obs_ref=0):
         '''
         Project u through the Kobs basis to provide predictions of ysim on the native scale at obs locations.
         (native refers to not the mean=0 and sd=1 standardization process in model setup)
@@ -238,8 +281,8 @@ class SepiaFullPrediction(SepiaPrediction):
         :return: predictions of native ysim, (#samples x #x_pred x py_obs)
         '''
         ysd_inpredshape, ymean_inpredshape = self.calc_obs_standardizations_inpredshape(obs_ref=obs_ref)
-        return self.get_ysim_asobs_standardized(obs_ref=obs_ref)*ysd_inpredshape+ymean_inpredshape
-
+        return self.get_ysim_as_obs_standardized(obs_ref=obs_ref)*ysd_inpredshape+ymean_inpredshape
+        
     def get_discrepancy_standardized(self, obs_ref=0):
         '''
         return Dobs*v to provide predictions of discrepancy on the standardized scale at obs locations.
@@ -270,11 +313,7 @@ class SepiaFullPrediction(SepiaPrediction):
         else:
             D = self.model.data.obs_data.D
         return np.tensordot(self.v,D,axes=[[2],[0]])*ysd_inpredshape
-
-    def get_discrepancy_simgrid(self):
-        D = self.model.data.sim_data.D
-        return np.tensordot(self.v,D.T,axes=[[2],[0]])#*ysd_inpredshape
-    
+        
     def get_yobs_standardized(self,obs_ref=0):
         '''
         return y=Kobs*u+Dobs*v to provide predictions of y on the standardized scale at obs locations.
@@ -284,7 +323,7 @@ class SepiaFullPrediction(SepiaPrediction):
          to use for transformation parameters; default index 0
         :return: predictions of standardized y, (#samples x #x_pred x py_obs)
         '''
-        return self.get_ysim_asobs_standardized(obs_ref=obs_ref)+self.get_discrepancy_standardized(obs_ref=obs_ref)
+        return self.get_ysim_as_obs_standardized(obs_ref=obs_ref)+self.get_discrepancy_standardized(obs_ref=obs_ref)
 
     def get_yobs_native(self, obs_ref=0):
         '''
@@ -296,7 +335,7 @@ class SepiaFullPrediction(SepiaPrediction):
         :return: predictions of native y, (#samples x #x_pred x py_obs)
         '''
         ysd_inpredshape, ymean_inpredshape = self.calc_obs_standardizations_inpredshape(obs_ref=obs_ref)
-        return (self.get_ysim_asobs_standardized(obs_ref=obs_ref)+self.get_discrepancy_standardized(obs_ref=obs_ref))*ysd_inpredshape+ymean_inpredshape
+        return (self.get_ysim_as_obs_standardized(obs_ref=obs_ref)+self.get_discrepancy_standardized(obs_ref=obs_ref))*ysd_inpredshape+ymean_inpredshape
 
     def get_mu_sigma(self):
         '''
