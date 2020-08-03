@@ -246,7 +246,7 @@ class SepiaFullPrediction(SepiaPrediction):
         '''
         return np.tensordot(self.u,self.model.data.sim_data.K,axes=[[2],[0]])
 
-    def get_ysim_as_obs_standardized(self,obs_ref=0):
+    def get_ysim_asobs_standardized(self,obs_ref=0):
         '''
         Project u through the Kobs basis to provide predictions of ysim on the native scale at obs locations.
         (native refers to not the mean=0 and sd=1 standardization process in model setup)
@@ -271,7 +271,7 @@ class SepiaFullPrediction(SepiaPrediction):
         ysd_inpredshape, ymean_inpredshape = self.calc_sim_standardizations_inpredshape()
         return self.get_ysim_standardized()*ysd_inpredshape+ymean_inpredshape
 
-    def get_ysim_as_obs_native(self,obs_ref=0):
+    def get_ysim_asobs_native(self,obs_ref=0):
         '''
         Project u through the Kobs basis to provide predictions of ysim on the native scale at obs locations.
         (native refers to not the mean=0 and sd=1 standardization process in model setup)
@@ -281,7 +281,7 @@ class SepiaFullPrediction(SepiaPrediction):
         :return: predictions of native ysim, (#samples x #x_pred x py_obs)
         '''
         ysd_inpredshape, ymean_inpredshape = self.calc_obs_standardizations_inpredshape(obs_ref=obs_ref)
-        return self.get_ysim_as_obs_standardized(obs_ref=obs_ref)*ysd_inpredshape+ymean_inpredshape
+        return self.get_ysim_asobs_standardized(obs_ref=obs_ref)*ysd_inpredshape+ymean_inpredshape
         
     def get_discrepancy_standardized(self, obs_ref=0):
         '''
@@ -323,7 +323,7 @@ class SepiaFullPrediction(SepiaPrediction):
          to use for transformation parameters; default index 0
         :return: predictions of standardized y, (#samples x #x_pred x py_obs)
         '''
-        return self.get_ysim_as_obs_standardized(obs_ref=obs_ref)+self.get_discrepancy_standardized(obs_ref=obs_ref)
+        return self.get_ysim_asobs_standardized(obs_ref=obs_ref)+self.get_discrepancy_standardized(obs_ref=obs_ref)
 
     def get_yobs_native(self, obs_ref=0):
         '''
@@ -335,7 +335,7 @@ class SepiaFullPrediction(SepiaPrediction):
         :return: predictions of native y, (#samples x #x_pred x py_obs)
         '''
         ysd_inpredshape, ymean_inpredshape = self.calc_obs_standardizations_inpredshape(obs_ref=obs_ref)
-        return (self.get_ysim_as_obs_standardized(obs_ref=obs_ref)+self.get_discrepancy_standardized(obs_ref=obs_ref))*ysd_inpredshape+ymean_inpredshape
+        return (self.get_ysim_asobs_standardized(obs_ref=obs_ref)+self.get_discrepancy_standardized(obs_ref=obs_ref))*ysd_inpredshape+ymean_inpredshape
 
     def get_mu_sigma(self):
         '''
