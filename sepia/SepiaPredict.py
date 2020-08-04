@@ -195,6 +195,16 @@ class SepiaFullPrediction(SepiaPrediction):
         return self.u, self.v
 
     def get_ysim(self, as_obs=False, std=False, obs_ref=0):
+        '''
+        Project u through the K basis to provide predictions of ysim on the native scale.
+        (native refers to not the mean=0 and sd=1 standardization process in model setup)
+
+        :param as_obs: provide ysim predictions at obs locations (defaults to sim locations)
+        :param std: provide ysim predictions on standardized scale (defaults to native scale)
+        :param obs_ref: if this is a ragged_obs problem, selects the reference observation index
+         to use for transformation parameters; default index 0
+        :return: predictions of native ysim, (#samples x #x_pred x py_sim(or py_obs))
+        '''
         if std:
             if as_obs:
                 if self.model.data.ragged_obs:
@@ -214,6 +224,16 @@ class SepiaFullPrediction(SepiaPrediction):
        
     
     def get_discrepancy(self, as_obs=False, std=False, obs_ref=0):
+        '''
+        return Dsim*v to provide predictions of discrepancy on the native scale at sim locations.
+        (native refers to not the sd=1 standardization process in model setup)
+        
+        :param as_obs: provide discrepancy predictions at obs locations (defaults to sim locations)
+        :param std: provide discrepancy predictions on standardized scale (defaults to native scale)
+        :param obs_ref: if this is a ragged_obs problem, selects the reference observation index
+         to use for transformation parameters; default index 0
+        :return: predictions of native discrepancy, (#samples x #x_pred x py_sim(or py_obs))
+        '''
         if std:
             if as_obs:
                 if self.model.data.ragged_obs:
@@ -235,6 +255,16 @@ class SepiaFullPrediction(SepiaPrediction):
                 return np.tensordot(self.v,self.model.data.sim_data.D.T,axes=[[2],[0]])*ysd_inpredshape
 
     def get_yobs(self, as_obs=False, std=False, obs_ref=0):
+        '''
+        return y=Ksim*u+Dsim*v to provide predictions of y on the native scale at sim locations.
+        (native refers to not the mean=0 and sd=1 standardization process in model setup)
+
+        :param as_obs: provide discrepancy predictions at obs locations (defaults to sim locations)
+        :param std: provide discrepancy predictions on standardized scale (defaults to native scale)
+        :param obs_ref: if this is a ragged_obs problem, selects the reference observation index
+         to use for transformation parameters; default index 0
+        :return: predictions of native y (Emulator+Discrepancy), (#samples x #x_pred x py_sim(or py_obs))
+        '''
         return self.get_ysim(as_obs=as_obs,std=std,obs_ref=obs_ref)+self.get_discrepancy(as_obs=as_obs,std=std,obs_ref=obs_ref)
     
     def get_ysim_standardized(self):
