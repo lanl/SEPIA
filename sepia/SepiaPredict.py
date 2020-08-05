@@ -101,28 +101,13 @@ class SepiaEmulatorPrediction(SepiaPrediction):
 
         :return: predictions of y, (#samples x #x_pred x py) tensor
         '''
-        if self.model.num.scalar_out:
-            return self.w
+        if std:
+            return self.get_y_standardized()
         else:
-            wK = np.tensordot(self.w,self.model.data.sim_data.K,axes=[[2],[0]])
-            if std: 
-                return wK
-            else:
-                wshape=self.w.shape
-                if isinstance(self.model.data.sim_data.orig_y_sd,np.ndarray):
-                    ysd_inpredshape = np.tile(self.model.data.sim_data.orig_y_sd, (wshape[0], wshape[1], 1))
-                else:
-                    # cheating a bit, if it's scalar it doesn't have to be tiled out
-                    ysd_inpredshape=self.model.data.sim_data.orig_y_sd
-                ymean_inpredshape = np.tile(self.model.data.sim_data.orig_y_mean, (wshape[0], wshape[1], 1))
-                return wK*ysd_inpredshape+ymean_inpredshape
-            
+            return self.get_y_native()
     def get_y_standardized(self):
         '''
-        Project w through the K basis to provide standardized predictions of y.
-        (standardized refers to the mean=0 and sd=1 standardization process in model setup)
-
-        :return: predictions of standardized y, (#samples x #x_pred x py) tensor
+        used by get_y, not called by user
         '''
         if self.model.num.scalar_out:
             return self.w
@@ -131,10 +116,7 @@ class SepiaEmulatorPrediction(SepiaPrediction):
 
     def get_y_native(self):
         '''
-        Project w through the K basis to provide predictions of y on the native scale.
-        (native refers to not the mean=0 and sd=1 standardization process in model setup)
-
-        :return: predictions of native y, (#samples x #x_pred x py) tensor
+        used by get_y, not called by user
         '''
         wshape=self.w.shape
         if isinstance(self.model.data.sim_data.orig_y_sd,np.ndarray):
