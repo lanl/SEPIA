@@ -462,6 +462,11 @@ class SepiaModel:
         return ll + lp
     
     def logPost_wrapper(self,x):
+        """
+        Wrapper for the optimization of logPost. Not called by users.
+        Checks that parameter values are in bounds, then updates model parameters
+        and returns the new logPost value.
+        """
         # check x is valid
         valid_x=True
         i=0
@@ -482,7 +487,13 @@ class SepiaModel:
                     i+=1
         return -1*self.logPost()
     
-    def optim_logPost(self,theta_only=False):
+    def optim_logPost(self,theta_only=False,maxiter=10000):
+        """
+        Optimize the log Posterior to find a good starting place for MCMC
+        
+        :param theta_only: bool -- optimize only theta parameters
+        :param maxiter: int -- max iterations for optimization
+        """
         x0 = []
         if theta_only:
             for prm in self.params.mcmcList:
@@ -500,7 +511,7 @@ class SepiaModel:
             print('optimizing logpost over all parameters')
             
         post_mode = minimize(self.logPost_wrapper, x0, method='nelder-mead',
-               options={'xatol': 1e-8, 'disp': True,'maxiter':100000})
+               options={'xatol': 1e-8, 'disp': True,'maxiter':maxiter})
         return post_mode
 
     #TODO: does not handle hierModels/tiedThetaModels, passes a sim only univ test pretty well (lamWOs slightly different ss)
