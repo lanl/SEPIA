@@ -7,6 +7,7 @@ import statsmodels.api as sm
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 from scipy import stats
+from scipy.optimize import minimize
     
 # container to group a number of misc. model pre-calculated info
 class ModelContainer():
@@ -459,6 +460,48 @@ class SepiaModel:
         ll = self.logLik(cvar, cindex)
         lp = sum([prm.prior.compute_log_prior() for prm in self.params.mcmcList])
         return ll + lp
+    
+    def logPost_wrapper(self,x):
+        # check x is valid
+        valid_x=True
+        i=0
+        for prm in self.params.mcmcList:
+            for ind in range(int(np.prod(prm.val_shape))):
+                arr_ind = np.unravel_index(ind, prm.val_shape, order='F')
+                if not prm.prior.is_in_bounds(x[i]):
+                    return np.inf
+                i+=1
+        # change params to x
+        i = 0
+        for prm in self.params.mcmcList:
+            # Loop over indices within parameter
+            if prm.name == 'theta':
+                for ind in range(int(np.prod(prm.val_shape))):
+                    arr_ind = np.unravel_index(ind, prm.val_shape, order='F')
+                    prm.val[arr_ind] = x[i]
+                    i+=1
+        return -1*self.logPost()
+    
+    def optim_logPost(self,theta_only=False):
+        x0 = []
+        if theta_only:
+            for prm in self.params.mcmcList:
+                if prm.name == 'theta':
+                    for ind in range(int(np.prod(prm.val_shape))):
+                        arr_ind = np.unravel_index(ind, prm.val_shape, order='F')
+                        x0.append(prm.val[arr_ind])
+            print('optimizing logpost over theta')
+        else:
+            for prm in self.params.mcmcList:
+                if prm.name != 'logPost':
+                    for ind in range(int(np.prod(prm.val_shape))):
+                        arr_ind = np.unravel_index(ind, prm.val_shape, order='F')
+                        x0.append(prm.val[arr_ind])            
+            print('optimizing logpost over all parameters')
+            
+        post_mode = minimize(self.logPost_wrapper, x0, method='nelder-mead',
+               options={'xatol': 1e-8, 'disp': True,'maxiter':100000})
+        return post_mode
 
     #TODO: does not handle hierModels/tiedThetaModels, passes a sim only univ test pretty well (lamWOs slightly different ss)
     #TODO: set start value to maximum posterior instead of last sample?
