@@ -159,92 +159,21 @@ def rho_box_plots(model,labels=None):
         plt.title('PC {}'.format(i+1))
         plt.show() 
         
-def plot_acf(chain,nlags,alpha=.05):
+def plot_acf(model,nlags,nburn=0,alpha=.05):
+    """
+    Plot autocorrelation function for all parameters theta
     
-    # compute autocorrelation
-    if np.ndim(chain) == 1:
-        chain = chain.reshape(1,chain.shape[0])
-    nchains, nobs = chain.shape
-    autocorrs = []
-    for i in range(nchains):
-        chain1 = (chain[i,:] - np.mean(chain[i,:])) / (np.std(chain[i,:]) * nobs)
-        chain2 = (chain[i,:] - np.mean(chain[i,:])) / np.std(chain[i,:])
-        autocorr = np.correlate(chain1,chain2,mode='full')
-        autocorr = autocorr[autocorr.size//2:]
-        autocorrs.append(autocorr[0:nlags+1])
-
-    # plot
-    fig, ax = plt.subplots()
-    lags = np.linspace(0,nlags,nlags+1,dtype=int,endpoint=True)
-    for i in range(len(autocorrs)):
-        ax.plot(lags,autocorrs[i],'-o',label='theta {}'.format(i+1))
-    ax.set_xticks(np.linspace(0,nlags,10,dtype=int,endpoint=True))
-    ax.set_yticks(np.linspace(0,1,11,endpoint=True))
-    ax.set_xlabel('Lag')
-    ax.set_ylabel('Autocorrelation')
+    :param model: SepiaModel object
+    :param nlags: int -- how many lags to compute/plot
+    :param nburn: int -- how many samples to burn
+    :param alpha: float -- confidence level for acf significance line (0,1)
+    """
+    if alpha <= 0 or alpha >= 1:
+        raise ValueError('alpha must be in (0,1)')
+    # get theta chains
+    for p in model.params.mcmcList:
+        if p.name == 'theta': 
+            chain = p.mcmc_to_array(trim=nburn, flat=True, untransform_theta=False).T
     
-    # significance lines
-    sigline = stats.norm.ppf(1 - alpha / 2.) / np.sqrt(nobs)
-    ax.axhline(-sigline,linestyle='--',c='b'); ax.axhline(sigline,linestyle='--',c='b')
-    
-    # axis limits
-    
-    ymin = min(np.min(-sigline),min([np.min(ac) for ac in autocorrs]))
-    ymax = max(np.max(sigline),max([np.max(ac) for ac in autocorrs]))
-    ax.set_ylim([min(-.1,1.1*ymin),1.1*ymax])
-    
-    if nchains > 1: plt.legend()
-    plt.show()
-    
-    # output ESS to console
-    ess = []
-    for i in range(nchains):
-        ess.append(ESS(chain[i,:]))
-    print('Effective Sample Sizes:',ess)
-    print('Total number of samples:',[nobs]*nchains)
-    
-    return autocorrs, sigline
-
-def ESS(x):
-    """ Compute the effective sample size of estimand of interest. Vectorised implementation. """
-    if np.ndim(x) == 1:
-        x = x.reshape(1,-1)
-
-    m_chains, n_iters = x.shape
-
-    variogram = lambda t: ((x[:, t:] - x[:, :(n_iters - t)])**2).sum() / (m_chains * (n_iters - t))
-
-    post_var = marg_post_var(x)
-
-    t = 1
-    rho = np.ones(n_iters)
-    negative_autocorr = False
-
-    # Iterate until the sum of consecutive estimates of autocorrelation is negative
-    while not negative_autocorr and (t < n_iters):
-        rho[t] = 1 - variogram(t) / (2 * post_var)
-
-        if not t % 2:
-            negative_autocorr = sum(rho[t-1:t+1]) < 0
-
-        t += 1
-
-    return int(m_chains*n_iters / (1 + 2*rho[1:t].sum()))
-
-def marg_post_var(x):
-    """ Estimate the marginal posterior variance. Vectorised implementation. """
-    m_chains, n_iters = x.shape
-
-    # Calculate between-chain variance
-    if m_chains > 1:
-        B_over_n = ((np.mean(x, axis=1) - np.mean(x))**2).sum() / (m_chains - 1)
-    else:
-        B_over_n = 0
-
-    # Calculate within-chain variances
-    W = ((x - x.mean(axis=1, keepdims=True))**2).sum() / (m_chains*(n_iters - 1))
-
-    # (over) estimate of variance
-    s2 = W * (n_iters - 1) / n_iters + B_over_n
-
-    return s2
+    autocorrs, sigline, ess = model.acf(chain,nlags,plot=True,alpha=alpha)
+    return autocorrs, sigline, ess
