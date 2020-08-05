@@ -462,7 +462,7 @@ def uvPred(pred, useAltW=False):
         lamWs = samples['lamWs'][ii:ii + 1, :]
         lamWOs = samples['lamWOs'][ii:ii + 1, :]
         lamOs = samples['lamOs'][ii:ii + 1, :]
-
+        
         if theta_pred:
             xpredt = np.concatenate((xpred, theta_pred), axis=1)
         else:
@@ -481,14 +481,14 @@ def uvPred(pred, useAltW=False):
         # Four parts to compute: Sig_v, Sig_u, Sig_w, and the Sig_uw crossterm
         vCov=[]
         for jj in range(lamVzGnum):
-            vCov.append(x0Dist.compute_cov_mat(betaV[:, jj], lamVz[jj]))
+            vCov.append(x0Dist.compute_cov_mat(betaV[:, jj], lamVz[0,jj]))
         SigV=np.zeros((n*pv,n*pv))
         for jj in range(pv):
             SigV[jj*n:(jj+1)*n,jj*n:(jj+1)*n]=vCov[lamVzGroup[jj]]
 
         SigU=np.zeros((n*pu,n*pu))
         for jj in range(pu):
-           SigU[jj*n:(jj+1)*n,jj*n:(jj+1)*n]=xDist.compute_cov_mat(betaU[:, jj], lamUz[0, jj])
+            SigU[jj*n:(jj+1)*n,jj*n:(jj+1)*n]=xDist.compute_cov_mat(betaU[:, jj], lamUz[0, jj])
         np.fill_diagonal(SigU, SigU.diagonal() + np.repeat(np.reciprocal(lamWs), n))
 
         SigW = np.zeros((m * pu, m * pu))
@@ -500,7 +500,7 @@ def uvPred(pred, useAltW=False):
 
         SigUW=np.zeros((n*pu,m*pu))
         for jj in range(pu):
-          SigUW[jj*n:(jj+1)*n,jj*m:(jj+1)*m]=xzDist.compute_cov_mat(betaU[:, jj], lamUz[0, jj])
+            SigUW[jj*n:(jj+1)*n,jj*m:(jj+1)*m]=xzDist.compute_cov_mat(betaU[:, jj], lamUz[0, jj])
 
         if num.scalar_out:
             #SigData=[ SigU+SigV +SigObs/lamOs    SigUW; ...
@@ -558,7 +558,7 @@ def uvPred(pred, useAltW=False):
         SigVp=np.zeros((npred*pv,npred*pv))
         vpCov=[]
         for jj in range(lamVzGnum):
-            vpCov.append(xpred0Dist.compute_cov_mat(betaV[:, jj], lamVz[jj]))
+            vpCov.append(xpred0Dist.compute_cov_mat(betaV[:, jj], lamVz[0,jj]))
         for jj in range(pv):
             SigVp[jj*npred:(jj+1)*npred,jj*npred:(jj+1)*npred]=vpCov[lamVzGroup[jj]]
 
@@ -579,7 +579,7 @@ def uvPred(pred, useAltW=False):
         SigVVx=np.zeros((n*pv,npred*pv))
         vvCov=[]
         for jj in range(lamVzGnum):
-            vvCov.append(xxpred0Dist.compute_cov_mat(betaV[:, jj], lamVz[jj]))
+            vvCov.append(xxpred0Dist.compute_cov_mat(betaV[:, jj], lamVz[0,jj]))
         for jj in range(pv):
             SigVVx[jj*n:(jj+1)*n,jj*npred:(jj+1)*npred]=vvCov[lamVzGroup[jj]]
 
