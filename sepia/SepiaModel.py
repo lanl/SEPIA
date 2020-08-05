@@ -112,7 +112,7 @@ class SepiaModel:
     #    else:
     #        print(self.data)
 
-    def get_samples(self, nburn=0, sampleset=False, numsamples=False, flat=True, includelogpost=True, untransform_theta=False):
+    def get_samples(self, nburn=0, sampleset=False, numsamples=False, flat=True, includelogpost=True, untransform_theta=False, effectivesamples=False):
         """
         Extract MCMC samples into dictionary format. By default, all samples are returned, or samples can be
         subset using nburn/sampleset/numsamples. Provide either sampleset or numsamples, or neither.
@@ -142,11 +142,23 @@ class SepiaModel:
                 print('numsamples larger than number of draws; truncating to number of draws (%d).' % total_samples)
             else:
                 ss = [int(ii) for ii in np.linspace(0, total_samples-1, numsamples)]
+                
         if sampleset is not False:
             if max(sampleset) > total_samples:
                 print('sampleset includes indices larger than number of draws; truncating to valid draws.')
             ss = [ii for ii in sampleset if ii < total_samples and ii >= 0]
-
+        elif effectivesamples is not False:
+            # get max theta ess
+            for p in self.params.mcmcList:
+                if p.name == 'theta': 
+                    theta = p.mcmc_to_array(trim=nburn, flat=flat, untransform_theta=untransform_theta).T
+            ess_max = 0
+            for i in range(theta.shape[0]):
+                tmp = self.ESS(theta[i,:])
+                if tmp > ess_maxx: ess_maxx = tmp
+            # set ss to grab ess number of samples
+            ss = np.linspace(0,theta.shape[1],ess_maxx,dtype=int,endpoint=False)
+            
         plist = self.params.mcmcList
         if includelogpost: plist.append(self.params.lp)
         samples = {p.name: p.mcmc_to_array(trim=nburn, sampleset=ss, flat=flat, untransform_theta=untransform_theta)
@@ -245,7 +257,7 @@ class SepiaModel:
             lp += lp_tmp
         #self.num.logPrior=lp # commented out since we don't use this, and it could be problematic to set it each time called?
         return lp
-
+    
     def do_mcmc(self, nsamp, prog=True, do_propMH=True, no_init=False, seed=None):
         """
         Run MCMC sampling on initialized SepiaModel object.
