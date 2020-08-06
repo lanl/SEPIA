@@ -146,11 +146,11 @@ in the model, but not necessarily as interpretable as the other types of predict
 
 More likely, users will want to get predictions that are transformed back to the original (native) output space::
 
-    predystd = pred.get_y_native()
+    predystd = pred.get_y()
 
 Predictions in the standardized output space are also available::
 
-    predystd = pred.get_y_standardized()
+    predystd = pred.get_y(std=True)
 
 Cross-validation predictions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -170,7 +170,7 @@ This does leave-one-out cross-validation on the original simulation inputs.
 
 Now the predictions can be compared to the original data to assess the error::
 
-    CV_pred_y = CVpred.get_y_native()
+    CV_pred_y = CVpred.get_y()
     residuals = CV_pred_y - model.data.sim_data.y
 
 We can also customize the leave-out sets::
