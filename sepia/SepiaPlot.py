@@ -9,18 +9,19 @@ from scipy import stats
 
 sns.set(style="ticks")
 
-def theta_pairs(samples_dict,design_names=[]):
+def theta_pairs(samples_dict,design_names=[],xlim=None):
     """
     Create pairs plot of sampled thetas.
 
     :param samples_dict: dictionary -- samples from model.get_samples()
     :param design_names: list -- names for thetas, optional
+    :param xlim: list of tuples -- optional, xlim for each theta histogram
     """
-    theta = samples_dict['theta']  
+    theta = samples_dict['theta_native']
     if not design_names:
         for i in range(theta.shape[1]):
             design_names.append('theta_'+str(i+1))
-            
+    n_theta = theta.shape[1]
     thin_idx = np.linspace(0,theta.shape[0]-1,1000,dtype=int) # thin to 1000 samples
     theta_df = pd.DataFrame(theta[thin_idx,:],columns=design_names) # take only 1000 samples to dataframe
     theta_df.insert(0,'idx',theta_df.index,allow_duplicates = False)
@@ -30,6 +31,8 @@ def theta_pairs(samples_dict,design_names=[]):
             g.map_upper(sns.scatterplot, palette = 'coolwarm', hue=theta_df['idx'], legend=False)
             g.map_lower(sns.kdeplot)
             g.map_diag(sns.distplot, hist=True)
+            for i in range(n_theta):
+                g.axes[i, i].set_xlim(xlim[i])
             plt.show()
     else:
         sns.distplot(theta_df.loc[:, theta_df.columns != 'idx'],hist=True,axlabel=design_names[0])
