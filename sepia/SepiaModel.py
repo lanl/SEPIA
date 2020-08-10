@@ -104,6 +104,7 @@ class SepiaModel:
     """
 
     def __init__(self):
+        # Creates SepiaModel; not usually called by user, but done through setup_model()
         self.verbose = False
         self.data = None            # SepiaData obj for use later
         self.num = ModelContainer() # num for numeric state
@@ -114,6 +115,116 @@ class SepiaModel:
     #        print('SepiaModel is not set up; call setup_model(SepiaData_object)')
     #    else:
     #        print(self.data)
+
+    def log_prior(self):
+        """
+        Evaluates log prior.
+
+        :return: float -- summed log prior over all parameters
+        """
+        if self.params is None:
+            raise Exception("sepia model params must be set up first.")
+        lp = 0
+        for param in self.params.mcmcList:
+            lp_tmp = param.prior.compute_log_prior()
+            #print('Prior value for %s: %f'%(param.name, lp_tmp))
+            lp += lp_tmp
+        #self.num.logPrior=lp # commented out since we don't use this, and it could be problematic to set it each time called?
+        return lp
+
+    def logLik(self, cvar='all', cindex=None):
+        """
+        Compute model log lik with current values of variables.
+
+        :param cvar: string -- name of variables changed since last call (controls recomputation of num components), or 'all'
+        :param cindex: int -- index of flattened cvar that has changed since last call (or None)
+        :return: scalar -- log lik value
+        """
+        L = compute_log_lik(self, cvar, cindex)
+        return L
+
+    def logPost(self, cvar='all', cindex=None):
+        """
+        Compute model log posterior with current values of variables.
+
+        :param cvar: string -- name of variables changed since last call (controls recomputation of num components), or 'all'
+        :param cindex: int -- index of flattened cvar that has changed since last call (or None)
+        :return: scalar -- log posterior value
+        """
+        ll = self.logLik(cvar, cindex)
+        lp = sum([prm.prior.compute_log_prior() for prm in self.params.mcmcList])
+        return ll + lp
+
+    def print_prior_info(self, pnames=None):
+        """
+        Print some information about the priors.
+
+        :param pnames: list -- list of parameter names to print information about; default is to print all.
+        """
+
+        if pnames is None:
+            pnames = [p.name for p in self.params]
+        for p in self.params:
+            if p.name in pnames:
+                print('%s prior distribution: %s' % (p.name, p.prior.dist))
+                print('bounds: ')
+                print(p.prior.bounds)
+                for i in range(len(p.prior.params)):
+                    print('prior param %d' % i)
+                    print(p.prior.params[i])
+
+    def print_value_info(self, pnames=None):
+        """
+        Print some information about the parameter values. (Shows initial values if called before MCMC)
+
+        :param pnames: list -- list of parameter names to print information about; default is to print all.
+        """
+
+        if pnames is None:
+            pnames = [p.name for p in self.params]
+        for p in self.params:
+            if p.name in pnames:
+                print('%s shape (%d, %d):' % (p.name, p.val_shape[0], p.val_shape[1]))
+                print('value:')
+                print(p.val)
+                print('is fixed?:')
+                print(p.fixed)
+
+    def print_mcmc_info(self, pnames=None):
+        """
+        Print some information about the MCMC setup.
+
+        :param pnames: list -- list of parameter names to print information about; default is to print all.
+        """
+
+        if pnames is None:
+            pnames = [p.name for p in self.params]
+        for p in self.params:
+            if p.name in pnames:
+                print('%s stepType: %s' % (p.name, p.mcmc.stepType))
+                print('stepParam:')
+                print(p.mcmc.stepParam)
+
+    def do_mcmc(self, nsamp, prog=True, do_propMH=True, no_init=False, seed=None):
+        """
+        Run MCMC sampling on initialized SepiaModel object.
+
+        Note that calling again appends samples to existing samples, so you can run in chunks.
+
+        :param nsamp: float -- number of MCMC samples
+        :param prog: bool -- whether to show progress bar
+        :param do_propMH: bool -- whether to use propMH sampling for variables with that step type
+        :param no_init: bool -- skip initialization (if model has already been sampled; need to initialize on first call)
+        """
+        if seed is not None:
+            np.random.seed(seed)
+        if self.num.auto_stepsize:
+            do_propMH = False
+        if not no_init:
+            self.params.lp.set_val(self.logPost()) # Need to call once with cvar='all' (default) to initialize
+        #self.params.lp.mcmc.record(self.params.lp.val)
+        for _ in tqdm(range(nsamp), desc='MCMC sampling', mininterval=0.5, disable=not(prog)):
+            self.mcmc_step(do_propMH)
 
     def get_samples(self, nburn=0, sampleset=False, numsamples=False, flat=True, includelogpost=True, untransform_theta=False, effectivesamples=False):
         """
@@ -168,351 +279,6 @@ class SepiaModel:
         samples = {p.name: p.mcmc_to_array(trim=nburn, sampleset=ss, flat=flat, untransform_theta=untransform_theta)
                    for p in plist}
         return samples
-
-    def set_params_sim_only(self, lamWOs_a_corr=0, lamWOs_b_corr=0):
-        """
-        Set up parameters and priors for simulation-only model.
-
-        :param lamWOs_a_corr: prior correction
-        :param lamWOs_b_corr: prior correction
-        """
-        self.params = SepiaParamList()
-        lamWOs_a = 5 + lamWOs_a_corr
-        lamWOs_b = 5e-3 + lamWOs_b_corr
-        lamWOs_init = np.max([100, lamWOs_a/lamWOs_b])
-        if lamWOs_init >= 1e5:
-            print('lamWOs initialized outside default bounds [60, 1e5]; setting initial value to 1e5 - 1.')
-            lamWOs_init = 1e5-1
-        self.params.betaU = SepiaParam(val=0.1, name='betaU', val_shape=(self.num.p + self.num.q, self.num.pu), dist='Beta',
-                                       params=[1., 0.1], bounds=[0., np.inf], mcmcStepParam=0.1, mcmcStepType='BetaRho')
-        self.params.lamUz = SepiaParam(val=1., name='lamUz', val_shape=(1, self.num.pu), dist='Gamma', params=[5., 5.],
-                                       bounds=[0.3, np.inf], mcmcStepParam=5., mcmcStepType='PropMH')
-        self.params.lamWOs = SepiaParam(val=lamWOs_init, name='lamWOs', val_shape=(1, 1), dist='Gamma',
-                                        params=[lamWOs_a, lamWOs_b], bounds=[60., 1e5], mcmcStepParam=100., mcmcStepType='PropMH')
-        self.params.lamWs = SepiaParam(val=1000., name='lamWs', val_shape=(1, self.num.pu), dist='Gamma', params=[3., 3e-3],
-                                       bounds=[60., 1e5], mcmcStepParam=100., mcmcStepType='PropMH')
-        self.params.mcmcList = [self.params.betaU, self.params.lamUz, self.params.lamWs, self.params.lamWOs]
-        # Set up dummy parameter to hold logpost samples
-        self.params.lp = SepiaParam(val=-np.inf, name='logPost', dist='Recorder', val_shape=(1, 1))
-
-    def set_params_noD(self, lamOs_a_corr=0, lamOs_b_corr=0, lamWOs_a_corr=0, lamWOs_b_corr=0):
-        """
-        Set up parameters and priors for simulation and observed model with no discrepancy.
-
-        :param lamOs_a_corr: prior correction
-        :param lamOs_b_corr: prior correction
-        :param lamWOs_a_corr: prior correction
-        :param lamWOs_b_corr: prior correction
-        """
-        self.set_params_sim_only(lamWOs_a_corr, lamWOs_b_corr)
-        # Obs part
-        lamOs_a = 1 + lamOs_a_corr
-        lamOs_b = 1e-3 + lamOs_b_corr
-        lamOs_init = np.max([20, lamOs_a/lamOs_b])
-        theta_range = [self.data.obs_data.orig_t_min, self.data.obs_data.orig_t_max]
-        if np.allclose(theta_range[0], theta_range[1]):
-            theta_range = None
-        self.params.theta = SepiaParam(val=0.5, name='theta', val_shape=(1, self.num.q), dist='Normal', params=[0.5, 10.],
-                                       bounds=[0, 1], mcmcStepParam=0.2, mcmcStepType='Uniform', orig_range=theta_range)
-        self.params.lamOs = SepiaParam(val=lamOs_init, name='lamOs', val_shape=(1, 1), dist='Gamma',
-                                       params=[lamOs_a, lamOs_b], bounds=[0, np.inf], mcmcStepParam=lamOs_init/2, mcmcStepType='PropMH')
-        self.params.mcmcList = [self.params.theta, self.params.betaU, self.params.lamUz, self.params.lamWs, self.params.lamWOs, self.params.lamOs]
-
-    def set_params_full(self, lamOs_a_corr=0, lamOs_b_corr=0, lamWOs_a_corr=0, lamWOs_b_corr=0):
-        """
-        Set up parameters and priors for simulation and observed model with discrepancy.
-
-        :param lamOs_a_corr: prior correction
-        :param lamOs_b_corr: prior correction
-        :param lamWOs_a_corr: prior correction
-        :param lamWOs_b_corr: prior correction
-        """
-        self.set_params_sim_only(lamWOs_a_corr, lamWOs_b_corr)
-        # Obs part
-        lamOs_a = 1 + lamOs_a_corr
-        lamOs_b = 1e-3 + lamOs_b_corr
-        lamOs_init = np.max([20, lamOs_a/lamOs_b])
-        theta_range = [self.data.obs_data.orig_t_min, self.data.obs_data.orig_t_max]
-        if np.allclose(theta_range[0], theta_range[1]):
-            theta_range = None
-        self.params.theta = SepiaParam(val=0.5, name='theta', val_shape=(1, self.num.q), dist='Normal', params=[0.5, 10.],
-                                       bounds=[0, 1], mcmcStepParam=0.2, mcmcStepType='Uniform', orig_range=theta_range)
-        self.params.betaV = SepiaParam(val=0.1, name='betaV', val_shape=(self.num.p, self.num.lamVzGnum), dist='Beta', params=[1., 0.1],
-                                       bounds=[0, np.inf], mcmcStepParam=0.1, mcmcStepType='BetaRho')
-        self.params.lamVz = SepiaParam(val=20., name='lamVz', val_shape=(1, self.num.lamVzGnum), dist='Gamma', params=[1., 1e-3],
-                                       bounds=[0., np.inf], mcmcStepParam=10., mcmcStepType='PropMH')
-        self.params.lamOs = SepiaParam(val=lamOs_init, name='lamOs', val_shape=(1, 1), dist='Gamma',
-                                       params=[lamOs_a, lamOs_b], bounds=[0, np.inf], mcmcStepParam=lamOs_init/2, mcmcStepType='PropMH')
-        self.params.mcmcList = [self.params.theta, self.params.betaV, self.params.betaU, self.params.lamVz, self.params.lamUz,
-                                    self.params.lamWs, self.params.lamWOs,  self.params.lamOs]
-
-    def log_prior(self):
-        """
-        Evaluates log prior.
-
-        :return: float -- summed log prior over all parameters
-        """
-        if self.params is None:
-            raise Exception("sepia model params must be set up first.")
-        lp = 0
-        for param in self.params.mcmcList:
-            lp_tmp = param.prior.compute_log_prior()
-            #print('Prior value for %s: %f'%(param.name, lp_tmp))
-            lp += lp_tmp
-        #self.num.logPrior=lp # commented out since we don't use this, and it could be problematic to set it each time called?
-        return lp
-
-    def acf(self,chain,nlags,plot=True, alpha=.05, ESS=True):
-        """
-        Compute autocorrelation function of mcmc chain
-        
-        Usually called by SepiaPlot.plot_acf(), not user
-        """
-        # compute autocorrelation
-        nchains, nobs = chain.shape
-        autocorrs = []
-        for i in range(nchains):
-            chain1 = (chain[i,:] - np.mean(chain[i,:])) / (np.std(chain[i,:]) * nobs)
-            chain2 = (chain[i,:] - np.mean(chain[i,:])) / np.std(chain[i,:])
-            autocorr = np.correlate(chain1,chain2,mode='full')
-            autocorr = autocorr[autocorr.size//2:]
-            autocorrs.append(autocorr[0:nlags+1])
-            
-        sigline = stats.norm.ppf(1 - alpha / 2.) / np.sqrt(nobs)
-        
-        # plot
-        if plot:
-            fig, ax = plt.subplots()
-            lags = np.linspace(0,nlags,nlags+1,dtype=int,endpoint=True)
-            for i in range(len(autocorrs)):
-                ax.plot(lags,autocorrs[i],'-o',fillstyle='none',label='theta {}'.format(i+1))
-            ax.set_xticks(np.linspace(0,nlags,10,dtype=int,endpoint=True))
-            ax.set_yticks(np.linspace(0,1,11,endpoint=True))
-            ax.set_xlabel('Lag')
-            ax.set_ylabel('Autocorrelation')
-
-            # significance lines
-            ax.axhline(-sigline,linestyle='--',c='b'); ax.axhline(sigline,linestyle='--',c='b')
-
-            # axis limits
-
-            ymin = min(np.min(-sigline),min([np.min(ac) for ac in autocorrs]))
-            ymax = max(np.max(sigline),max([np.max(ac) for ac in autocorrs]))
-            ax.set_ylim([min(-.1,1.1*ymin),1.1*ymax])
-
-            if nchains > 1: plt.legend()
-            plt.show()
-        
-        # output ESS to console
-        if ESS:
-            ess = []
-            for i in range(nchains):
-                ess.append(self.ESS(chain[i,:]))
-            print('Effective Sample Sizes:',ess)
-            print('Total number of samples:',[nobs]*nchains)
-            return autocorr, sigline, ess
-        else:
-            return autocorr,sigline
-    
-    def ESS(self,x):
-        """ 
-        Compute the effective sample size of estimand of interest. Vectorised implementation. 
-        
-        Not called by user
-        """
-        if np.ndim(x) == 1:
-            x = x.reshape(1,-1)
-            
-        m_chains, n_iters = x.shape
-
-        variogram = lambda t: ((x[:, t:] - x[:, :(n_iters - t)])**2).sum() / (m_chains * (n_iters - t))
-
-        post_var = self.marg_post_var(x)
-
-        t = 1
-        rho = np.ones(n_iters)
-        negative_autocorr = False
-
-        # Iterate until the sum of consecutive estimates of autocorrelation is negative
-        while not negative_autocorr and (t < n_iters):
-            rho[t] = 1 - variogram(t) / (2 * post_var)
-
-            if not t % 2:
-                negative_autocorr = sum(rho[t-1:t+1]) < 0
-
-            t += 1
-
-        return int(m_chains*n_iters / (1 + 2*rho[1:t].sum()))
-
-    def marg_post_var(self,x):
-        """ 
-        Estimate the marginal posterior variance. Vectorised implementation.
-        
-        Usually not called by user
-        """
-        m_chains, n_iters = x.shape
-
-        # Calculate between-chain variance
-        if m_chains > 1:
-            B_over_n = ((np.mean(x, axis=1) - np.mean(x))**2).sum() / (m_chains - 1)
-        else:
-            B_over_n = 0
-
-        # Calculate within-chain variances
-        W = ((x - x.mean(axis=1, keepdims=True))**2).sum() / (m_chains*(n_iters - 1))
-
-        # (over) estimate of variance
-        s2 = W * (n_iters - 1) / n_iters + B_over_n
-
-        return s2
-    
-    def optim_lag(self,chain,alpha=.05,cutoff=None):
-        """
-        Find first lag in acf such that autocorrelation < cutoff or significance line
-        
-        :param chain: ndarray -- mcmc chain
-        :param alpha: float -- confidence level for significance line (0,1)
-        :param cutoff: float -- optional cutoff to override significance line
-        """
-        if np.ndim(chain) == 1:
-            chain = chain.reshape(1,chain.shape[0])
-        acf,sigline=self.acf(chain,len(chain)-1,plot=False,alpha=alpha,ESS=False)
-        if cutoff:
-            optim_lag = np.where(acf<cutoff)
-        else:
-            optim_lag = np.where(acf<sigline)
-        return(optim_lag[0][0])
-    
-    def do_mcmc(self, nsamp, prog=True, do_propMH=True, no_init=False, seed=None):
-        """
-        Run MCMC sampling on initialized SepiaModel object.
-
-        Note that calling again appends samples to existing samples, so you can run in chunks.
-
-        :param nsamp: float -- number of MCMC samples
-        :param prog: bool -- whether to show progress bar
-        :param do_propMH: bool -- whether to use propMH sampling for variables with that step type
-        :param no_init: bool -- skip initialization (if model has already been sampled; need to initialize on first call)
-        """
-        if seed is not None:
-            np.random.seed(seed)
-        if self.num.auto_stepsize:
-            do_propMH = False
-        if not no_init:
-            self.params.lp.set_val(self.logPost()) # Need to call once with cvar='all' (default) to initialize
-        #self.params.lp.mcmc.record(self.params.lp.val)
-        for _ in tqdm(range(nsamp), desc='MCMC sampling', mininterval=0.5, disable=not(prog)):
-            self.mcmc_step(do_propMH)
-
-    def mcmc_step(self, do_propMH=True):
-        # Does a single MCMC step; not typically called by users
-        # Loop over parameters
-        for prm in self.params.mcmcList:
-            # Loop over indices within parameter
-            for ind in range(int(np.prod(prm.val_shape))):
-                arr_ind = np.unravel_index(ind, prm.val_shape, order='F')
-                Accept = False
-                # Make reference copies in case we reject
-                prm.refVal = prm.val.copy()
-                self.refNum = self.num.ref_copy(prm.name)
-                # Draw candidate
-                cand = prm.mcmc.draw_candidate(arr_ind, do_propMH)
-                # Set value to candidate
-                prm.val[arr_ind] = cand
-                # print(prm.mcmc.aCorr)
-                if not prm.fixed[arr_ind]:  # If not supposed to be fixed, check for acceptance
-                    if prm.mcmc.aCorr and prm.prior.is_in_bounds(prm.val[arr_ind]):
-                        # This logPost uses val which has the candidate modification
-                        clp = self.logPost(cvar=prm.name, cindex=ind)
-                        if np.log(np.random.uniform()) < (clp - self.params.lp.val + np.log(prm.mcmc.aCorr)):
-                            Accept = True
-                # print(f'{prm.val:6.2f} : {prm.refVal:6.2f} | {lp:6.2f} : {clp:6.2f} | {np.log(prm.mcmc.aCorr):6.4f} = {Accept}')
-                if Accept:
-                    # Accept basically does nothing, the now modified val stays there for the next step
-                    prm.mcmc.accept()
-                    self.params.lp.set_val(clp)
-                    # print(f'{clp-lp}')
-                else:
-                    # Reject sets val back to refVal that was stored at the top
-                    prm.mcmc.reject(ind, self)
-            prm.mcmc.record()
-        self.params.lp.mcmc.record()
-
-    def logLik(self, cvar='all', cindex=None):
-        """
-        Compute model log lik with current values of variables.
-
-        :param cvar: string -- name of variables changed since last call (controls recomputation of num components), or 'all'
-        :param cindex: int -- index of flattened cvar that has changed since last call (or None)
-        :return: scalar -- log lik value
-        """
-        L = compute_log_lik(self, cvar, cindex)
-        return L
-        
-    def logPost(self, cvar='all', cindex=None):
-        """
-        Compute model log posterior with current values of variables.
-
-        :param cvar: string -- name of variables changed since last call (controls recomputation of num components), or 'all'
-        :param cindex: int -- index of flattened cvar that has changed since last call (or None)
-        :return: scalar -- log posterior value
-        """
-        ll = self.logLik(cvar, cindex)
-        lp = sum([prm.prior.compute_log_prior() for prm in self.params.mcmcList])
-        return ll + lp
-    
-    def logPost_wrapper(self,x):
-        """
-        Wrapper for the optimization of logPost. Not called by users.
-        Checks that parameter values are in bounds, then updates model parameters
-        and returns the new logPost value.
-        """
-        # check x is valid
-        valid_x=True
-        i=0
-        for prm in self.params.mcmcList:
-            for ind in range(int(np.prod(prm.val_shape))):
-                arr_ind = np.unravel_index(ind, prm.val_shape, order='F')
-                if not prm.prior.is_in_bounds(x[i]):
-                    return np.inf
-                i+=1
-        # change params to x
-        i = 0
-        for prm in self.params.mcmcList:
-            # Loop over indices within parameter
-            if prm.name == 'theta':
-                for ind in range(int(np.prod(prm.val_shape))):
-                    arr_ind = np.unravel_index(ind, prm.val_shape, order='F')
-                    prm.val[arr_ind] = x[i]
-                    i+=1
-        return -1*self.logPost()
-    
-    def optim_logPost(self,theta_only=False,maxiter=10000):
-        """
-        Optimize the log Posterior to find a good starting place for MCMC
-        
-        :param theta_only: bool -- optimize only theta parameters
-        :param maxiter: int -- max iterations for optimization
-        """
-        x0 = []
-        if theta_only:
-            for prm in self.params.mcmcList:
-                if prm.name == 'theta':
-                    for ind in range(int(np.prod(prm.val_shape))):
-                        arr_ind = np.unravel_index(ind, prm.val_shape, order='F')
-                        x0.append(prm.val[arr_ind])
-            print('optimizing logpost over theta')
-        else:
-            for prm in self.params.mcmcList:
-                if prm.name != 'logPost':
-                    for ind in range(int(np.prod(prm.val_shape))):
-                        arr_ind = np.unravel_index(ind, prm.val_shape, order='F')
-                        x0.append(prm.val[arr_ind])            
-            print('optimizing logpost over all parameters')
-            
-        post_mode = minimize(self.logPost_wrapper, x0, method='nelder-mead',
-               options={'xatol': 1e-8, 'disp': True,'maxiter':maxiter})
-        return post_mode
 
     #TODO: does not handle hierModels/tiedThetaModels, passes a sim only univ test pretty well (lamWOs slightly different ss)
     #TODO: set start value to maximum posterior instead of last sample?
@@ -588,52 +354,292 @@ class SepiaModel:
         if diagnostics:
             return step_sizes, acc, mod_tmp
 
-    def print_prior_info(self, pnames=None):
+    def optim_logPost(self, theta_only=False, maxiter=10000):
         """
-        Print some information about the priors.
+        Optimize the log Posterior to find a good starting place for MCMC
 
-        :param pnames: list -- list of parameter names to print information about; default is to print all.
+        :param theta_only: bool -- optimize only theta parameters
+        :param maxiter: int -- max iterations for optimization
         """
+        x0 = []
+        if theta_only:
+            for prm in self.params.mcmcList:
+                if prm.name == 'theta':
+                    for ind in range(int(np.prod(prm.val_shape))):
+                        arr_ind = np.unravel_index(ind, prm.val_shape, order='F')
+                        x0.append(prm.val[arr_ind])
+            print('optimizing logpost over theta')
+        else:
+            for prm in self.params.mcmcList:
+                if prm.name != 'logPost':
+                    for ind in range(int(np.prod(prm.val_shape))):
+                        arr_ind = np.unravel_index(ind, prm.val_shape, order='F')
+                        x0.append(prm.val[arr_ind])
+            print('optimizing logpost over all parameters')
 
-        if pnames is None:
-            pnames = [p.name for p in self.params]
-        for p in self.params:
-            if p.name in pnames:
-                print('%s prior distribution: %s' % (p.name, p.prior.dist))
-                print('bounds: ')
-                print(p.prior.bounds)
-                for i in range(len(p.prior.params)):
-                    print('prior param %d' % i)
-                    print(p.prior.params[i])
+        post_mode = minimize(self.logPost_wrapper, x0, method='nelder-mead',
+                             options={'xatol': 1e-8, 'disp': True, 'maxiter': maxiter})
+        return post_mode
 
-    def print_value_info(self, pnames=None):
+    def optim_lag(self, chain, alpha=.05, cutoff=None):
         """
-        Print some information about the parameter values. (Shows initial values if called before MCMC)
+        Find first lag in acf such that autocorrelation < cutoff or significance line
 
-        :param pnames: list -- list of parameter names to print information about; default is to print all.
+        :param chain: ndarray -- mcmc chain
+        :param alpha: float -- confidence level for significance line (0,1)
+        :param cutoff: float -- optional cutoff to override significance line
         """
+        if np.ndim(chain) == 1:
+            chain = chain.reshape(1, chain.shape[0])
+        acf, sigline = self.acf(chain, len(chain) - 1, plot=False, alpha=alpha, ESS=False)
+        if cutoff:
+            optim_lag = np.where(acf < cutoff)
+        else:
+            optim_lag = np.where(acf < sigline)
+        return (optim_lag[0][0])
 
-        if pnames is None:
-            pnames = [p.name for p in self.params]
-        for p in self.params:
-            if p.name in pnames:
-                print('%s shape (%d, %d):' % (p.name, p.val_shape[0], p.val_shape[1]))
-                print('value:')
-                print(p.val)
-                print('is fixed?:')
-                print(p.fixed)
+    def set_params_sim_only(self, lamWOs_a_corr=0, lamWOs_b_corr=0):
+        #
+        # Set up parameters and priors for simulation-only model.
+        #
+        # :param lamWOs_a_corr: prior correction
+        # :param lamWOs_b_corr: prior correction
+        #
+        self.params = SepiaParamList()
+        lamWOs_a = 5 + lamWOs_a_corr
+        lamWOs_b = 5e-3 + lamWOs_b_corr
+        lamWOs_init = np.max([100, lamWOs_a/lamWOs_b])
+        if lamWOs_init >= 1e5:
+            print('lamWOs initialized outside default bounds [60, 1e5]; setting initial value to 1e5 - 1.')
+            lamWOs_init = 1e5-1
+        self.params.betaU = SepiaParam(val=0.1, name='betaU', val_shape=(self.num.p + self.num.q, self.num.pu), dist='Beta',
+                                       params=[1., 0.1], bounds=[0., np.inf], mcmcStepParam=0.1, mcmcStepType='BetaRho')
+        self.params.lamUz = SepiaParam(val=1., name='lamUz', val_shape=(1, self.num.pu), dist='Gamma', params=[5., 5.],
+                                       bounds=[0.3, np.inf], mcmcStepParam=5., mcmcStepType='PropMH')
+        self.params.lamWOs = SepiaParam(val=lamWOs_init, name='lamWOs', val_shape=(1, 1), dist='Gamma',
+                                        params=[lamWOs_a, lamWOs_b], bounds=[60., 1e5], mcmcStepParam=100., mcmcStepType='PropMH')
+        self.params.lamWs = SepiaParam(val=1000., name='lamWs', val_shape=(1, self.num.pu), dist='Gamma', params=[3., 3e-3],
+                                       bounds=[60., 1e5], mcmcStepParam=100., mcmcStepType='PropMH')
+        self.params.mcmcList = [self.params.betaU, self.params.lamUz, self.params.lamWs, self.params.lamWOs]
+        # Set up dummy parameter to hold logpost samples
+        self.params.lp = SepiaParam(val=-np.inf, name='logPost', dist='Recorder', val_shape=(1, 1))
 
-    def print_mcmc_info(self, pnames=None):
-        """
-        Print some information about the MCMC setup.
+    def set_params_noD(self, lamOs_a_corr=0, lamOs_b_corr=0, lamWOs_a_corr=0, lamWOs_b_corr=0):
+        #
+        # Set up parameters and priors for simulation and observed model with no discrepancy.
+        #
+        # :param lamOs_a_corr: prior correction
+        # :param lamOs_b_corr: prior correction
+        # :param lamWOs_a_corr: prior correction
+        # :param lamWOs_b_corr: prior correction
+        #
+        self.set_params_sim_only(lamWOs_a_corr, lamWOs_b_corr)
+        # Obs part
+        lamOs_a = 1 + lamOs_a_corr
+        lamOs_b = 1e-3 + lamOs_b_corr
+        lamOs_init = np.max([20, lamOs_a/lamOs_b])
+        theta_range = [self.data.obs_data.orig_t_min, self.data.obs_data.orig_t_max]
+        if np.allclose(theta_range[0], theta_range[1]):
+            theta_range = None
+        self.params.theta = SepiaParam(val=0.5, name='theta', val_shape=(1, self.num.q), dist='Normal', params=[0.5, 10.],
+                                       bounds=[0, 1], mcmcStepParam=0.2, mcmcStepType='Uniform', orig_range=theta_range)
+        self.params.lamOs = SepiaParam(val=lamOs_init, name='lamOs', val_shape=(1, 1), dist='Gamma',
+                                       params=[lamOs_a, lamOs_b], bounds=[0, np.inf], mcmcStepParam=lamOs_init/2, mcmcStepType='PropMH')
+        self.params.mcmcList = [self.params.theta, self.params.betaU, self.params.lamUz, self.params.lamWs, self.params.lamWOs, self.params.lamOs]
 
-        :param pnames: list -- list of parameter names to print information about; default is to print all.
-        """
+    def set_params_full(self, lamOs_a_corr=0, lamOs_b_corr=0, lamWOs_a_corr=0, lamWOs_b_corr=0):
+        #
+        # Set up parameters and priors for simulation and observed model with discrepancy.
 
-        if pnames is None:
-            pnames = [p.name for p in self.params]
-        for p in self.params:
-            if p.name in pnames:
-                print('%s stepType: %s' % (p.name, p.mcmc.stepType))
-                print('stepParam:')
-                print(p.mcmc.stepParam)
+        # :param lamOs_a_corr: prior correction
+        # :param lamOs_b_corr: prior correction
+        # :param lamWOs_a_corr: prior correction
+        # :param lamWOs_b_corr: prior correction
+        #
+        self.set_params_sim_only(lamWOs_a_corr, lamWOs_b_corr)
+        # Obs part
+        lamOs_a = 1 + lamOs_a_corr
+        lamOs_b = 1e-3 + lamOs_b_corr
+        lamOs_init = np.max([20, lamOs_a/lamOs_b])
+        theta_range = [self.data.obs_data.orig_t_min, self.data.obs_data.orig_t_max]
+        if np.allclose(theta_range[0], theta_range[1]):
+            theta_range = None
+        self.params.theta = SepiaParam(val=0.5, name='theta', val_shape=(1, self.num.q), dist='Normal', params=[0.5, 10.],
+                                       bounds=[0, 1], mcmcStepParam=0.2, mcmcStepType='Uniform', orig_range=theta_range)
+        self.params.betaV = SepiaParam(val=0.1, name='betaV', val_shape=(self.num.p, self.num.lamVzGnum), dist='Beta', params=[1., 0.1],
+                                       bounds=[0, np.inf], mcmcStepParam=0.1, mcmcStepType='BetaRho')
+        self.params.lamVz = SepiaParam(val=20., name='lamVz', val_shape=(1, self.num.lamVzGnum), dist='Gamma', params=[1., 1e-3],
+                                       bounds=[0., np.inf], mcmcStepParam=10., mcmcStepType='PropMH')
+        self.params.lamOs = SepiaParam(val=lamOs_init, name='lamOs', val_shape=(1, 1), dist='Gamma',
+                                       params=[lamOs_a, lamOs_b], bounds=[0, np.inf], mcmcStepParam=lamOs_init/2, mcmcStepType='PropMH')
+        self.params.mcmcList = [self.params.theta, self.params.betaV, self.params.betaU, self.params.lamVz, self.params.lamUz,
+                                    self.params.lamWs, self.params.lamWOs,  self.params.lamOs]
+
+    def acf(self,chain,nlags,plot=True, alpha=.05, ESS=True):
+        #
+        # Compute autocorrelation function of mcmc chain
+        #
+        # Usually called by SepiaPlot.plot_acf(), not user
+        #
+        # compute autocorrelation
+        nchains, nobs = chain.shape
+        autocorrs = []
+        for i in range(nchains):
+            chain1 = (chain[i,:] - np.mean(chain[i,:])) / (np.std(chain[i,:]) * nobs)
+            chain2 = (chain[i,:] - np.mean(chain[i,:])) / np.std(chain[i,:])
+            autocorr = np.correlate(chain1,chain2,mode='full')
+            autocorr = autocorr[autocorr.size//2:]
+            autocorrs.append(autocorr[0:nlags+1])
+            
+        sigline = stats.norm.ppf(1 - alpha / 2.) / np.sqrt(nobs)
+        
+        # plot
+        if plot:
+            fig, ax = plt.subplots()
+            lags = np.linspace(0,nlags,nlags+1,dtype=int,endpoint=True)
+            for i in range(len(autocorrs)):
+                ax.plot(lags,autocorrs[i],'-o',fillstyle='none',label='theta {}'.format(i+1))
+            ax.set_xticks(np.linspace(0,nlags,10,dtype=int,endpoint=True))
+            ax.set_yticks(np.linspace(0,1,11,endpoint=True))
+            ax.set_xlabel('Lag')
+            ax.set_ylabel('Autocorrelation')
+
+            # significance lines
+            ax.axhline(-sigline,linestyle='--',c='b'); ax.axhline(sigline,linestyle='--',c='b')
+
+            # axis limits
+
+            ymin = min(np.min(-sigline),min([np.min(ac) for ac in autocorrs]))
+            ymax = max(np.max(sigline),max([np.max(ac) for ac in autocorrs]))
+            ax.set_ylim([min(-.1,1.1*ymin),1.1*ymax])
+
+            if nchains > 1: plt.legend()
+            plt.show()
+        
+        # output ESS to console
+        if ESS:
+            ess = []
+            for i in range(nchains):
+                ess.append(self.ESS(chain[i,:]))
+            print('Effective Sample Sizes:',ess)
+            print('Total number of samples:',[nobs]*nchains)
+            return autocorr, sigline, ess
+        else:
+            return autocorr,sigline
+    
+    def ESS(self,x):
+        #
+        # Compute the effective sample size of estimand of interest. Vectorised implementation.
+        #
+        # Not called by user
+        #
+        if np.ndim(x) == 1:
+            x = x.reshape(1,-1)
+            
+        m_chains, n_iters = x.shape
+
+        variogram = lambda t: ((x[:, t:] - x[:, :(n_iters - t)])**2).sum() / (m_chains * (n_iters - t))
+
+        post_var = self.marg_post_var(x)
+
+        t = 1
+        rho = np.ones(n_iters)
+        negative_autocorr = False
+
+        # Iterate until the sum of consecutive estimates of autocorrelation is negative
+        while not negative_autocorr and (t < n_iters):
+            rho[t] = 1 - variogram(t) / (2 * post_var)
+
+            if not t % 2:
+                negative_autocorr = sum(rho[t-1:t+1]) < 0
+
+            t += 1
+
+        return int(m_chains*n_iters / (1 + 2*rho[1:t].sum()))
+
+    def marg_post_var(self,x):
+        #
+        # Estimate the marginal posterior variance. Vectorised implementation.
+        #
+        # Usually not called by user
+        #
+        m_chains, n_iters = x.shape
+
+        # Calculate between-chain variance
+        if m_chains > 1:
+            B_over_n = ((np.mean(x, axis=1) - np.mean(x))**2).sum() / (m_chains - 1)
+        else:
+            B_over_n = 0
+
+        # Calculate within-chain variances
+        W = ((x - x.mean(axis=1, keepdims=True))**2).sum() / (m_chains*(n_iters - 1))
+
+        # (over) estimate of variance
+        s2 = W * (n_iters - 1) / n_iters + B_over_n
+
+        return s2
+
+    def mcmc_step(self, do_propMH=True):
+        # Does a single MCMC step; not typically called by users
+        # Loop over parameters
+        for prm in self.params.mcmcList:
+            # Loop over indices within parameter
+            for ind in range(int(np.prod(prm.val_shape))):
+                arr_ind = np.unravel_index(ind, prm.val_shape, order='F')
+                Accept = False
+                # Make reference copies in case we reject
+                prm.refVal = prm.val.copy()
+                self.refNum = self.num.ref_copy(prm.name)
+                # Draw candidate
+                cand = prm.mcmc.draw_candidate(arr_ind, do_propMH)
+                # Set value to candidate
+                prm.val[arr_ind] = cand
+                # print(prm.mcmc.aCorr)
+                if not prm.fixed[arr_ind]:  # If not supposed to be fixed, check for acceptance
+                    if prm.mcmc.aCorr and prm.prior.is_in_bounds(prm.val[arr_ind]):
+                        # This logPost uses val which has the candidate modification
+                        clp = self.logPost(cvar=prm.name, cindex=ind)
+                        if np.log(np.random.uniform()) < (clp - self.params.lp.val + np.log(prm.mcmc.aCorr)):
+                            Accept = True
+                # print(f'{prm.val:6.2f} : {prm.refVal:6.2f} | {lp:6.2f} : {clp:6.2f} | {np.log(prm.mcmc.aCorr):6.4f} = {Accept}')
+                if Accept:
+                    # Accept basically does nothing, the now modified val stays there for the next step
+                    prm.mcmc.accept()
+                    self.params.lp.set_val(clp)
+                    # print(f'{clp-lp}')
+                else:
+                    # Reject sets val back to refVal that was stored at the top
+                    prm.mcmc.reject(ind, self)
+            prm.mcmc.record()
+        self.params.lp.mcmc.record()
+    
+    def logPost_wrapper(self,x):
+        #
+        # Wrapper for the optimization of logPost. Not called by users.
+        # Checks that parameter values are in bounds, then updates model parameters
+        # and returns the new logPost value.
+        #
+        # check x is valid
+        valid_x=True
+        i=0
+        for prm in self.params.mcmcList:
+            for ind in range(int(np.prod(prm.val_shape))):
+                arr_ind = np.unravel_index(ind, prm.val_shape, order='F')
+                if not prm.prior.is_in_bounds(x[i]):
+                    return np.inf
+                i+=1
+        # change params to x
+        i = 0
+        for prm in self.params.mcmcList:
+            # Loop over indices within parameter
+            if prm.name == 'theta':
+                for ind in range(int(np.prod(prm.val_shape))):
+                    arr_ind = np.unravel_index(ind, prm.val_shape, order='F')
+                    prm.val[arr_ind] = x[i]
+                    i+=1
+        return -1*self.logPost()
+    
+
+
+
+
