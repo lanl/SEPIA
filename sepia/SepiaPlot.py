@@ -98,6 +98,8 @@ def mcmc_trace(samples_dict,theta_names=None,start=0,end=None,n_to_plot=500,by_g
     
     if not by_group:
         for i, k in enumerate(samples_dict.keys()):
+            if k == 'theta_native':
+                continue
             n_row = min(samples_dict[k].shape[1],max_print)
             fig, axs = plt.subplots(n_row,1,sharex=True,figsize=[10,1.5*n_row])
             fig.subplots_adjust(hspace=0)
@@ -117,6 +119,8 @@ def mcmc_trace(samples_dict,theta_names=None,start=0,end=None,n_to_plot=500,by_g
         fig, axs = plt.subplots(n_axes,1,sharex=True,figsize=[10,1.5*n_axes])
         fig.subplots_adjust(hspace=0)
         for i, k in enumerate(samples_dict.keys()):
+            if k == 'theta_native':
+                continue
             n_lines = min(samples_dict[k].shape[1],max_print)
             if n_lines > 1:
                 for j in range(n_lines):
