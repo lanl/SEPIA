@@ -262,9 +262,6 @@ To extract MCMC samples to a dictionary format::
     # Returns only a set of "effective samples" determined by effective sample size
     samples = model.get_samples(effectivesamples=True)
 
-    # puts theta back on original scale
-    samples = model.get_samples(untransform_theta=True)
-
 MCMC diagnostics
 ----------------
 

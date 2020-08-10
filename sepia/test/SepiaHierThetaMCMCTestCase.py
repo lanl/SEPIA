@@ -51,7 +51,6 @@ class SepiaHierThetaMCMCTestCase(unittest.TestCase):
         model = SepiaHierarchicalThetaModels(model_list=self.univ_model_list, hier_theta_inds=self.hier_idx)
 
         model.do_mcmc(100)
-        samples_dicts = [{p.name: p.mcmc_to_array(untransform_theta=True) for p in model.params.mcmcList} for model in self.univ_model_list]
 
     def test_multivariate_sim_and_obs_shared_theta_mcmc(self):
         """
@@ -63,7 +62,6 @@ class SepiaHierThetaMCMCTestCase(unittest.TestCase):
         model = SepiaHierarchicalThetaModels(model_list=self.multi_model_list, hier_theta_inds=self.hier_idx)
 
         model.do_mcmc(100)
-        samples_dicts = [{p.name: p.mcmc_to_array(untransform_theta=True) for p in model.params.mcmcList} for model in self.multi_model_list]
 
 
 

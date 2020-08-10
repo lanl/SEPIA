@@ -226,7 +226,7 @@ class SepiaModel:
         for _ in tqdm(range(nsamp), desc='MCMC sampling', mininterval=0.5, disable=not(prog)):
             self.mcmc_step(do_propMH)
 
-    def get_samples(self, nburn=0, sampleset=False, numsamples=False, flat=True, includelogpost=True, untransform_theta=False, effectivesamples=False):
+    def get_samples(self, nburn=0, sampleset=False, numsamples=False, flat=True, includelogpost=True, effectivesamples=False):
         """
         Extract MCMC samples into dictionary format. By default, all samples are returned, or samples can be
         subset using nburn/sampleset/numsamples. Provide either sampleset or numsamples, or neither.
@@ -236,7 +236,6 @@ class SepiaModel:
         :param numsamples: int -- return num_samples of samples, evenly spaced from first to last
         :param flat: bool -- whether to flatten the resulting arrays (for parameters stored as matrices)
         :param includelogpost: bool -- whether to also get samples of log posterior
-        :param untransform_theta: bool -- whether or not to untransform theta to original scale (if theta in model)
         :return: dict -- array of samples for each parameter, keyed by parameter name
         :raises: TypeError if no samples exist or nburn inconsistent with number of draws
         """
@@ -265,7 +264,7 @@ class SepiaModel:
             # get max theta ess
             for p in self.params.mcmcList:
                 if p.name == 'theta': 
-                    theta = p.mcmc_to_array(trim=nburn, flat=flat, untransform_theta=untransform_theta).T
+                    theta = p.mcmc_to_array(trim=nburn, flat=flat).T
             ess_max = 0
             for i in range(theta.shape[0]):
                 tmp = self.ESS(theta[i,:])
@@ -276,8 +275,10 @@ class SepiaModel:
             print("Total samples: {}".format(theta.shape[1]))
         plist = self.params.mcmcList
         if includelogpost: plist.append(self.params.lp)
-        samples = {p.name: p.mcmc_to_array(trim=nburn, sampleset=ss, flat=flat, untransform_theta=untransform_theta)
+        samples = {p.name: p.mcmc_to_array(trim=nburn, sampleset=ss, flat=flat, untransform_theta=False)
                    for p in plist}
+        # Add theta in native space as new key
+        samples['theta_native'] = self.params.theta.mcmc_to_array(trim=nburn, sampleset=ss, flat=flat, untransform_theta=True)
         return samples
 
     #TODO: does not handle hierModels/tiedThetaModels, passes a sim only univ test pretty well (lamWOs slightly different ss)

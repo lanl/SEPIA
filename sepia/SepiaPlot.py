@@ -144,7 +144,7 @@ def rho_box_plots(model,labels=None):
     :param model: SepiaModel object
     :param labels: list
     """
-    samples_dict = {p.name: p.mcmc_to_array(trim=1000,untransform_theta=True) for p in model.params.mcmcList}
+    samples_dict = {p.name: p.mcmc_to_array(trim=1000) for p in model.params.mcmcList}
     p = model.num.p
     q = model.num.q
     pu = model.num.pu
@@ -173,7 +173,7 @@ def plot_acf(model,nlags,nburn=0,alpha=.05):
     # get theta chains
     for p in model.params.mcmcList:
         if p.name == 'theta': 
-            chain = p.mcmc_to_array(trim=nburn, flat=True, untransform_theta=False).T
+            chain = p.mcmc_to_array(trim=nburn, flat=True).T
     
     autocorrs, sigline, ess = model.acf(chain,nlags,plot=True,alpha=alpha)
     return autocorrs, sigline, ess

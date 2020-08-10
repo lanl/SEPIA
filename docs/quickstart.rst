@@ -161,7 +161,8 @@ To extract samples into a friendly dictionary format (see :ref:`sepiamodel` docu
     samples = model.get_samples()                       # Default: returns all samples
     samples = model.get_samples(effectivesamples=True)  # Returns only a set of "effective samples" determined by effective sample size
     samples = model.get_samples(numsamples=100)         # Returns 100 evenly-spaced samples
-    samples = model.get_samples(untransform_theta=True) # puts theta back on original scale
+
+Notice that the samples dictionary has both `theta` (in [0, 1]) and `theta_native` (untransformed to original scale).
 
 Diagnostics
 ^^^^^^^^^^^
