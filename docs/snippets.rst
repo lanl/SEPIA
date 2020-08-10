@@ -89,6 +89,9 @@ SepiaData operations
 Regardless of the inputs given to `SepiaData`, there are a few key methods which generally should be called before
 setting up the model.
 
+Transformations
+^^^^^^^^^^^^^^^
+
 First, we want to transform `x` and `t` inputs to the unit hypercube::
 
     data.transform_xt()
@@ -96,6 +99,9 @@ First, we want to transform `x` and `t` inputs to the unit hypercube::
 Next, we want to standardize the `y` outputs::
 
     data.standardize_y()
+
+Basis functions
+^^^^^^^^^^^^^^^
 
 If the outputs are multivariate, we want to set up a principal component (PC) basis and optionally, a discrepancy basis::
 
@@ -106,6 +112,17 @@ If the outputs are multivariate, we want to set up a principal component (PC) ba
     # Discrepancy basis -- optional
     data.create_D_basis(type='linear')  # Default linear discrepancy
     data.create_D_basis(D=D)            # Pass in custom D basis
+
+Plotting
+^^^^^^^^
+
+Plot data and basis function diagnostics::
+
+    data.plot_data()        # Plot data
+    data.plot_K_basis()     # Show K basis functions
+    data.plot_K_weights()   # Show histograms of projections of data onto K basis functions
+    data.plot_u_w_pairs()   # Show pairs plots of projections of data onto K basis functions
+    data.plot_K_residuals() # Show residuals after projection onto K basis
 
 
 Set up model
@@ -329,10 +346,5 @@ and you can add residual variance to the predictions::
 Hierarchical or shared theta models
 -----------------------------------
 
-Coming soon
+Advanced topic: coming soon.
 
-
-SepiaPlot visualization utilities
----------------------------------
-
-Coming soon
