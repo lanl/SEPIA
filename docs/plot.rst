@@ -1,3 +1,5 @@
+.. _sepiaplot:
+
 SepiaPlot
 =========
 

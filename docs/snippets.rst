@@ -20,8 +20,6 @@ These are not necessarily exhaustive examples; see full class documentation for 
 
 :ref:`Hierarchical or shared theta models`
 
-:ref:`SepiaPlot visualization utilities`
-
 
 SepiaData inputs
 ----------------
@@ -82,12 +80,23 @@ Multivariate-output simulation and observed data
     data = SepiaData(x_sim=x, t_sim=t, y_sim=y, y_ind_sim=y_ind,
                      x_obs=x_obs, y_obs=y_obs, y_ind_obs=y_ind_obs)  # Controllable and other inputs
 
+Multivariate-output simulation and observed data with ragged observations
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Ragged observations means the observed data indices vary across observation data instances.
+In this case, `y_obs` and `y_ind_obs` are now lists instead of numpy arrays::
+
+    y_obs = [np.array([[0.3, 0.5, 0.7]]), np.array([[0.1, 0.4, 0.6, 0.9]])
+    y_ind_obs = [np.array([1, 2, 3]), np.array([0.5, 2.5, 4, 6])]
+    data = SepiaData(t_sim=t, y_sim=y, y_ind_sim=y_ind, y_obs=y_obs, y_ind_obs=y_ind_obs) # No controllable input
 
 SepiaData operations
 --------------------
 
 Regardless of the inputs given to `SepiaData`, there are a few key methods which generally should be called before
 setting up the model.
+
+Transformations
+^^^^^^^^^^^^^^^
 
 First, we want to transform `x` and `t` inputs to the unit hypercube::
 
@@ -96,6 +105,9 @@ First, we want to transform `x` and `t` inputs to the unit hypercube::
 Next, we want to standardize the `y` outputs::
 
     data.standardize_y()
+
+Basis functions
+^^^^^^^^^^^^^^^
 
 If the outputs are multivariate, we want to set up a principal component (PC) basis and optionally, a discrepancy basis::
 
@@ -106,6 +118,17 @@ If the outputs are multivariate, we want to set up a principal component (PC) ba
     # Discrepancy basis -- optional
     data.create_D_basis(type='linear')  # Default linear discrepancy
     data.create_D_basis(D=D)            # Pass in custom D basis
+
+Plotting
+^^^^^^^^
+
+Plot data and basis function diagnostics::
+
+    data.plot_data()        # Plot data
+    data.plot_K_basis()     # Show K basis functions
+    data.plot_K_weights()   # Show histograms of projections of data onto K basis functions
+    data.plot_u_w_pairs()   # Show pairs plots of projections of data onto K basis functions
+    data.plot_K_residuals() # Show residuals after projection onto K basis
 
 
 Set up model
@@ -187,6 +210,12 @@ Automatic step size tuning based on YADAS::
 
     model.tune_step_sizes(n_burn, n_levels)
 
+MAP optimization for start values
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Numerical optimization of the log likelihood will reset start values to the best points found::
+
+    opt_prm = model.optim_logPost()
 
 Run MCMC or add more samples
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -230,13 +259,27 @@ To extract MCMC samples to a dictionary format::
     # Keep samples in array format rather than flattening along parameter dimensions
     model.get_samples(nburn=50, numsamples=200, flat=False)
 
+    # Returns only a set of "effective samples" determined by effective sample size
+    samples = model.get_samples(effectivesamples=True)
+
+MCMC diagnostics
+----------------
+
+Several graphical diagnostics are available::
+
+    plot_acf(model, nlags=30) # Autocorrelation function and effective sample size calculation
+    mcmc_trace(samples)       # Trace plots
+    theta_pairs(samples)      # Pairs plots of theta variables
+    rho_box_plots(model)      # Box plots of GP lengthscale parameters
+    param_stats(samples)      # Summary statistics of parameters
+
 
 Making predictions
 ------------------
 
 To make predictions, use the :ref:`sepiapredict` class.
 There are different types of predictions, and predictions can be made
-in the model space (w, u, v) or output space (y), with or without standardization.
+in the model space (`w, u, v`) or output space (`y`), with or without standardization.
 
 Emulator predictions
 ^^^^^^^^^^^^^^^^^^^^
@@ -273,7 +316,7 @@ To predict from full model (including observation noise, and discrepancy, if app
 
 To get u, v::
 
-    predu, predv = pred.get_u_v()
+    u_pred, v_pred = pred.get_u_v()
 
 To get discrepancy::
 
@@ -297,23 +340,44 @@ Cross-validation
 By default, leave-one-out cross validation is done on the emulator model::
 
     pred_samples = model.get_samples(numsamples=10)
-    CVpred = SepiaXvalEmulatorPrediction(samples=pred_samples, model=model)
+    CV_pred = SepiaXvalEmulatorPrediction(samples=pred_samples, model=model)
+
+    CV_pred_y = CV_pred.get_y()
 
 You can also provide custom sets of indices to leave out in turn, such as leaving out chunks of 10 examples at a time,
 and you can add residual variance to the predictions::
 
-        leave_out_inds = np.array_split(np.arange(m), 5)
-        pred_samples = model.get_samples(numsamples=7)
-        CVpred = SepiaXvalEmulatorPrediction(samples=pred_samples, model=model, leave_out_inds=leave_out_inds, addResidVar=True)
+    leave_out_inds = np.array_split(np.arange(m), 5)
+    pred_samples = model.get_samples(numsamples=7)
+    CV_pred = SepiaXvalEmulatorPrediction(samples=pred_samples, model=model, leave_out_inds=leave_out_inds, addResidVar=True)
 
 
 Hierarchical or shared theta models
 -----------------------------------
 
-Coming soon
+The syntax for both cases is similar. First, set up each model, then put them in a list::
 
+    m1 = setup_model(d1)
+    m2 = setup_model(d2)
+    m3 = setup_model(d3)
+    model_list = [m1, m2, m3]
 
-SepiaPlot visualization utilities
----------------------------------
+Then we need to specify which thetas are shared or modeled hierarchically. The way to do this is with a numpy array
+of size `(j, n_models)` where each row represents one of the shared/hierarchical theta variables,
+and each column gives the index of the shared/hierarchical theta in the respective model. For instance::
 
-Coming soon
+    theta_inds = np.array([[0, 0, 0], [1, 1, 2], [-1, 2, 3]])
+
+This means that the first shared/hierarchical theta is `theta_0` in model 1, `theta_0` in model 2, and `theta_0` in model 3.
+The second shared/hierarchical theta is `theta_1` in model 1, `theta_1` in model 2, and `theta_2` in model 3.
+The third shared/hierarchical theta is *not* in model 1, is `theta_2` in model 2, and is `theta_3` in model 3.
+The index -1 is used to indicate that a particular shared/hierarchical theta is not in a particular model.
+
+Then the model setup is::
+
+    shared_model = SepiaSharedThetaModels(model_list, theta_inds)     # Shared version
+    hier_model = SepiaHierarchicalThetaModels(model_list, theta_inds) # Hierarchical version
+
+MCMC is done similarly to regular models::
+
+    shared_model.do_mcmc()

@@ -102,7 +102,6 @@ class SepiaMCMCTestCase(unittest.TestCase):
 
         model.tune_step_sizes(50, 10)
         model.do_mcmc(100)
-        samples_dict = {p.name: p.mcmc_to_array(untransform_theta=True) for p in model.params.mcmcList}
 
     def test_multivariate_sim_and_obs_noD_mcmc(self):
         """
@@ -115,7 +114,6 @@ class SepiaMCMCTestCase(unittest.TestCase):
 
         model.tune_step_sizes(50, 10)
         model.do_mcmc(100)
-        samples_dict = {p.name: p.mcmc_to_array(untransform_theta=True) for p in model.params.mcmcList}
 
 
 

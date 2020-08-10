@@ -43,7 +43,7 @@ model.params.lamWs.prior.params = [np.ones((1, 11)), np.zeros((1, 11))]
 # Do mcmc
 model.tune_step_sizes(100, 25)
 model.do_mcmc(10000)
-samples_dict = {p.name: p.mcmc_to_array(untransform_theta=True) for p in model.params.mcmcList}
+samples_dict = model.get_samples()
 
 with open('data/sepia_mcmc_samples1-5000.pkl', 'wb') as f:
     pickle.dump(samples_dict, f)

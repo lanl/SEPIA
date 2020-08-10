@@ -31,14 +31,6 @@ Welcome to Sepia!
 
 .. _GitHub: https://github.com/lanl/SEPIA
 
-.. topic:: Read before starting: general workflow
-
-    Before getting started, we highly recommend reading the :ref:`workflow`.
-
-.. topic:: Code snippets
-
-    Familiar with the general workflow but looking for some tips on how to do common tasks? See :ref:`helpful-code-snippets`.
-
 .. topic:: Installation
 
     First, pull down the source code from `GitHub`_.
@@ -49,6 +41,15 @@ Welcome to Sepia!
     Then use the following command to install sepia:
 
     `pip install -e .[sepia]`
+
+.. topic:: Read first: general workflow
+
+    Before getting started, we highly recommend reading the :ref:`workflow`. This goes through the general workflow
+    for setting up a model, doing MCMC, and checking results.
+
+.. topic:: Code snippets
+
+    Familiar with the general workflow but looking for some tips on how to do common tasks? See :ref:`helpful-code-snippets`.
 
 
 Pages
