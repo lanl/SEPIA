@@ -123,7 +123,7 @@ def setup_model(data, Sigy=None, lamVzGroup=None):
     num.ztDist = SepiaDistCov(data.zt)
 
     if not data.sim_only:
-        # Check for lamVzGroups, validate
+        # Check for lamVzGroups, validate TODO validate
         if lamVzGroup is not None:
             lamVzGnum = np.unique(lamVzGroup).shape[0]
         else:
