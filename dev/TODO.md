@@ -2,9 +2,10 @@
 At the top level, the big coding issues are, first cut of priority:
 1. sensitivity analysis (started translating from matlab but put aside for now)
 2. kron enabling
+3. MCMC diagnostics (ESS, others?)
 
 Documentation:
-1. View current build on [Read the Docs](https://sepia-lanl.readthedocs.io/en/latest/)
+1. View current (~daily) build on [Read the Docs](https://sepia-lanl.readthedocs.io/en/latest/)
 2. See docstring commenting style used in SepiaModel.py to add more documentation
 3. Can also edit docs/*.rst files to add text/sections to doc
 4. Local build of documentation: see doc/README.md
@@ -20,11 +21,8 @@ Performance Profiling and Optimization
 
 ##### Overall structure
 Establish appropriate (and/or pythonic) naming more systematically in 
-- package, classes, methods, variables. (started refactoring, some not done yet -- use "Refactor" option in Pycharm if renaming)
 - Repo structure for test, docs, other? 
 - distinguish "core" vs. "helper" functions? (e.g. sens, xval, quantile)
-- Some weirdness can be straightened out: maybe SepiaData should not handle K/D but SepiaModel, consider separating
-some items of model.num into model.num and model.info, be more clear about what will be there/always gets updated
 
 ##### Sensitivity analysis
 - gSens: Sobol methodology
@@ -38,7 +36,6 @@ some items of model.num into model.num and model.info, be more clear about what 
 - this is relatively easy.
 
 ##### Additions to SepiaModelSetup
-- lamVzGroups : functionality should be in the code, maybe just add to setup
 - thetaconstraints option
 
 ##### fledging out the predict class
