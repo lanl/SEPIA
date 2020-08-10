@@ -20,8 +20,6 @@ These are not necessarily exhaustive examples; see full class documentation for 
 
 :ref:`Hierarchical or shared theta models`
 
-:ref:`SepiaPlot visualization utilities`
-
 
 SepiaData inputs
 ----------------
@@ -371,7 +369,7 @@ Then we need to specify which thetas are shared or modeled hierarchically. The w
 of size `(j, n_models)` where each row represents one of the shared/hierarchical theta variables,
 and each column gives the index of the shared/hierarchical theta in the respective model. For instance::
 
-    theta_inds = np.array([[0, 0, 0], [1, 1, 2], [-1, 2, 3])
+    theta_inds = np.array([[0, 0, 0], [1, 1, 2], [-1, 2, 3]])
 
 This means that the first shared/hierarchical theta is `theta_0` in model 1, `theta_0` in model 2, and `theta_0` in model 3.
 The second shared/hierarchical theta is `theta_1` in model 1, `theta_1` in model 2, and `theta_2` in model 3.
