@@ -13,6 +13,12 @@ important to get it set up correctly. The data structure also handles various tr
 functions, so that users are not required to recreate these steps by hand. (That is, raw data can be passed in
 without doing any transformations, and we recommend this so that downstream methods can handle untransforming data.)
 
+The basic constructor call looks like::
+
+    data = SepiaData(<inputs>)
+
+Which inputs will be given depends on the problem setup. Possible inputs are described in the table:
+
 ====================  ================================================  =================
    Possible inputs     Description                                       Shape
 ====================  ================================================  =================
@@ -28,6 +34,8 @@ y_ind_obs             Indices for multivariate observation outputs.     (ell_obs
 In the table, `n` is the number of simulation runs, `m` is the number of observed data instances, and `ell` are the
 multivariate output dimensions (if applicable). Note that for observed data, we also accept ragged observations,
 where `y_obs` and `y_ind_obs` are given as lists (length `m`) of arrays.
+
+See :ref:`helpful-code-snippets` for examples of different types of data setup.
 
 Transformations
 ^^^^^^^^^^^^^^^
@@ -148,6 +156,13 @@ To continue sampling (append more samples), you can just call `do_mcmc()` again:
 
     model.do_mcmc(1000) # When finished, will have nsamp + 1000 total samples
 
+To extract samples into a friendly dictionary format (see :ref:`sepiamodel` documentation for full options)::
+
+    samples = model.get_samples()                       # Default: returns all samples
+    samples = model.get_samples(effectivesamples=True)  # Returns only a set of "effective samples" determined by effective sample size
+    samples = model.get_samples(numsamples=100)         # Returns 100 evenly-spaced samples
+    samples = model.get_samples(untransform_theta=True) # puts theta back on original scale
+
 Diagnostics
 ^^^^^^^^^^^
 
@@ -187,18 +202,15 @@ Aside from learning about the posterior distributions of the parameters, users m
 predictions from the model. There are several types of predictions that can be made, depending on the type of model
 and the goals of the user. All are handled by the :ref:`sepiapredict` class and make use of the MCMC samples in the model.
 
-    .. note:: The predictions class is still being finalized, so this section is subject to change.
-
 Emulator predictions
 ^^^^^^^^^^^^^^^^^^^^
 
 Emulator predictions can be made whether the model is emulator-only or not. The emulator portion of the model is a
 surrogate model that captures the relationship between simulation inputs and simulation outputs. Therefore, emulator
-predictions can be interpreted as predictions of what the simulator would output, and we're usually interested in
-seeing the emulator output at input settings that were not included in the original simulation data set.
+predictions can be interpreted as predictions of what the simulator would output at particular input settings.
 
 The first step is to set up the prediction object, which requires supplying some subset of the MCMC samples as well as
-both controllable and other simulation inputs (the inputs where predictions are desired)::
+both controllable and other simulation inputs where predictions are desired::
 
     # Provide input settings to predict at
     x_pred = np.linspace(0,1,9).reshape((9,1))
@@ -207,51 +219,134 @@ both controllable and other simulation inputs (the inputs where predictions are 
     pred = SepiaEmulatorPrediction(x_pred=x_pred, samples=pred_samples, model=model, t_pred=t_pred)
 
 Note that by default, residual variance (from the nugget term) is not added; use argument `addResidVar=True` to add this.
+Argument `storeMuSigma=True` will store the process mean and variance for each sample in addition to the realizations.
 
 Once the prediction object is created, various types of predictions can be extracted. The first is to get predictions
 of the `w` values (the weights for the PCA basis, used as a representation of the simulation outputs internally
 in the model, but not necessarily as interpretable as the other types of predictions)::
 
-    predw = pred.get_w()
+    w_pred = pred.get_w()
 
 More likely, users will want to get predictions that are transformed back to the original (native) output space::
 
-    predystd = pred.get_y()
+    y_pred = pred.get_y()
 
 Predictions in the standardized output space are also available::
 
-    predystd = pred.get_y(std=True)
+    ystd_pred = pred.get_y(std=True)
+
+If `SepiaEmulatorPrediction` was initialized with argument `storeMuSigma=True`, the posterior mean vector and sigma matrix
+of the process for each sample are obtained by::
+
+    mu_pred, sigma_pred = pred.get_mu_sigma()
 
 Cross-validation predictions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 It is often of interest to obtain cross-validated predictions from the emulator. That is, instead of predicting at new
 input values, we want to predict at the original simulation input values. However, simply predicting at the input values
-used to train the model will give an unrealistically low level of error. Cross-validation leaves out subsets of the
-input/training data in turn, predicting at the inputs for the left out set, to better evaluate the error that would be
-observed at those input values if they were not actually part of the training data.
+used to train the model will give an unrealistically low estimate of the emulator error.
+Cross-validation leaves out subsets of the input/training data in turn, then predicts at the inputs for the left out set
+to better evaluate the error that would be observed at those input values if they were not actually part of the training data.
 
 To set up the cross-validation prediction, we only need to provide samples from the MCMC::
 
     pred_samples = model.get_samples(numsamples=10)
-    CVpred = SepiaXvalEmulatorPrediction(samples=pred_samples, model=model)
+    CV_pred = SepiaXvalEmulatorPrediction(samples=pred_samples, model=model)
 
 This does leave-one-out cross-validation on the original simulation inputs.
 
 Now the predictions can be compared to the original data to assess the error::
 
-    CV_pred_y = CVpred.get_y()
+    CV_pred_y = CV_pred.get_y()
     residuals = CV_pred_y - model.data.sim_data.y
 
 We can also customize the leave-out sets::
 
     leave_out_inds = np.array_split(np.arange(m), 5)
     pred_samples = model.get_samples(numsamples=7)
-    CVpred = SepiaXvalEmulatorPrediction(samples=pred_samples, model=model, leave_out_inds=leave_out_inds)
-
-
+    CV_pred = SepiaXvalEmulatorPrediction(samples=pred_samples, model=model, leave_out_inds=leave_out_inds)
 
 Full predictions
 ^^^^^^^^^^^^^^^^
 
-Coming soon
+Full model predictions are slightly more complicated than emulator predictions because there are different options,
+including whether we want multivariate predictions at the simulation or observed indices and whether we want to include
+discrepancy.
+
+Set up the predictor instance::
+
+    x_pred = np.linspace(0,1,9).reshape((9,1))
+    t_pred = np.tile(np.array([1,0,1]).reshape(1,3),(9,1))
+    pred_samples = model.get_samples(numsamples=10)
+    pred = SepiaFullPrediction(x_pred=x_pred, samples=pred_samples, model=model, t_pred=t_pred)
+
+To extract predictions of the PCA projections `v` and discrepancy projections `v`::
+
+    upred, vpred = pred.get_u_v()
+
+To extract emulator-only predictions from the full model (not including discrepancy)::
+
+    y_sim_pred = self.get_ysim(as_obs=False, std=False, obs_ref=0)
+
+If `as_obs=False`, it will predict at the simulation data indices, otherwise at the observed data indices.
+The argument `std` functions similarly to the emulator-only case: `std=False` returns predictions on the native space
+while `std=True` returns them on the standardized space.
+The `obs_ref` argument is used for cases where each observed data instance is ragged (has different multivariate indices),
+to select which set of observation indices is used (only apples if `as_obs=True`).
+
+To extract full model predictions (including discrepancy)::
+
+    y_obs_pred = pred.get_yobs()
+
+Note this function has the same optional arguments as `get_ysim`.
+
+To extract just the discrepancy::
+
+    d_pred = pred.get_discrepancy()
+
+Once again, same optional arguments as `get_ysim`.
+
+The posterior mean vector and sigma matrix of the process for each sample are obtained by::
+
+    mu_pred, sigma_pred = pred.get_mu_sigma()
+
+
+Hierarchical or shared theta models
+-----------------------------------
+
+Shared theta models are collections of models for which some of the thetas should be shared between the models.
+This means the shared thetas will be sampled only once during MCMC for all the models, and that the likelihood
+evaluation will take into account the likelihood from all the models.
+
+Hierarchical theta models are collections of models for which some of the thetas should be linked by a hierarchical
+Normal model. In contrast to a shared theta model, this means that the thetas will differ between models, but when
+being sampled during MCMC, they will be linked by a hierarchical specification, which typically induces "shrinkage" so
+that the thetas tend to be more similar to each other than if they were modeled as independent across models.
+
+The syntax for both cases is similar. First, set up each model, then put them in a list::
+
+    m1 = setup_model(d1)
+    m2 = setup_model(d2)
+    m3 = setup_model(d3)
+    model_list = [m1, m2, m3]
+
+Then we need to specify which thetas are shared or modeled hierarchically. The way to do this is with a numpy array
+of size `(j, n_models)` where each row represents one of the shared/hierarchical theta variables,
+and each column gives the index of the shared/hierarchical theta in the respective model. For instance::
+
+    theta_inds = np.array([[0, 0, 0], [1, 1, 2], [-1, 2, 3])
+
+This means that the first shared/hierarchical theta is `theta_0` in model 1, `theta_0` in model 2, and `theta_0` in model 3.
+The second shared/hierarchical theta is `theta_1` in model 1, `theta_1` in model 2, and `theta_2` in model 3.
+The third shared/hierarchical theta is *not* in model 1, is `theta_2` in model 2, and is `theta_3` in model 3.
+The index -1 is used to indicate that a particular shared/hierarchical theta is not in a particular model.
+
+Then the model setup is::
+
+    shared_model = SepiaSharedThetaModels(model_list, theta_inds)     # Shared version
+    hier_model = SepiaHierarchicalThetaModels(model_list, theta_inds) # Hierarchical version
+
+MCMC is done similarly to regular models::
+
+    shared_model.do_mcmc()

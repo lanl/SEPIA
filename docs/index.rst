@@ -50,7 +50,6 @@ Welcome to Sepia!
 .. topic:: Code snippets
 
     Familiar with the general workflow but looking for some tips on how to do common tasks? See :ref:`helpful-code-snippets`.
-    This page also has more detail on advanced model setup options.
 
 
 Pages
