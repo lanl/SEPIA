@@ -39,7 +39,7 @@ methods::
     data.transform_xt()
     data.standardize_y()
 
-See :ref:`sepiadata` documentation for optional arguments, though the defaults will generally work well.
+See :ref:`sepiadata` documentation for optional arguments, though the defaults should generally work well.
 
 
 Basis setup
@@ -54,6 +54,7 @@ These are set up as follows::
     # PC basis
     data.create_K_basis(n_pc=5)     # With 5 PCs
     data.create_K_basis(n_pc=0.99)  # Enough PCs for at least 99 pct variance explained
+    data.create_K_basis(K=K)        # Pass in custom K basis
 
     # Discrepancy basis -- optional
     data.create_D_basis(type='linear')  # Default linear discrepancy
@@ -66,14 +67,18 @@ To check that your data structure is set up correctly::
 
     print(data)
 
-We are also working on plotting methods to show the data and the basis functions and projections. These will be
-helpful for checking and for diagnosing potential problems prior to running the model. (TODO: coming soon)
+Also, use plotting methods in the :ref:`sepiadata` class to visualize the data (see class documentation for options)::
 
+    data.plot_data()        # Plot data
+    data.plot_K_basis()     # Show K basis functions
+    data.plot_K_weights()   # Show histograms of projections of data onto K basis functions
+    data.plot_u_w_pairs()   # Show pairs plots of projections of data onto K basis functions
+    data.plot_K_residuals() # Show residuals after projection onto K basis
 
 Model setup
 -----------
 
-Once the data has been set up as shown above, setting up the :ref:`sepiamodel` object is easy::
+Once the data has been set up and checked, setting up the :ref:`sepiamodel` object is one line::
 
     model = setup_model(data)
 
@@ -81,9 +86,18 @@ Once the data has been set up as shown above, setting up the :ref:`sepiamodel` o
 MCMC
 ----
 
-The inference is done using MCMC sampling to approximate the posterior distribution of the model parameters. The
-default model setup uses priors, initial values, and MCMC step sizes that have been selected to be reasonable for
-scaled/transformed data. All of these are stored as object attributes and can be edited by the user if needed.
+The inference on model parameters is done using MCMC sampling to approximate the posterior distribution of the model
+parameters. The default model setup uses priors, initial values, and MCMC step sizes that have been selected to be
+reasonable for scaled/transformed data. All of these are stored as object attributes and can be edited by the user if
+needed.
+
+Helper functions in the :ref:`sepiamodel` class print out the default setup::
+
+    model.print_prior_info()  # Print information about the priors
+    model.print_value_info()  # Print information about the starting parameter values for MCMC
+    model.print_mcmc_info()   # Print information about the MCMC step types and step sizes for each parameter
+
+A peek into the code for the three print methods will show you how to access the attributes if you desire to modify them.
 
 Step size tuning
 ^^^^^^^^^^^^^^^^
@@ -97,6 +111,18 @@ Note that automatic step size tuning is not guaranteed to produce good MCMC samp
 affected by the number of levels chosen for each step parameter (`n_levels`) and the number of samples taken at each
 level (`n_burn`). We still strongly recommend checking the output using trace plots or other diagnostics to ensure
 automatic step size tuning has produced reasonable results.
+
+MAP optimization for start values
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The start values for MCMC are shown by the `model.print_value_info()` method and may be modified directly if needed.
+Step size tuning will also reset the start values based on the samples collected during step size tuning, and will
+hopefully start the sampling in a higher-posterior region than the default start values.
+
+If desired, you can also try to optimize the log posterior to get point estimates of the parameters which could be
+even better start values.
+
+
 
 Sampling
 ^^^^^^^^
