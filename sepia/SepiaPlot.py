@@ -9,13 +9,14 @@ from scipy import stats
 
 sns.set(style="ticks")
 
-def theta_pairs(samples_dict,design_names=[],xlim=None):
+def theta_pairs(samples_dict,design_names=[],lims=None,vlines=None):
     """
     Create pairs plot of sampled thetas.
 
     :param samples_dict: dictionary -- samples from model.get_samples()
     :param design_names: list -- names for thetas, optional
-    :param xlim: list of tuples -- optional, xlim for each theta histogram
+    :param lims: list of tuples -- optional, limits for each theta value for plotting
+    :param vlines: list -- optional, scalar values to place vlines on diagonal distplots
     """
     theta = samples_dict['theta_native']
     if not design_names:
@@ -31,8 +32,20 @@ def theta_pairs(samples_dict,design_names=[],xlim=None):
             g.map_upper(sns.scatterplot, palette = 'coolwarm', hue=theta_df['idx'], legend=False)
             g.map_lower(sns.kdeplot)
             g.map_diag(sns.distplot, hist=True)
-            for i in range(n_theta):
-                g.axes[i, i].set_xlim(xlim[i])
+            if lims is not None:
+                for i in range(n_theta):
+                    for j in range(n_theta):
+                        if i == j:
+                            g.axes[i, j].set_xlim(lims[i])
+                        elif i < j:
+                            g.axes[i, j].set_xlim(lims[j])
+                            g.axes[i, j].set_ylim(lims[i])
+                        else:
+                            g.axes[i, j].set_xlim(lims[i])
+                            g.axes[i, j].set_ylim(lims[j])
+            if vlines is not None:
+                for i in range(n_theta):
+                    g.axes[i, i].axvline(vlines[i])
             plt.show()
     else:
         sns.distplot(theta_df.loc[:, theta_df.columns != 'idx'],hist=True,axlabel=design_names[0])
