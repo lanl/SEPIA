@@ -46,7 +46,7 @@ Basis setup
 ^^^^^^^^^^^
 
 For multivariate outputs, Sepia uses basis functions to reduce the problem dimensionality. Basis functions must be
-set up to represent the `y` values (done by principal components analysis), and optionally, a second set of basis
+set up to represent the `y` values (done by principal components analysis, or PCA), and optionally, a second set of basis
 functions may be set up to represent model discrepancy (systematic difference between simulation and observation data).
 
 These are set up as follows::
@@ -59,6 +59,9 @@ These are set up as follows::
     # Discrepancy basis -- optional
     data.create_D_basis(type='linear')  # Default linear discrepancy
     data.create_D_basis(D=D)            # Pass in custom D basis
+
+Internally, the projections onto the PCA `K` basis are referred to as `w` (simulations) and `u` (observed), while the
+projections of the observed data onto the discrepancy `D` basis are referred to as `v`.
 
 Checking your setup
 ^^^^^^^^^^^^^^^^^^^
@@ -99,6 +102,13 @@ Helper functions in the :ref:`sepiamodel` class print out the default setup::
 
 A peek into the code for the three print methods will show you how to access the attributes if you desire to modify them.
 
+For example, to modify the start values directly, you can use::
+
+    # Single scalar applies to all thetas
+    model.params.theta.set_val(0.7)
+    # Or pass an array of shape model.params.theta.val_shape
+    model.params.theta.set_val(np.array([[0.7, 0.5, 0.1]]))
+
 Step size tuning
 ^^^^^^^^^^^^^^^^
 
@@ -109,7 +119,7 @@ meant to adjust the step sizes to achieve better acceptance rates::
 
 Note that automatic step size tuning is not guaranteed to produce good MCMC sampling, as it uses a heuristic and may be
 affected by the number of levels chosen for each step parameter (`n_levels`) and the number of samples taken at each
-level (`n_burn`). We still strongly recommend checking the output using trace plots or other diagnostics to ensure
+level (`n_burn`). After MCMC sampling, we strongly recommend checking the output using trace plots or other diagnostics to ensure
 automatic step size tuning has produced reasonable results.
 
 MAP optimization for start values
@@ -120,22 +130,54 @@ Step size tuning will also reset the start values based on the samples collected
 hopefully start the sampling in a higher-posterior region than the default start values.
 
 If desired, you can also try to optimize the log posterior to get point estimates of the parameters which could be
-even better start values.
+even better start values::
 
+    opt_prm = model.optim_logPost()
 
+This method returns the optimized parameters and also sets the start values within the model object to these values.
+Note that the values are found by numerical optimization and are not guaranteed to be the actual MAP values.
 
 Sampling
 ^^^^^^^^
 
-Whether or not step size tuning has been done, MCMC sampling is done using::
+Whether or not step size tuning or MAP optimization has been done first, MCMC sampling is another one-liner::
 
-    model.do_mcmc(namp)
+    model.do_mcmc(nsamp)
 
+To continue sampling (append more samples), you can just call `do_mcmc()` again::
+
+    model.do_mcmc(1000) # When finished, will have nsamp + 1000 total samples
 
 Diagnostics
 ^^^^^^^^^^^
 
-TODO: coming soon
+After sampling, various diagnostics can be helpful for assessing whether the sampling was successful.
+Most of the diagnostics are visual and are contained in the :ref:`sepiaplot` module.
+
+The autocorrelation function (ACF) of the `theta` variables shows how correlated the MCMC samples are across the chain.
+High correlation values for a large number of lags indicate that the chain is moving slowly through the space,
+and that the effective sample size (ESS) could be much smaller than the actual number of samples. That is, if the
+samples are highly correlated up to, say, ten lags, then adding ten more samples is not adding much new information about the parameter.
+Plot the ACF and get a printout of the effective sample size using::
+
+    plot_acf(model, nlags=30)
+
+Some of the diagnostic methods take a samples dictionary as an argument, which you can extract from the model::
+
+    samples = model.get_samples()
+
+Then you can investigate trace plots and pairs plots of the `theta` variables::
+
+    mcmc_trace(samples)
+    theta_pairs(samples)
+
+Summary statistics of the samples::
+
+    param_stats(samples)
+
+Box plots of the GP lengthscale parameters::
+
+    rho_box_plots(model)
 
 
 Predictions
@@ -143,7 +185,9 @@ Predictions
 
 Aside from learning about the posterior distributions of the parameters, users may also be interested in making
 predictions from the model. There are several types of predictions that can be made, depending on the type of model
-and the goals of the user. All are handled by the :ref:`sepiapredict` class and make us of the stored MCMC samples.
+and the goals of the user. All are handled by the :ref:`sepiapredict` class and make use of the MCMC samples in the model.
+
+    .. note:: The predictions class is still being finalized, so this section is subject to change.
 
 Emulator predictions
 ^^^^^^^^^^^^^^^^^^^^

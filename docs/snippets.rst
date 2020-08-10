@@ -187,6 +187,12 @@ Automatic step size tuning based on YADAS::
 
     model.tune_step_sizes(n_burn, n_levels)
 
+MAP optimization for start values
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Numerical optimization of the log likelihood will reset start values to the best points found::
+
+    opt_prm = model.optim_logPost()
 
 Run MCMC or add more samples
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -230,6 +236,17 @@ To extract MCMC samples to a dictionary format::
     # Keep samples in array format rather than flattening along parameter dimensions
     model.get_samples(nburn=50, numsamples=200, flat=False)
 
+MCMC diagnostics
+----------------
+
+Several graphical diagnostics are available::
+
+    plot_acf(model, nlags=30) # Autocorrelation function and effective sample size calculation
+    mcmc_trace(samples)       # Trace plots
+    theta_pairs(samples)      # Pairs plots of theta variables
+    rho_box_plots(model)      # Box plots of GP lengthscale parameters
+    param_stats(samples)      # Summary statistics of parameters
+
 
 Making predictions
 ------------------
@@ -237,6 +254,8 @@ Making predictions
 To make predictions, use the :ref:`sepiapredict` class.
 There are different types of predictions, and predictions can be made
 in the model space (w, u, v) or output space (y), with or without standardization.
+
+    .. note:: The predictions class is still being finalized, so this section is subject to change.
 
 Emulator predictions
 ^^^^^^^^^^^^^^^^^^^^
