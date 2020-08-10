@@ -255,11 +255,11 @@ To get w::
 
 To get y on the standardized scale::
 
-    predystd = pred.get_y_standardized()
+    predystd = pred.get_y(std=True)
 
 To get y on the native (original) scale::
 
-    predystd = pred.get_y_native()
+    predystd = pred.get_y()
 
 
 Full model predictions
@@ -277,14 +277,20 @@ To get u, v::
 
 To get discrepancy::
 
-    preddstd = pred.get_discrepancy_standardized() # Standardized scale
-    predd = pred.get_discrepancy_native()          # Native/original scale
+    preddstd = pred.get_discrepancy(std=True) # Standardized scale
+    predd = pred.get_discrepancy()            # Native/original scale
 
-To get y::
+To get simulated y::
 
-    predysimstd = pred.get_ysim_standardized() # Standardized scale
-    predyobs=pred.get_yobs_native()            # Native/original scale
+    predysimstd = pred.get_ysim(std=True) # Standardized scale
+    predysim = pred.get_ysim()            # Native/original scale
 
+To get y (simulator+discrepancy)::
+
+    predy = pred.get_yobs()                            # Native/original scale
+    predystd = pred.get_yobs(std=True)                 # Standardized scale
+    predystdobs = pred.get_yobs(std=True, as_obs=True) # Standardized scale at only observed data locations x_obs
+    
 Cross-validation
 ^^^^^^^^^^^^^^^^
 

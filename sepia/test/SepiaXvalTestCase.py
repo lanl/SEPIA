@@ -67,24 +67,24 @@ class SepiaXvalTestCase(unittest.TestCase):
         pred_samples = model.get_samples(numsamples=7)
         CVpred = SepiaXvalEmulatorPrediction(samples=pred_samples, model=model)
         w_pred = CVpred.get_w()
-        y_pred_std = CVpred.get_y_standardized()
-        y_pred_nat = CVpred.get_y_native()
+        y_pred_std = CVpred.get_y(std=True)
+        y_pred_nat = CVpred.get_y()
 
         # Call with custom leave out inds 1
         loo_inds = [[i] for i in np.arange(1, model.num.m, 20)]
         pred_samples = model.get_samples(numsamples=7)
         CVpred = SepiaXvalEmulatorPrediction(samples=pred_samples, model=model, leave_out_inds=loo_inds)
         w_pred = CVpred.get_w()
-        y_pred_std = CVpred.get_y_standardized()
-        y_pred_nat = CVpred.get_y_native()
+        y_pred_std = CVpred.get_y(std=True)
+        y_pred_nat = CVpred.get_y()
 
         # Call with custom leave out inds 2
         loo_inds = [[1,2,3,4], [7,6,5], [20]]
         pred_samples = model.get_samples(numsamples=7)
         CVpred = SepiaXvalEmulatorPrediction(samples=pred_samples, model=model, leave_out_inds=loo_inds)
         w_pred = CVpred.get_w()
-        y_pred_std = CVpred.get_y_standardized()
-        y_pred_nat = CVpred.get_y_native()
+        y_pred_std = CVpred.get_y(std=True)
+        y_pred_nat = CVpred.get_y()
 
     def test_multivariate_sim_only_mcmc(self):
         """
@@ -102,24 +102,24 @@ class SepiaXvalTestCase(unittest.TestCase):
         pred_samples = model.get_samples(numsamples=7)
         CVpred = SepiaXvalEmulatorPrediction(samples=pred_samples, model=model)
         w_pred = CVpred.get_w()
-        y_pred_std = CVpred.get_y_standardized()
-        y_pred_nat = CVpred.get_y_native()
+        y_pred_std = CVpred.get_y(std=True)
+        y_pred_nat = CVpred.get_y()
 
         # Call with custom leave out inds 1
         loo_inds = [[i] for i in np.arange(1, model.num.m, 20)]
         pred_samples = model.get_samples(numsamples=7)
         CVpred = SepiaXvalEmulatorPrediction(samples=pred_samples, model=model, leave_out_inds=loo_inds)
         w_pred = CVpred.get_w()
-        y_pred_std = CVpred.get_y_standardized()
-        y_pred_nat = CVpred.get_y_native()
+        y_pred_std = CVpred.get_y(std=True)
+        y_pred_nat = CVpred.get_y()
 
         # Call with custom leave out inds 2
         loo_inds = [[1, 2, 3, 4], [7, 6, 5], [20]]
         pred_samples = model.get_samples(numsamples=7)
         CVpred = SepiaXvalEmulatorPrediction(samples=pred_samples, model=model, leave_out_inds=loo_inds)
         w_pred = CVpred.get_w()
-        y_pred_std = CVpred.get_y_standardized()
-        y_pred_nat = CVpred.get_y_native()
+        y_pred_std = CVpred.get_y(std=True)
+        y_pred_nat = CVpred.get_y()
 
 
 
