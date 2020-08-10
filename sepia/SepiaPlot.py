@@ -51,12 +51,9 @@ def theta_pairs(samples_dict,design_names=[],native=False,lims=None,vlines=None)
                 for j in range(n_theta):
                     if i == j:
                         g.diag_axes[i].set_xlim(xmin=lims[i][0], xmax=lims[i][1])
-                        #g.diag_axes[i].set_xbound(lims[i][0], lims[i][1])
                     else:
                         g.axes[i, j].set_xlim(xmin=lims[j][0], xmax=lims[j][1])
                         g.axes[i, j].set_ylim(ymin=lims[i][0], ymax=lims[i][1])
-                        #g.axes[i, j].set_xbound(lims[j][0], lims[j][1])
-                        #g.axes[i, j].set_ybound(lims[i][0], lims[i][1])
         if vlines is not None:
             for i in range(n_theta):
                 g.axes[i, i].axvline(vlines[i])
