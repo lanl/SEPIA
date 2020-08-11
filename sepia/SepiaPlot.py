@@ -113,7 +113,7 @@ def mcmc_trace(samples_dict,theta_names=None,start=0,end=None,n_to_plot=500,by_g
                 else: axs.set_ylabel(k)
                 plt.show()
     else:
-        n_axes = len(samples_dict)
+        n_axes = len(samples_dict)-1 # wont be plotting theta_native
         fig, axs = plt.subplots(n_axes,1,sharex=True,figsize=[10,1.5*n_axes])
         fig.subplots_adjust(hspace=0)
         for i, k in enumerate(samples_dict.keys()):
