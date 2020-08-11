@@ -3,7 +3,7 @@
 Simulation-Enabled Prediction, Inference, and Analysis: physics-informed statistical learning.
 This is a Python adaptation of [GPMSA](https://github.com/lanl/gpmsa).
 
-<img src="https://zenodo.org/badge/doi/10.5281/zenodo.3979585.svg" align="right">
+<a href="https://doi.org/10.5281/zenodo.3979585"><img src="https://zenodo.org/badge/DOI/10.5281/zenodo.3979585.svg" align="right" alt="DOI"></a>
 
 <img src="docs/sepia.png" alt="sepia cuttlefish logo" width="150"/>
 
