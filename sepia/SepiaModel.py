@@ -8,6 +8,8 @@ from tqdm import tqdm
 import matplotlib.pyplot as plt
 from scipy import stats
 from scipy.optimize import minimize
+from copy import deepcopy
+import pandas as pd
     
 # container to group a number of misc. model pre-calculated info
 class ModelContainer():
@@ -154,6 +156,90 @@ class SepiaModel:
         ll = self.logLik(cvar, cindex)
         lp = sum([prm.prior.compute_log_prior() for prm in self.params.mcmcList])
         return ll + lp
+    
+    def logPost_wrapper(self,x):
+        """
+        Wrapper for the optimization of logPost. Not called by users.
+        Checks that parameter values are in bounds, then updates model parameters
+        and returns the new logPost value.
+        """
+        def inv_transform(x): return np.exp(x)
+        def check_params_valid(x):
+            valid=True
+            i=0
+            for prm in self.params.mcmcList:
+                for ind in range(int(np.prod(prm.val_shape))):
+                    if not prm.prior.is_in_bounds(x[i]): valid = False
+                    i+=1
+            return valid
+
+        x_cpy = deepcopy(x)
+        x_cpy[self.lam_idx] = inv_transform(x_cpy[self.lam_idx])
+        if check_params_valid(x_cpy):
+            # change params to x
+            i = 0
+            for prm in self.params.mcmcList:
+                # Loop over indices within parameter
+                for ind in range(int(np.prod(prm.val_shape))):
+                    arr_ind = np.unravel_index(ind, prm.val_shape, order='F')
+                    prm.val[arr_ind] = x_cpy[i]
+                    i+=1
+        else:
+            return np.inf
+
+        return -1*self.logPost()
+
+    def optim_logPost(self,maxiter=10000,xatol=.0001,fatol=.0001,verbose=True):
+        """
+        Optimize the log Posterior to find a good starting place for MCMC
+
+        :param maxiter: int -- max iterations for optimization
+        """
+        # don't want verbose model for optimizer but want to change back after
+        was_verbose = False
+        if self.verbose: 
+            self.verbose=False
+            was_verbose=True
+        # transormation for precision parameters
+        def transform(x): return np.log(x)
+        # indices of parameters to transform
+        lam_idx = []
+        i = 0
+        for prm in self.params.mcmcList:
+            for ind in range(int(np.prod(prm.val_shape))):
+                if prm.name in ['lamVz','lamWs','lamWOs','lamOs']:
+                    lam_idx.append(i)
+                i+=1
+        self.lam_idx = lam_idx
+
+        i=0
+        names = []
+        x0 = []
+        for prm in self.params.mcmcList:
+            if prm.name != 'logPost':
+                for ind in range(int(np.prod(prm.val_shape))):
+                    arr_ind = np.unravel_index(ind, prm.val_shape, order='F')
+                    if i in lam_idx:
+                        x0.append(transform(prm.val[arr_ind]))
+                    else:
+                        x0.append(prm.val[arr_ind])
+                    names.append(prm.name)
+                    i+=1
+        print('optimizing logpost over all parameters')
+
+        lp_hist = []
+        param_hist = []
+        def callback(x):
+            fobj = self.logPost_wrapper(x)
+            lp_hist.append(fobj)
+            param_hist.append(x)
+
+        post_mode = minimize(self.logPost_wrapper, x0, method='nelder-mead',callback=callback,
+               options={'xatol': xatol, 'fatol': fatol,'disp': True,'maxiter':maxiter, 'adaptive': True})
+
+        if verbose: print(pd.DataFrame(data={'param': names, 'init value': x0, 'opt value': post_mode['x']}).to_string(index=False))
+        self.verbose=was_verbose
+        return post_mode,lp_hist,param_hist
 
     def print_prior_info(self, pnames=None):
         """
@@ -283,7 +369,7 @@ class SepiaModel:
 
     #TODO: does not handle hierModels/tiedThetaModels, passes a sim only univ test pretty well (lamWOs slightly different ss)
     #TODO: set start value to maximum posterior instead of last sample?
-    def tune_step_sizes(self, n_burn, n_levels, prog=True, diagnostics=False):
+    def tune_step_sizes(self, n_burn, n_levels, prog=True, diagnostics=False, update_vals=True):
         """ Atuo-tune step size based on acceptance rate with YADAS approach.
 
         :param n_burn: int -- number of samples for each step size
@@ -346,7 +432,8 @@ class SepiaModel:
                 opt_ss = np.exp((logit-coefs[0])/coefs[1])
                 new_ss[arr_ind] = opt_ss
             p.mcmc.stepParam = new_ss.copy()
-            p.val = mod_tmp.params.mcmcList[pi].val.copy()
+            if update_vals:
+                p.val = mod_tmp.params.mcmcList[pi].val.copy()
         print('Done with tune_step_size.')
         print('Selected step sizes:')
         for param in self.params.mcmcList:
@@ -354,33 +441,6 @@ class SepiaModel:
             print(param.mcmc.stepParam)
         if diagnostics:
             return step_sizes, acc, mod_tmp
-
-    def optim_logPost(self, theta_only=False, maxiter=10000):
-        """
-        Optimize the log Posterior to find a good starting place for MCMC
-
-        :param theta_only: bool -- optimize only theta parameters
-        :param maxiter: int -- max iterations for optimization
-        """
-        x0 = []
-        if theta_only:
-            for prm in self.params.mcmcList:
-                if prm.name == 'theta':
-                    for ind in range(int(np.prod(prm.val_shape))):
-                        arr_ind = np.unravel_index(ind, prm.val_shape, order='F')
-                        x0.append(prm.val[arr_ind])
-            print('optimizing logpost over theta')
-        else:
-            for prm in self.params.mcmcList:
-                if prm.name != 'logPost':
-                    for ind in range(int(np.prod(prm.val_shape))):
-                        arr_ind = np.unravel_index(ind, prm.val_shape, order='F')
-                        x0.append(prm.val[arr_ind])
-            print('optimizing logpost over all parameters')
-
-        post_mode = minimize(self.logPost_wrapper, x0, method='nelder-mead',
-                             options={'xatol': 1e-8, 'disp': True, 'maxiter': maxiter})
-        return post_mode
 
     def optim_lag(self, chain, alpha=.05, cutoff=None):
         """
@@ -613,34 +673,3 @@ class SepiaModel:
                     prm.mcmc.reject(ind, self)
             prm.mcmc.record()
         self.params.lp.mcmc.record()
-    
-    def logPost_wrapper(self,x):
-        #
-        # Wrapper for the optimization of logPost. Not called by users.
-        # Checks that parameter values are in bounds, then updates model parameters
-        # and returns the new logPost value.
-        #
-        # check x is valid
-        valid_x=True
-        i=0
-        for prm in self.params.mcmcList:
-            for ind in range(int(np.prod(prm.val_shape))):
-                arr_ind = np.unravel_index(ind, prm.val_shape, order='F')
-                if not prm.prior.is_in_bounds(x[i]):
-                    return np.inf
-                i+=1
-        # change params to x
-        i = 0
-        for prm in self.params.mcmcList:
-            # Loop over indices within parameter
-            if prm.name == 'theta':
-                for ind in range(int(np.prod(prm.val_shape))):
-                    arr_ind = np.unravel_index(ind, prm.val_shape, order='F')
-                    prm.val[arr_ind] = x[i]
-                    i+=1
-        return -1*self.logPost()
-    
-
-
-
-
