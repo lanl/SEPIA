@@ -51,6 +51,15 @@ Welcome to Sepia!
 
     Familiar with the general workflow but looking for some tips on how to do common tasks? See :ref:`helpful-code-snippets`.
 
+.. topic:: Citing Sepia
+
+    Using Sepia in your work? Cite v1.0.0 as:
+
+    James Gattiker, Natalie Klein, Earl Lawrence, & Grant Hutchings. (2020, August 11).
+    lanl/SEPIA: Initial release (Version v1.0.0). Zenodo. http://doi.org/10.5281/zenodo.3979585
+
+    The DOI of the latest version is always https://doi.org/10.5281/zenodo.3979584
+
 
 Pages
 *****
