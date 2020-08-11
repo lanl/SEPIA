@@ -51,6 +51,12 @@ Welcome to Sepia!
 
     Familiar with the general workflow but looking for some tips on how to do common tasks? See :ref:`helpful-code-snippets`.
 
+.. topic:: Citing Sepia
+
+    Using Sepia in your work? Cite as:
+
+    James Gattiker, Natalie Klein, Earl Lawrence, & Grant Hutchings. lanl/SEPIA. Zenodo. https://doi.org/10.5281/zenodo.3979584
+
 
 Pages
 *****
