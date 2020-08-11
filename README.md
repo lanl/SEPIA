@@ -37,6 +37,8 @@ lanl/SEPIA: Initial release (Version v1.0.0). Zenodo. http://doi.org/10.5281/zen
 
 The DOI of the latest version is always https://doi.org/10.5281/zenodo.3979584
 
+https://doi.org/10.5281/zenodo.8475
+
 
 
 
