@@ -3,6 +3,8 @@
 Simulation-Enabled Prediction, Inference, and Analysis: physics-informed statistical learning.
 This is a Python adaptation of [GPMSA](https://github.com/lanl/gpmsa).
 
+https://zenodo.org/badge/doi/10.5281/zenodo.3979585.svg
+
 <img src="docs/sepia.png" alt="sepia cuttlefish logo" width="150"/>
 
 ### Warning: Construction Area. SEPIA is under development!
@@ -36,10 +38,6 @@ James Gattiker, Natalie Klein, Earl Lawrence, & Grant Hutchings. (2020, August 1
 lanl/SEPIA: Initial release (Version v1.0.0). Zenodo. http://doi.org/10.5281/zenodo.3979585
 
 The DOI of the latest version is always https://doi.org/10.5281/zenodo.3979584
-
-https://doi.org/10.5281/zenodo.8475
-
-
 
 
 ---
