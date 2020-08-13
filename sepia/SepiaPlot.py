@@ -9,7 +9,7 @@ from scipy import stats
 
 sns.set(style="ticks")
 
-def theta_pairs(samples_dict,design_names=[],native=False,lims=None,vlines=None):
+def theta_pairs(samples_dict,design_names=[],native=False,lims=None,theta_ref=None):
     """
     Create pairs plot of sampled thetas.
 
@@ -35,7 +35,7 @@ def theta_pairs(samples_dict,design_names=[],native=False,lims=None,vlines=None)
     if theta_df.shape[1]>2:
         g = sns.PairGrid(theta_df.loc[:, theta_df.columns != 'idx'], diag_sharey=False)
         g.map_upper(sns.scatterplot, palette = 'coolwarm', hue=theta_df['idx'], legend=False)
-        g.map_lower(sns.kdeplot)
+        g.map_lower(sns.kdeplot, cmap="viridis", shade=True, n_levels=10, shade_lowest=False)
         g.map_diag(sns.distplot, hist=True)
         if lims is not None:
             # Undo sharing of axes
@@ -55,9 +55,13 @@ def theta_pairs(samples_dict,design_names=[],native=False,lims=None,vlines=None)
                     else:
                         g.axes[i, j].set_xlim(xmin=lims[j][0], xmax=lims[j][1])
                         g.axes[i, j].set_ylim(ymin=lims[i][0], ymax=lims[i][1])
-        if vlines is not None:
+                        
+        if theta_ref is not None:
             for i in range(n_theta):
-                g.diag_axes[i].axvline(vlines[i])
+                g.diag_axes[i].vlines(theta_ref[i],ymin=0,ymax=1,transform = g.diag_axes[i].get_xaxis_transform(),color='r')
+                for j in range(n_theta):
+                    if i>j: # Lower diag contour plots
+                        g.axes[i,j].scatter(theta_ref[j], theta_ref[i], marker='o', s=5, color="red")
         plt.show()
     else:
         sns.distplot(theta_df.loc[:, theta_df.columns != 'idx'],hist=True,axlabel=design_names[0])
