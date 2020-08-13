@@ -9,7 +9,7 @@ from scipy import stats
 
 sns.set(style="ticks")
 
-def theta_pairs(samples_dict,design_names=[],native=False,lims=None,theta_ref=None):
+def theta_pairs(samples_dict,design_names=[],native=False,lims=None,theta_ref=None,save=False):
     """
     Create pairs plot of sampled thetas.
 
@@ -62,12 +62,18 @@ def theta_pairs(samples_dict,design_names=[],native=False,lims=None,theta_ref=No
                 for j in range(n_theta):
                     if i>j: # Lower diag contour plots
                         g.axes[i,j].scatter(theta_ref[j], theta_ref[i], marker='o', s=5, color="red")
+        if save: 
+            plt.tight_layout()
+            plt.savefig("theta_pairs.png",dpi=300)
         plt.show()
     else:
         sns.distplot(theta_df.loc[:, theta_df.columns != 'idx'],hist=True,axlabel=design_names[0])
+        if save: 
+            plt.tight_layout()
+            plt.savefig("theta_pairs.png",dpi=300)
         plt.show()
         
-def mcmc_trace(samples_dict,theta_names=None,start=0,end=None,n_to_plot=500,by_group=True,max_print=10):
+def mcmc_trace(samples_dict,theta_names=None,start=0,end=None,n_to_plot=500,by_group=True,max_print=10,save=False):
     """
     Create trace plot of MCMC.
 
@@ -110,13 +116,16 @@ def mcmc_trace(samples_dict,theta_names=None,start=0,end=None,n_to_plot=500,by_g
                     sns.lineplot(x=plot_idx,y=samples_dict[k][plot_idx,j], palette="tab10", linewidth=.75, ax = axs[j])
                     if i == 0 and theta_names is not None: axs[j].set_ylabel(theta_names[j])
                     else: axs[j].set_ylabel(k+'_'+str(j+1))
+                if save: plt.savefig("mcmc_trace.png",dpi=300,bbox_extra_artists=(lgd), bbox_inches='tight')
                 plt.show()
             else:
                 sns.lineplot(x=plot_idx,y=samples_dict[k][plot_idx,0], palette="tab10", linewidth=.75, ax = axs)
                 if i == 0 and theta_names is not None: axs.set_ylabel(theta_names[0])
                 else: axs.set_ylabel(k)
+                if save: plt.savefig("mcmc_trace.png",dpi=300,bbox_extra_artists=(lgd), bbox_inches='tight')
                 plt.show()
     else:
+        lgds = []
         n_axes = len(samples_dict)-1 # wont be plotting theta_native
         fig, axs = plt.subplots(n_axes,1,sharex=True,figsize=[10,1.5*n_axes])
         fig.subplots_adjust(hspace=0)
@@ -129,10 +138,11 @@ def mcmc_trace(samples_dict,theta_names=None,start=0,end=None,n_to_plot=500,by_g
                     sns.lineplot(x=plot_idx,y=samples_dict[k][plot_idx,j], palette="tab10", linewidth=.75, ax = axs[i],
                                 label= theta_names[j] if (i==0 and theta_names is not None) else k+str(j+1))
                 axs[i].set_ylabel(k)
-                axs[i].legend(bbox_to_anchor=(1.025, 1), loc='upper left', borderaxespad=0., ncol=int(np.ceil(n_lines/5)))
+                lgds.append(axs[i].legend(bbox_to_anchor=(1.025, 1), loc='upper left', borderaxespad=0., ncol=int(np.ceil(n_lines/5))))
             else:
                 sns.lineplot(x=plot_idx,y=samples_dict[k][plot_idx,0], palette="tab10", linewidth=.75, ax = axs[i])
                 axs[i].set_ylabel(theta_names[0] if (i==0 and theta_names is not None) else k)
+        if save: plt.savefig("mcmc_trace.png",dpi=300,bbox_extra_artists=lgds, bbox_inches='tight')
         plt.show()
          
 def param_stats(samples_dict,theta_names=None,q1=0.05,q2=0.95,digits=4):
@@ -195,7 +205,7 @@ def rho_box_plots(model,labels=None):
         plt.title('PC {}'.format(i+1))
         plt.show() 
         
-def plot_acf(model,nlags,nburn=0,alpha=.05):
+def plot_acf(model,nlags,nburn=0,alpha=.05,save=False):
     """
     Plot autocorrelation function for all parameters theta
     
@@ -211,5 +221,5 @@ def plot_acf(model,nlags,nburn=0,alpha=.05):
         if p.name == 'theta': 
             chain = p.mcmc_to_array(trim=nburn, flat=True).T
     
-    autocorrs, sigline, ess = model.acf(chain,nlags,plot=True,alpha=alpha)
-    return autocorrs, sigline, ess
+    acf = model.acf(chain,nlags,plot=True,save=save,alpha=alpha)
+    return acf

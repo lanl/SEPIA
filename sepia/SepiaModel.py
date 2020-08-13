@@ -10,7 +10,8 @@ from scipy import stats
 from scipy.optimize import minimize
 from copy import deepcopy
 import pandas as pd
-    
+import sepia.SepiaSwarm as SepiaSwarm
+
 # container to group a number of misc. model pre-calculated info
 class ModelContainer():
     """
@@ -189,12 +190,14 @@ class SepiaModel:
 
         return -1*self.logPost()
 
-    def optim_logPost(self,maxiter=10000,xatol=.0001,fatol=.0001,verbose=True):
+    def optim_logPost(self,maxiter=1000,xatol=.0001,fatol=.0001,verbose=True,method='nelder-mead',\
+                      swarmsize=10,swarm_tol=1e-8,swarm_step_tol=1e-8):
         """
         Optimize the log Posterior to find a good starting place for MCMC
 
         :param maxiter: int -- max iterations for optimization
         """
+        print('optimizing logpost over all parameters')
         # don't want verbose model for optimizer but want to change back after
         was_verbose = False
         if self.verbose: 
@@ -215,31 +218,62 @@ class SepiaModel:
         i=0
         names = []
         x0 = []
-        for prm in self.params.mcmcList:
-            if prm.name != 'logPost':
-                for ind in range(int(np.prod(prm.val_shape))):
-                    arr_ind = np.unravel_index(ind, prm.val_shape, order='F')
-                    if i in lam_idx:
-                        x0.append(transform(prm.val[arr_ind]))
-                    else:
-                        x0.append(prm.val[arr_ind])
-                    names.append(prm.name)
-                    i+=1
-        print('optimizing logpost over all parameters')
+        lb = []
+        ub = []
+        
+        if method == 'nelder-mead':
+            for prm in self.params.mcmcList:
+                if prm.name != 'logPost':
+                    for ind in range(int(np.prod(prm.val_shape))):
+                        arr_ind = np.unravel_index(ind, prm.val_shape, order='F')
+                        if i in lam_idx:
+                            x0.append(transform(prm.val[arr_ind]))
+                        else:
+                            x0.append(prm.val[arr_ind])
+                        names.append(prm.name)
+                        i+=1
+                    
+            lp_hist = []
+            param_hist = []
+            def callback(x):
+                fobj = self.logPost_wrapper(x)
+                lp_hist.append(fobj)
+                param_hist.append(x)
+                
+            x_opt = minimize(self.logPost_wrapper, x0, method=method,callback=callback,
+                   options={'xatol': xatol, 'fatol': fatol,'disp': True,'maxiter':maxiter, 'adaptive': True})
+            if verbose: print(pd.DataFrame(data={'param': names, 'init value': x0, 'opt value': x_opt['x']}).to_string(index=False))
+            self.verbose=was_verbose
+            return x_opt,lp_hist,param_hist    
+                
+        elif method == 'swarm':
+            for prm in self.params.mcmcList:
+                if prm.name != 'logPost':
+                    for ind in range(int(np.prod(prm.val_shape))):
+                        arr_ind = np.unravel_index(ind, prm.val_shape, order='F')
+                        if i in lam_idx:
+                            lb.append(np.log(prm.prior.bounds[0]) if prm.prior.bounds[0] != 0 else -np.log(100000))
+                            ub.append(np.log(prm.prior.bounds[1]) if prm.prior.bounds[1] != np.inf else np.log(100000))
+                        elif prm.name == 'betaU':
+                            lb.append(0)
+                            ub.append(50)
+                        elif prm.name == 'betaV':
+                            lb.append(0)
+                            ub.append(20)
+                        else:
+                            lb.append(prm.prior.bounds[0])
+                            ub.append(prm.prior.bounds[1] if prm.prior.bounds[1] != np.inf else np.log(100000))
+                        names.append(prm.name)
+                        i+=1
+            bounds = (lb,ub)
 
-        lp_hist = []
-        param_hist = []
-        def callback(x):
-            fobj = self.logPost_wrapper(x)
-            lp_hist.append(fobj)
-            param_hist.append(x)
-
-        post_mode = minimize(self.logPost_wrapper, x0, method='nelder-mead',callback=callback,
-               options={'xatol': xatol, 'fatol': fatol,'disp': True,'maxiter':maxiter, 'adaptive': True})
-
-        if verbose: print(pd.DataFrame(data={'param': names, 'init value': x0, 'opt value': post_mode['x']}).to_string(index=False))
-        self.verbose=was_verbose
-        return post_mode,lp_hist,param_hist
+            x_opt, f_opt, f_hist, it, fnc_calls = SepiaSwarm.pso(self.logPost_wrapper, lb, ub, maxiter=maxiter, \
+                                                                 minstep=swarm_step_tol, minfunc=swarm_tol, swarmsize=swarmsize)
+            return x_opt,f_opt, f_hist, it, fnc_calls
+        
+        else:
+            raise ValueError("method must be one of:\n'nelder-mead'\n'swarm'")
+        
 
     def print_prior_info(self, pnames=None):
         """
@@ -536,7 +570,7 @@ class SepiaModel:
         self.params.mcmcList = [self.params.theta, self.params.betaV, self.params.betaU, self.params.lamVz, self.params.lamUz,
                                     self.params.lamWs, self.params.lamWOs,  self.params.lamOs]
 
-    def acf(self,chain,nlags,plot=True, alpha=.05, ESS=True):
+    def acf(self,chain,nlags,plot=True, alpha=.05, ESS=True, save=False):
         #
         # Compute autocorrelation function of mcmc chain
         #
@@ -551,8 +585,12 @@ class SepiaModel:
             autocorr = np.correlate(chain1,chain2,mode='full')
             autocorr = autocorr[autocorr.size//2:]
             autocorrs.append(autocorr[0:nlags+1])
-            
         sigline = stats.norm.ppf(1 - alpha / 2.) / np.sqrt(nobs)
+        # compute ESS and output to console
+        if ESS:
+            ess = []
+            for i in range(nchains):
+                ess.append(self.ESS(chain[i,:]))
         
         # plot
         if plot:
@@ -575,18 +613,14 @@ class SepiaModel:
             ax.set_ylim([min(-.1,1.1*ymin),1.1*ymax])
 
             if nchains > 1: plt.legend()
+            text = []
+            text.append(ax.text(ax.get_xlim()[0],1.225,s='Effective Sample Size: {}'.format(ess),fontsize=16))
+            text.append(ax.text(ax.get_xlim()[0],1.125,s='Number of Samples:    {}'.format([nobs]*nchains),fontsize=16))
+            if save: plt.savefig('acf.png',dpi=300,bbox_extra_artists=text, bbox_inches='tight')
             plt.show()
         
-        # output ESS to console
-        if ESS:
-            ess = []
-            for i in range(nchains):
-                ess.append(self.ESS(chain[i,:]))
-            print('Effective Sample Sizes:',ess)
-            print('Total number of samples:',[nobs]*nchains)
-            return autocorr, sigline, ess
-        else:
-            return autocorr,sigline
+        if ESS: return {'acf': autocorr,'sigline': sigline,'ess': ess}
+        else: return {'acf': autocorr,'sigline': sigline}
     
     def ESS(self,x):
         #
