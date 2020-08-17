@@ -10,7 +10,7 @@ from scipy import stats
 from scipy.optimize import minimize
 from copy import deepcopy
 import pandas as pd
-import sepia.SepiaSwarm as SepiaSwarm
+#import sepia.SepiaSwarm as SepiaSwarm
 
 # container to group a number of misc. model pre-calculated info
 class ModelContainer():
@@ -401,7 +401,8 @@ class SepiaModel:
         samples = {p.name: p.mcmc_to_array(trim=nburn, sampleset=ss, flat=flat, untransform_theta=False)
                    for p in plist}
         # Add theta in native space as new key
-        samples['theta_native'] = self.params.theta.mcmc_to_array(trim=nburn, sampleset=ss, flat=flat, untransform_theta=True)
+        if 'theta' in samples.keys():
+            samples['theta_native'] = self.params.theta.mcmc_to_array(trim=nburn, sampleset=ss, flat=flat, untransform_theta=True)
         return samples
 
     #TODO: does not handle hierModels/tiedThetaModels, passes a sim only univ test pretty well (lamWOs slightly different ss)

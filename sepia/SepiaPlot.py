@@ -86,7 +86,7 @@ def mcmc_trace(samples_dict,theta_names=None,start=0,end=None,n_to_plot=500,by_g
     :param max_print: int -- maximum number of traces to plot
     """
     # trim samples dict
-    n_samples = samples_dict['theta'].shape[0]
+    n_samples = samples_dict['lamUz'].shape[0]
     if n_to_plot>n_samples:
         n_to_plot = n_samples
     # default end
