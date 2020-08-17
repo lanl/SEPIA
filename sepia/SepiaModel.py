@@ -10,7 +10,7 @@ from scipy import stats
 from scipy.optimize import minimize
 from copy import deepcopy
 import pandas as pd
-#import sepia.SepiaSwarm as SepiaSwarm
+import sepia.SepiaSwarm as SepiaSwarm
 
 # container to group a number of misc. model pre-calculated info
 class ModelContainer():
@@ -191,7 +191,7 @@ class SepiaModel:
         return -1*self.logPost()
 
     def optim_logPost(self,maxiter=1000,xatol=.0001,fatol=.0001,verbose=True,method='nelder-mead',\
-                      swarmsize=10,swarm_tol=1e-8,swarm_step_tol=1e-8,w_max=.9, w_min=.4,c1=.5, c2=.3):
+                      swarmsize=10,swarm_tol=1e-8,swarm_step_tol=1e-8,w_max=.9,w_min=.4,c1=.5,c2=.3):
         """
         Optimize the log Posterior to find a good starting place for MCMC
 
