@@ -35,7 +35,7 @@ def theta_pairs(samples_dict,design_names=[],native=False,lims=None,theta_ref=No
     if theta_df.shape[1]>2:
         g = sns.PairGrid(theta_df.loc[:, theta_df.columns != 'idx'], diag_sharey=False)
         g.map_upper(sns.scatterplot, palette = 'coolwarm', hue=theta_df['idx'], legend=False)
-        g.map_lower(sns.kdeplot, cmap="viridis", shade=True, n_levels=10, shade_lowest=False)
+        g.map_lower(sns.kdeplot, cmap="viridis", shade=True, shade_lowest=False)
         g.map_diag(sns.distplot, hist=True)
         if lims is not None:
             # Undo sharing of axes

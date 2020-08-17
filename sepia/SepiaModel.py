@@ -191,7 +191,7 @@ class SepiaModel:
         return -1*self.logPost()
 
     def optim_logPost(self,maxiter=1000,xatol=.0001,fatol=.0001,verbose=True,method='nelder-mead',\
-                      swarmsize=10,swarm_tol=1e-8,swarm_step_tol=1e-8):
+                      swarmsize=10,swarm_tol=1e-8,swarm_step_tol=1e-8,w_max=.9, w_min=.4,c1=.5, c2=.3):
         """
         Optimize the log Posterior to find a good starting place for MCMC
 
@@ -268,7 +268,8 @@ class SepiaModel:
             bounds = (lb,ub)
 
             x_opt, f_opt, f_hist, it, fnc_calls = SepiaSwarm.pso(self.logPost_wrapper, lb, ub, maxiter=maxiter, \
-                                                                 minstep=swarm_step_tol, minfunc=swarm_tol, swarmsize=swarmsize)
+                                                                 minstep=swarm_step_tol, minfunc=swarm_tol, swarmsize=swarmsize,\
+                                                                w_max=w_max, w_min=w_min,c1=c1, c2=c2)
             return x_opt,f_opt, f_hist, it, fnc_calls
         
         else:
@@ -359,6 +360,8 @@ class SepiaModel:
         :return: dict -- array of samples for each parameter, keyed by parameter name
         :raises: TypeError if no samples exist or nburn inconsistent with number of draws
         """
+        if self.sim_only and effectivesamples:
+            print('Emulator only - returning all samples')
         total_samples = self.params.lp.get_num_samples()
         if total_samples == 0:
             raise TypeError('No MCMC samples; call do_mcmc() first.')
@@ -380,7 +383,7 @@ class SepiaModel:
             if max(sampleset) > total_samples:
                 print('sampleset includes indices larger than number of draws; truncating to valid draws.')
             ss = [ii for ii in sampleset if ii < total_samples and ii >= 0]
-        elif effectivesamples is not False:
+        elif not self.sim_only and effectivesamples is not False:
             # get max theta ess
             for p in self.params.mcmcList:
                 if p.name == 'theta': 
