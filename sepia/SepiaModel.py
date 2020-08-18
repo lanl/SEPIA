@@ -360,7 +360,7 @@ class SepiaModel:
         :return: dict -- array of samples for each parameter, keyed by parameter name
         :raises: TypeError if no samples exist or nburn inconsistent with number of draws
         """
-        if self.sim_only and effectivesamples:
+        if self.num.sim_only and effectivesamples:
             print('Emulator only - returning all samples')
         total_samples = self.params.lp.get_num_samples()
         if total_samples == 0:
@@ -383,7 +383,7 @@ class SepiaModel:
             if max(sampleset) > total_samples:
                 print('sampleset includes indices larger than number of draws; truncating to valid draws.')
             ss = [ii for ii in sampleset if ii < total_samples and ii >= 0]
-        elif not self.sim_only and effectivesamples is not False:
+        elif not self.num.sim_only and effectivesamples is not False:
             # get max theta ess
             for p in self.params.mcmcList:
                 if p.name == 'theta': 
