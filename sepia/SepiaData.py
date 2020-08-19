@@ -28,9 +28,12 @@ class SepiaData(object):
     :var sim_only: boolean -- whether or not it is simulation-only data
     :var scalar_out: boolean -- whether or not the output y is scalar
     :var ragged_obs: boolean -- whether or not observations have ragged (non-shared) multivariate indices
+    :var x_cat_ind: list -- indices of x that are categorical (0 = not cat, int > 0 = how many categories)
+    :var t_cat_ind: list -- indices of t that are categorical (0 = not cat, int > 0 = how many categories)
     """
 
-    def __init__(self, x_sim=None, t_sim=None, y_sim=None, y_ind_sim=None, x_obs=None, y_obs=None, y_ind_obs=None):
+    def __init__(self, x_sim=None, t_sim=None, y_sim=None, y_ind_sim=None, x_obs=None, y_obs=None, y_ind_obs=None,
+                 x_cat_ind=None, t_cat_ind=None):
         """
         Create SepiaData object.
 
@@ -43,6 +46,8 @@ class SepiaData(object):
         :param x_obs: nparray -- (m, p) matrix of controllable inputs for observation data (optional)
         :param y_obs:  nparray -- (m, ell_obs) matrix of obs outputs, or list length m of 1D arrays (for ragged y_ind_obs)
         :param y_ind_obs: (l_obs, ) vector of indices for multivariate y or list length m of 1D arrays (for ragged y_ind_obs)
+        :param x_cat_ind: list -- indices of x that are categorical (0 = not cat, int > 0 = how many categories)
+        :param t_cat_ind: list -- indices of t that are categorical (0 = not cat, int > 0 = how many categories)
         :raises: TypeError if shapes not conformal or required data missing.
 
         """
@@ -71,6 +76,22 @@ class SepiaData(object):
             self.scalar_out = False
         else:
             self.scalar_out = True
+        self.x_cat_ind = x_cat_ind
+        self.t_cat_ind = t_cat_ind
+        if x_cat_ind is not None:
+            if len(x_cat_ind) != x_sim.shape[1]:
+                raise TypeError('x_cat_ind length should equal p.')
+            for i, ci in enumerate(x_cat_ind):
+                if ci > 0 and ci != np.max(x_sim[:, i]):
+                    raise TypeError('Nonzero values of x_cat_ind should equal number of categories.')
+        if t_cat_ind is not None:
+            if t_sim is None:
+                raise TypeError('Cannot use t_cat_ind if t_sim is not provided.')
+            if len(t_cat_ind) != t_sim.shape[1]:
+                raise TypeError('t_cat_ind length should equal p.')
+            for i, ci in enumerate(t_cat_ind):
+                if ci > 0 and ci != np.max(t_sim[:, i]):
+                    raise TypeError('Nonzero values of t_cat_ind should equal number of categories.')
 
     # Prints pretty representation of the SepiaData object for users to check their setup.
     def __str__(self):
@@ -111,6 +132,16 @@ class SepiaData(object):
                         res += 'pv = %5d (transformed discrepancy dimension)\n' % self.obs_data.D.shape[0]
                 else:
                     res += 'pv NOT SET (transformed discrepancy dimension); call method create_D_basis\n'
+        if self.x_cat_ind is not None:
+            res += 'Categorical x input variables:\n'
+            for i, ci in enumerate(self.x_cat_ind):
+                if ci > 0:
+                    res += 'x index %d with %d categories\n' % (i, ci)
+        if self.t_cat_ind is not None:
+            res += 'Categorical t input variables:\n'
+            for i, ci in enumerate(self.t_cat_ind):
+                if ci > 0:
+                    res += 't index %d with %d categories\n' % (i, ci)
         return res
 
     def transform_xt(self, xt_min=0.0, xt_max=1.0):
@@ -123,7 +154,7 @@ class SepiaData(object):
         :param xt_min: scalar -- minimum x or t value
         :param xt_max: scalar -- maximum x or t value
         """
-        def trans(x, a, b, x_min, x_max):
+        def trans(x, a, b, x_min, x_max, notrans=[]):
             a_vec = a * np.ones_like(x_min)
             b_vec = b * np.ones_like(x_min)
             xmm = x_max - x_min
@@ -133,20 +164,31 @@ class SepiaData(object):
             a_vec[xmm == 0] = 0
             b_vec[xmm == 0] = 1
             xmm[xmm == 0] = 1
+            # Set values not to transform
+            x_min[:, notrans] = 0
+            xmm[:, notrans] = 1
+            a_vec[:, notrans] = 0
+            b_vec[:, notrans] = 1
             return (x - x_min) / xmm * (b_vec - a_vec) + a_vec
         self.sim_data.orig_x_min = np.min(self.sim_data.x, 0, keepdims=True)
         self.sim_data.orig_x_max = np.max(self.sim_data.x, 0, keepdims=True)
-        self.sim_data.x_trans = trans(self.sim_data.x, xt_min, xt_max, self.sim_data.orig_x_min, self.sim_data.orig_x_max)
+        x_notrans = []
+        t_notrans = []
+        if self.x_cat_ind is not None:
+            x_notrans = [i for i in range(len(self.x_cat_ind)) if self.x_cat_ind[i] > 0]
+        if self.t_cat_ind is not None:
+            t_notrans = [i for i in range(len(self.t_cat_ind)) if self.t_cat_ind[i] > 0]
+        self.sim_data.x_trans = trans(self.sim_data.x, xt_min, xt_max, self.sim_data.orig_x_min, self.sim_data.orig_x_max, x_notrans)
         if self.sim_data.t is not None:
             self.sim_data.orig_t_min = np.min(self.sim_data.t, 0, keepdims=True)
             self.sim_data.orig_t_max = np.max(self.sim_data.t, 0, keepdims=True)
-            self.sim_data.t_trans = trans(self.sim_data.t, xt_min, xt_max, self.sim_data.orig_t_min, self.sim_data.orig_t_max)
+            self.sim_data.t_trans = trans(self.sim_data.t, xt_min, xt_max, self.sim_data.orig_t_min, self.sim_data.orig_t_max, t_notrans)
         if not self.sim_only:
             self.obs_data.orig_x_min = self.sim_data.orig_x_min
             self.obs_data.orig_x_max = self.sim_data.orig_x_max
             self.obs_data.orig_t_min = self.sim_data.orig_t_min
             self.obs_data.orig_t_max = self.sim_data.orig_t_max
-            self.obs_data.x_trans = trans(self.obs_data.x, xt_min, xt_max, self.obs_data.orig_x_min, self.obs_data.orig_x_max)
+            self.obs_data.x_trans = trans(self.obs_data.x, xt_min, xt_max, self.obs_data.orig_x_min, self.obs_data.orig_x_max, x_notrans)
 
     def standardize_y(self, center=True, scale='scalar'):
         """

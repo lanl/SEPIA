@@ -47,7 +47,6 @@ class SepiaDataTestCase(unittest.TestCase):
         d.create_K_basis(10)
         d.create_D_basis()
 
-
     def test_univariate_sim_only_t_only(self):
         """
         Tests setup for univariate sim only where we only use a t input, not x; x is set up as a dummy internally.
@@ -82,7 +81,6 @@ class SepiaDataTestCase(unittest.TestCase):
 
         d.create_K_basis(10)
         d.create_D_basis()
-
 
     def test_multivariate_sim_only_x_only(self):
         """
@@ -172,7 +170,6 @@ class SepiaDataTestCase(unittest.TestCase):
         self.assertTrue(d.sim_data.K.shape == (pu, ell))
         d.create_D_basis()
         print(d)
-
 
     def test_univariate_sim_and_obs(self):
         """
@@ -273,7 +270,6 @@ class SepiaDataTestCase(unittest.TestCase):
         d.create_K_basis(10)
         d.create_D_basis()
 
-
     def test_multivariate_sim_and_obs(self):
         """
         Tests multivariate sim and obs where we pass in x and t.
@@ -335,7 +331,6 @@ class SepiaDataTestCase(unittest.TestCase):
         self.assertTrue(d.obs_data.D.shape == (1, ell_obs))
         print(d)
 
-
     def test_multivariate_sim_and_obs_no_x(self):
         """
         Tests multivariate sim and obs where we pass in t but not x (x is a dummy variable).
@@ -394,7 +389,6 @@ class SepiaDataTestCase(unittest.TestCase):
         self.assertTrue(d.obs_data.D.shape == (1, ell_obs))
         print(d)
 
-    # TODO this test probably needs more work, checking that ragged obs don't break stdization/basis set up
     def test_multivariate_sim_and_obs_ragged(self):
         """
         Tests multivariate sim and obs where we pass in x and t but obs is ragged.
@@ -459,7 +453,46 @@ class SepiaDataTestCase(unittest.TestCase):
         #self.assertTrue(d.obs_data.D.shape == (1, ell_obs))
         print(d)
 
+    def test_univariate_sim_only_x_only_cat_ind(self):
+        """
+        Tests setup for univariate sim only where we only use an x input, not t, and use x_cat_ind
+        """
+        m = 200  # number of simulated observations
+        p = 3    # dimension of x (simulation inputs)
 
+        x = np.concatenate([0.5 * np.random.uniform(-1, 3, (m, p-1)), np.random.choice(range(1,5), (m, 1), replace=True)], axis=1)
+        y = 5 * np.random.normal(0, 1, m) + 2
+        x_cat_ind = [0, 0, 4]
+        d = SepiaData(x_sim=x, y_sim=y, x_cat_ind=x_cat_ind)
+
+        print('Testing univariate sim-only SepiaData...')
+        print(d)
+
+        d.transform_xt()
+        self.assertTrue(np.allclose(d.sim_data.x_trans[:, 2], x[:, 2]))
+        self.assertEqual(np.min(d.sim_data.x_trans[:, 2]), 1)
+        self.assertEqual(np.max(d.sim_data.x_trans[:, 2]), 4)
+
+    def test_univariate_sim_only_t_only_cat_ind(self):
+        """
+        Tests setup for univariate sim only where we only use a t input, not x; x is set up as a dummy internally.
+        Use t_cat_ind.
+        """
+        m = 200  # number of simulated observations
+        p = 3    # dimension of x (simulation inputs)
+
+        t = np.concatenate([0.5 * np.random.uniform(-1, 3, (m, p-1)), np.random.choice(range(1,5), (m, 1), replace=True)], axis=1)
+        y = 5 * np.random.normal(0, 1, m) + 2
+        t_cat_ind = [0, 0, 4]
+        d = SepiaData(x_sim=None, y_sim=y, t_sim=t, t_cat_ind=t_cat_ind)
+
+        print('Testing univariate sim-only SepiaData...')
+        print(d)
+
+        d.transform_xt()
+        self.assertTrue(np.allclose(d.sim_data.t_trans[:, 2], t[:, 2]))
+        self.assertEqual(np.min(d.sim_data.t_trans[:, 2]), 1)
+        self.assertEqual(np.max(d.sim_data.t_trans[:, 2]), 4)
 
 
 
