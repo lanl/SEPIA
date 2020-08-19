@@ -22,6 +22,7 @@ class SepiaDistCov(object):
 
         :param data: nparray -- input data, shape (n_samples, _)
         :param data2: nparray -- optional, second data set to compute distances with data
+        :param cat_ind: list, 1d array -- optional, cat_ind as passed to sepiadata
 
         """
         if data2 is None:
