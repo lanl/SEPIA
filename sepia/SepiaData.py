@@ -28,8 +28,8 @@ class SepiaData(object):
     :var sim_only: boolean -- whether or not it is simulation-only data
     :var scalar_out: boolean -- whether or not the output y is scalar
     :var ragged_obs: boolean -- whether or not observations have ragged (non-shared) multivariate indices
-    :var x_cat_ind: list -- indices of x that are categorical (0 = not cat, int > 0 = how many categories)
-    :var t_cat_ind: list -- indices of t that are categorical (0 = not cat, int > 0 = how many categories)
+    :var x_cat_ind: list/1d array -- indices of x that are categorical (0 = not cat, int > 0 = how many categories)
+    :var t_cat_ind: list/1d array -- indices of t that are categorical (0 = not cat, int > 0 = how many categories)
     """
 
     def __init__(self, x_sim=None, t_sim=None, y_sim=None, y_ind_sim=None, x_obs=None, y_obs=None, y_ind_obs=None,
@@ -46,8 +46,8 @@ class SepiaData(object):
         :param x_obs: nparray -- (m, p) matrix of controllable inputs for observation data (optional)
         :param y_obs:  nparray -- (m, ell_obs) matrix of obs outputs, or list length m of 1D arrays (for ragged y_ind_obs)
         :param y_ind_obs: (l_obs, ) vector of indices for multivariate y or list length m of 1D arrays (for ragged y_ind_obs)
-        :param x_cat_ind: list -- indices of x that are categorical (0 = not cat, int > 0 = how many categories)
-        :param t_cat_ind: list -- indices of t that are categorical (0 = not cat, int > 0 = how many categories)
+        :param x_cat_ind: list/1d array -- indices of x that are categorical (0 = not cat, int > 0 = how many categories)
+        :param t_cat_ind: list/1d array -- indices of t that are categorical (0 = not cat, int > 0 = how many categories)
         :raises: TypeError if shapes not conformal or required data missing.
 
         """
@@ -76,14 +76,16 @@ class SepiaData(object):
             self.scalar_out = False
         else:
             self.scalar_out = True
-        self.x_cat_ind = x_cat_ind
-        self.t_cat_ind = t_cat_ind
+        # Process categorical indices
         if x_cat_ind is not None:
             if len(x_cat_ind) != x_sim.shape[1]:
                 raise TypeError('x_cat_ind length should equal p.')
             for i, ci in enumerate(x_cat_ind):
                 if ci > 0 and ci != np.max(x_sim[:, i]):
                     raise TypeError('Nonzero values of x_cat_ind should equal number of categories.')
+        else:
+            x_cat_ind = np.zeros(x_sim.shape[1])
+        self.x_cat_ind = x_cat_ind
         if t_cat_ind is not None:
             if t_sim is None:
                 raise TypeError('Cannot use t_cat_ind if t_sim is not provided.')
@@ -92,6 +94,12 @@ class SepiaData(object):
             for i, ci in enumerate(t_cat_ind):
                 if ci > 0 and ci != np.max(t_sim[:, i]):
                     raise TypeError('Nonzero values of t_cat_ind should equal number of categories.')
+        else:
+            if t_sim is None:
+                t_cat_ind = []
+            else:
+                t_cat_ind = np.zeros(t_sim.shape[1])
+        self.t_cat_ind = t_cat_ind
 
     # Prints pretty representation of the SepiaData object for users to check their setup.
     def __str__(self):
@@ -132,6 +140,7 @@ class SepiaData(object):
                         res += 'pv = %5d (transformed discrepancy dimension)\n' % self.obs_data.D.shape[0]
                 else:
                     res += 'pv NOT SET (transformed discrepancy dimension); call method create_D_basis\n'
+        # Print info on categorical variables
         if self.x_cat_ind is not None:
             res += 'Categorical x input variables:\n'
             for i, ci in enumerate(self.x_cat_ind):
