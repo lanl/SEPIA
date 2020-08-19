@@ -1,3 +1,158 @@
+import numpy as np
+from copy import deepcopy
+from scipy.optimize import minimize
+import pandas as pd
+
+class SepiaOptim():
+    """
+    SepiaOptim class contains optimization routines
+    """
+    def __init__(self, model=None):
+        if model is None:
+            raise TypeError('model is required to set up optimizer.')
+            
+        self.model = model
+        self.idx_to_transform = []
+        
+    def log_transform(self,x): 
+        if x >= 1: return np.log(x)
+        else: return x-1
+    
+    def inv_log_transform(self,x):
+        x[x>=0]=np.exp(x[x>=0])
+        x[x<0]=x[x<0]+1
+        return x
+    
+    def check_params_valid(self,x):
+        valid=True
+        i=0
+        for prm in self.model.params.mcmcList:
+            for ind in range(int(np.prod(prm.val_shape))):
+                if not prm.prior.is_in_bounds(x[i]): valid = False
+                i+=1
+        return valid
+    
+    def optim_logPost(self,x):
+        """
+        Wrapper for the optimization of logPost. Not called by users.
+        Checks that parameter values are in bounds, then updates model parameters
+        and returns the new logPost value.
+        """
+        x_cpy = deepcopy(x)
+        x_cpy[self.idx_to_transform] = self.inv_log_transform(x_cpy[self.idx_to_transform])
+        if self.check_params_valid(x_cpy):
+            # change params to x
+            i = 0
+            for prm in self.model.params.mcmcList:
+                # Loop over indices within parameter
+                for ind in range(int(np.prod(prm.val_shape))):
+                    arr_ind = np.unravel_index(ind, prm.val_shape, order='F')
+                    prm.val[arr_ind] = x_cpy[i]
+                    i+=1
+        else:
+            return np.inf
+
+        return -1*self.model.logPost()
+    
+    def particle_swarm(self,w_max=.9,w_min=.4,c1=.5,c2=.3,\
+                             maxiter=1000,swarmsize=10,obj_tol=1e-8,step_tol=1e-8,
+                            log_transform=None,verbose=True):
+        # don't want verbose model for optimizer but want to change back after
+        was_verbose = False
+        if self.model.verbose: 
+            self.model.verbose=False
+            was_verbose=True
+        
+        # get parameter indices for transform
+        if log_transform:
+            self.idx_to_transform.clear()
+            i = 0
+            for prm in self.model.params.mcmcList:
+                for ind in range(int(np.prod(prm.val_shape))):
+                    if prm.name in log_transform:
+                        self.idx_to_transform.append(i)
+                    i+=1
+
+        lb = []
+        ub = []
+        i = 0
+        names = []
+        for prm in self.model.params.mcmcList:
+                if prm.name != 'logPost':
+                    for ind in range(int(np.prod(prm.val_shape))):
+                        arr_ind = np.unravel_index(ind, prm.val_shape, order='F')
+                        if i in self.idx_to_transform:
+                            #lb.append(np.log(prm.prior.bounds[0]) if prm.prior.bounds[0] != 0 else -np.log(100000))
+                            lb.append(-1)
+                            ub.append(np.log(prm.prior.bounds[1]) if prm.prior.bounds[1] != np.inf else np.log(100000))
+                        elif prm.name == 'betaU':
+                            lb.append(0)
+                            ub.append(50)
+                        elif prm.name == 'betaV':
+                            lb.append(0)
+                            ub.append(20)
+                        else:
+                            lb.append(prm.prior.bounds[0])
+                            ub.append(prm.prior.bounds[1] if prm.prior.bounds[1] != np.inf else np.log(100000))
+                        names.append(prm.name)
+                        i+=1
+
+        x_opt, f_opt, f_hist, it, fnc_calls = pso(self.optim_logPost, lb, ub, maxiter=maxiter, \
+                                                 minstep=step_tol, minfunc=obj_tol, swarmsize=swarmsize,\
+                                                w_max=w_max, w_min=w_min,c1=c1, c2=c2)
+        if verbose: print(pd.DataFrame(data={'param': names, 'opt value': x_opt}).to_string(index=False))
+        self.verbose=was_verbose
+        return x_opt, f_opt, f_hist, it, fnc_calls
+
+    def nelder_mead(self,maxiter=1000,step_tol=.0001,obj_tol=.0001,\
+                    log_transform=None,verbose=True):
+    
+        # don't want verbose model for optimizer but want to change back after
+        was_verbose = False
+        if self.model.verbose: 
+            self.model.verbose=False
+            was_verbose=True
+        
+        # get parameter indices for transform
+        if log_transform:
+            self.idx_to_transform.clear()
+            i = 0
+            for prm in self.model.params.mcmcList:
+                for ind in range(int(np.prod(prm.val_shape))):
+                    if prm.name in log_transform:
+                        self.idx_to_transform.append(i)
+                    i+=1
+                    
+        i = 0
+        names = []
+        x0 = []
+        for prm in self.model.params.mcmcList:
+            if prm.name != 'logPost':
+                for ind in range(int(np.prod(prm.val_shape))):
+                    arr_ind = np.unravel_index(ind, prm.val_shape, order='F')
+                    if i in self.idx_to_transform:
+                        x0.append(self.log_transform(prm.val[arr_ind]))
+                    else:
+                        x0.append(prm.val[arr_ind])
+                    names.append(prm.name)
+                    i+=1
+                    
+        lp_hist = []
+        param_hist = []
+        def callback(x):
+            fobj = self.optim_logPost(x)
+            lp_hist.append(fobj)
+            param_hist.append(x)
+
+        x_opt = minimize(self.optim_logPost, x0, method='nelder-mead',callback=callback,
+               options={'xatol': step_tol, 'fatol': obj_tol,'disp': True,'maxiter':maxiter, 'adaptive': True})
+        if verbose: 
+            print('logPost value:',x_opt['fun'])
+            print(pd.DataFrame(data={'param': names, 'init value': x0, 'opt value': x_opt['x']}).to_string(index=False))
+        self.verbose=was_verbose
+        return x_opt,lp_hist,param_hist 
+    
+###################### PARTICLE SWARM OPTIMIZATION ALGORITHM ##########################    
 from functools import partial
 import numpy as np
 from tqdm import tqdm

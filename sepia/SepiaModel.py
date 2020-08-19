@@ -7,10 +7,7 @@ import statsmodels.api as sm
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 from scipy import stats
-from scipy.optimize import minimize
 from copy import deepcopy
-import pandas as pd
-import sepia.SepiaSwarm as SepiaSwarm
 
 # container to group a number of misc. model pre-calculated info
 class ModelContainer():
@@ -157,124 +154,6 @@ class SepiaModel:
         ll = self.logLik(cvar, cindex)
         lp = sum([prm.prior.compute_log_prior() for prm in self.params.mcmcList])
         return ll + lp
-    
-    def logPost_wrapper(self,x):
-        """
-        Wrapper for the optimization of logPost. Not called by users.
-        Checks that parameter values are in bounds, then updates model parameters
-        and returns the new logPost value.
-        """
-        def inv_transform(x): return np.exp(x)
-        def check_params_valid(x):
-            valid=True
-            i=0
-            for prm in self.params.mcmcList:
-                for ind in range(int(np.prod(prm.val_shape))):
-                    if not prm.prior.is_in_bounds(x[i]): valid = False
-                    i+=1
-            return valid
-
-        x_cpy = deepcopy(x)
-        x_cpy[self.lam_idx] = inv_transform(x_cpy[self.lam_idx])
-        if check_params_valid(x_cpy):
-            # change params to x
-            i = 0
-            for prm in self.params.mcmcList:
-                # Loop over indices within parameter
-                for ind in range(int(np.prod(prm.val_shape))):
-                    arr_ind = np.unravel_index(ind, prm.val_shape, order='F')
-                    prm.val[arr_ind] = x_cpy[i]
-                    i+=1
-        else:
-            return np.inf
-
-        return -1*self.logPost()
-
-    def optim_logPost(self,maxiter=1000,xatol=.0001,fatol=.0001,verbose=True,method='nelder-mead',\
-                      swarmsize=10,swarm_tol=1e-8,swarm_step_tol=1e-8,w_max=.9,w_min=.4,c1=.5,c2=.3):
-        """
-        Optimize the log Posterior to find a good starting place for MCMC
-
-        :param maxiter: int -- max iterations for optimization
-        """
-        print('optimizing logpost over all parameters')
-        # don't want verbose model for optimizer but want to change back after
-        was_verbose = False
-        if self.verbose: 
-            self.verbose=False
-            was_verbose=True
-        # transormation for precision parameters
-        def transform(x): return np.log(x)
-        # indices of parameters to transform
-        lam_idx = []
-        i = 0
-        for prm in self.params.mcmcList:
-            for ind in range(int(np.prod(prm.val_shape))):
-                if prm.name in ['lamVz','lamWs','lamWOs','lamOs']:
-                    lam_idx.append(i)
-                i+=1
-        self.lam_idx = lam_idx
-
-        i=0
-        names = []
-        x0 = []
-        lb = []
-        ub = []
-        
-        if method == 'nelder-mead':
-            for prm in self.params.mcmcList:
-                if prm.name != 'logPost':
-                    for ind in range(int(np.prod(prm.val_shape))):
-                        arr_ind = np.unravel_index(ind, prm.val_shape, order='F')
-                        if i in lam_idx:
-                            x0.append(transform(prm.val[arr_ind]))
-                        else:
-                            x0.append(prm.val[arr_ind])
-                        names.append(prm.name)
-                        i+=1
-                    
-            lp_hist = []
-            param_hist = []
-            def callback(x):
-                fobj = self.logPost_wrapper(x)
-                lp_hist.append(fobj)
-                param_hist.append(x)
-                
-            x_opt = minimize(self.logPost_wrapper, x0, method=method,callback=callback,
-                   options={'xatol': xatol, 'fatol': fatol,'disp': True,'maxiter':maxiter, 'adaptive': True})
-            if verbose: print(pd.DataFrame(data={'param': names, 'init value': x0, 'opt value': x_opt['x']}).to_string(index=False))
-            self.verbose=was_verbose
-            return x_opt,lp_hist,param_hist    
-                
-        elif method == 'swarm':
-            for prm in self.params.mcmcList:
-                if prm.name != 'logPost':
-                    for ind in range(int(np.prod(prm.val_shape))):
-                        arr_ind = np.unravel_index(ind, prm.val_shape, order='F')
-                        if i in lam_idx:
-                            lb.append(np.log(prm.prior.bounds[0]) if prm.prior.bounds[0] != 0 else -np.log(100000))
-                            ub.append(np.log(prm.prior.bounds[1]) if prm.prior.bounds[1] != np.inf else np.log(100000))
-                        elif prm.name == 'betaU':
-                            lb.append(0)
-                            ub.append(50)
-                        elif prm.name == 'betaV':
-                            lb.append(0)
-                            ub.append(20)
-                        else:
-                            lb.append(prm.prior.bounds[0])
-                            ub.append(prm.prior.bounds[1] if prm.prior.bounds[1] != np.inf else np.log(100000))
-                        names.append(prm.name)
-                        i+=1
-            bounds = (lb,ub)
-
-            x_opt, f_opt, f_hist, it, fnc_calls = SepiaSwarm.pso(self.logPost_wrapper, lb, ub, maxiter=maxiter, \
-                                                                 minstep=swarm_step_tol, minfunc=swarm_tol, swarmsize=swarmsize,\
-                                                                w_max=w_max, w_min=w_min,c1=c1, c2=c2)
-            return x_opt,f_opt, f_hist, it, fnc_calls
-        
-        else:
-            raise ValueError("method must be one of:\n'nelder-mead'\n'swarm'")
-        
 
     def print_prior_info(self, pnames=None):
         """
@@ -690,14 +569,7 @@ class SepiaModel:
                 prm.refVal = prm.val.copy()
                 self.refNum = self.num.ref_copy(prm.name)
                 # Draw candidate
-                #  check for categorical theta
-                if prm.name == 'theta' and self.data.t_cat_ind[ind] > 0:
-                    # Get possible category values, excluding current value
-                    cat_vals = [i for i in range(1, self.data.t_cat_ind[ind]+1) if i != prm.val[arr_ind]]
-                    # Choose one
-                    cand = np.random.choice(cat_vals, 1)
-                else:
-                    cand = prm.mcmc.draw_candidate(arr_ind, do_propMH)
+                cand = prm.mcmc.draw_candidate(arr_ind, do_propMH)
                 # Set value to candidate
                 prm.val[arr_ind] = cand
                 # print(prm.mcmc.aCorr)

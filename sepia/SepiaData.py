@@ -594,7 +594,7 @@ class SepiaData(object):
                         plt.show()            
 
     
-    def plot_u_w_pairs(self, max_plots=5):
+    def plot_u_w_pairs(self, max_plots=5, save=False):
         """
         Plots principal component basis weights for both sim and obs data (if applicable).
 
@@ -685,6 +685,7 @@ class SepiaData(object):
                                     else:
                                         g.axes[i,j].scatter(u[:,j],u[:,i],c='darkorange',label='(u{},u{})'.format(j+1,i+1))
                                         g.axes[i,j].legend(facecolor='white')
+                        if save: plt.savefig('u_w_pairs.png',dpi=300)
                         plt.show()
 
     def plot_K_residuals(self):
