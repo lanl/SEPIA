@@ -29,13 +29,15 @@ y_ind_sim             Indices for multivariate sim outupts.             (ell_sim
 x_obs                 Controllable observed data inputs.                (m, p)
 y_obs                 Observation outputs.                              (m, ell_obs)
 y_ind_obs             Indices for multivariate observation outputs.     (ell_obs, )
+x_cat_ind             List to indicate categorical x inputs.            length p
+t_cat_ind             List to indicate categorical t inputs.            length q
 ====================  ================================================  =================
 
 In the table, `n` is the number of simulation runs, `m` is the number of observed data instances, and `ell` are the
 multivariate output dimensions (if applicable). Note that for observed data, we also accept ragged observations,
 where `y_obs` and `y_ind_obs` are given as lists (length `m`) of arrays.
 
-See :ref:`helpful-code-snippets` for examples of different types of data setup.
+See :ref:`helpful-code-snippets` for examples of different types of data setup, including an example using `x_cat_ind`.
 
 Transformations
 ^^^^^^^^^^^^^^^

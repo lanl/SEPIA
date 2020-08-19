@@ -14,7 +14,7 @@ class SepiaDistCov(object):
 
     """
 
-    def __init__(self, data, data2=None, catInd=False):
+    def __init__(self, data, data2=None, cat_ind=None):
         """
         Instantiate SepiaDistCov.
 
@@ -22,19 +22,42 @@ class SepiaDistCov(object):
 
         :param data: nparray -- input data, shape (n_samples, _)
         :param data2: nparray -- optional, second data set to compute distances with data
+        :param cat_ind: list, 1d array -- optional, cat_ind as passed to sepiadata
 
         """
         if data2 is None:
             self.type = 1
             self.n = data.shape[0]
             self.ind = np.triu_indices(n=self.n, k=1)
-            self.sqdist = np.square(data[self.ind[0], :] - data[self.ind[1], :])
+            if cat_ind is None:
+                self.sqdist = np.square(data[self.ind[0], :] - data[self.ind[1], :])
+            else:
+                is_cat = [ci > 0 for ci in cat_ind]
+                not_cat = [ci == 0 for ci in cat_ind]
+                data_notcat = data[:, not_cat]
+                data_iscat = data[:, is_cat]
+                sqdist = np.zeros((self.ind[0].shape[0], data.shape[1]))
+                sqdist[:, not_cat] = np.square(data_notcat[self.ind[0], :] - data_notcat[self.ind[1], :])
+                sqdist[:, is_cat] = 0.5*(data_iscat[self.ind[0], :] != data_iscat[self.ind[1], :])
+                self.sqdist = sqdist
         else:
             self.type = 2
             self.n = data.shape[0]
             self.m = data2.shape[0]
             self.ind = np.unravel_index(np.arange(self.n * self.m), (self.n, self.m))
-            self.sqdist = np.square(data[self.ind[0], :] - data2[self.ind[1], :])
+            if cat_ind is None:
+                self.sqdist = np.square(data[self.ind[0], :] - data2[self.ind[1], :])
+            else:
+                is_cat = [ci > 0 for ci in cat_ind]
+                not_cat = [ci == 0 for ci in cat_ind]
+                data_notcat = data[:, not_cat]
+                data_iscat = data[:, is_cat]
+                data2_notcat = data2[:, not_cat]
+                data2_iscat = data2[:, is_cat]
+                sqdist = np.zeros((self.ind[0].shape[0], data.shape[1]))
+                sqdist[:, not_cat] = np.square(data_notcat[self.ind[0], :] - data2_notcat[self.ind[1], :])
+                sqdist[:, is_cat] = 0.5*(data_iscat[self.ind[0], :] != data2_iscat[self.ind[1], :])
+                self.sqdist = sqdist
 
     def compute_cov_mat(self, beta, lamz, lams=None, verbose=False):
         """

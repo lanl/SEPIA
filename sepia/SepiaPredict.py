@@ -170,7 +170,7 @@ class SepiaXvalEmulatorPrediction(SepiaEmulatorPrediction):
             # Subset zt to fit inds, update ztDist
             sub_model.data.zt = sub_model.data.zt[fit_inds, :]
             sub_model.num.m = len(fit_inds)
-            sub_model.num.ztDist = SepiaDistCov(sub_model.data.zt)
+            sub_model.num.ztDist = SepiaDistCov(sub_model.data.zt, cat_ind=np.concatenate([sub_model.data.x_cat_ind, sub_model.data.t_cat_ind]))
             # Subset x/t to predict inds
             self.xpred = sub_model.data.sim_data.x_trans[li, :]
             self.t_pred = sub_model.data.sim_data.t_trans[li, :]
@@ -455,8 +455,8 @@ def uvPred(pred, useAltW=False):
     nsamp = samples['lamWs'].shape[0]
 
     x0Dist = num.x0Dist
-    xpred0Dist=SepiaDistCov(xpred)
-    xxpred0Dist=SepiaDistCov(data.x,xpred)
+    xpred0Dist=SepiaDistCov(xpred, cat_ind=data.x_cat_ind)
+    xxpred0Dist=SepiaDistCov(data.x, xpred, cat_ind=data.x_cat_ind)
 
     if pred.storeRlz:
         tpred = np.empty((nsamp, npred*(pv+pu) ))
@@ -483,11 +483,11 @@ def uvPred(pred, useAltW=False):
 
 
         xtheta=np.concatenate((data.x,np.tile(theta, (n, 1))),axis=1)
-        xDist=SepiaDistCov(xtheta)
-        xzDist=SepiaDistCov(xtheta,data.zt)
-        xpredDist=SepiaDistCov(xpredt)
-        xxpredDist=SepiaDistCov(xtheta,xpredt)
-        zxpredDist=SepiaDistCov(data.zt,xpredt)
+        xDist=SepiaDistCov(xtheta, cat_ind=np.concatenate([data.x_cat_ind, data.t_cat_ind]))
+        xzDist=SepiaDistCov(xtheta,data.zt, cat_ind=np.concatenate([data.x_cat_ind, data.t_cat_ind]))
+        xpredDist=SepiaDistCov(xpredt, cat_ind=np.concatenate([data.x_cat_ind, data.t_cat_ind]))
+        xxpredDist=SepiaDistCov(xtheta,xpredt, cat_ind=np.concatenate([data.x_cat_ind, data.t_cat_ind]))
+        zxpredDist=SepiaDistCov(data.zt,xpredt, cat_ind=np.concatenate([data.x_cat_ind, data.t_cat_ind]))
 
         # SigData
         # Generate the part of the matrix related to the data
@@ -711,8 +711,8 @@ def wPred(pred):
         else:
             xpredt=xpred
 
-        xpredDist=SepiaDistCov(xpredt)
-        zxpredDist=SepiaDistCov(data.zt,xpredt)
+        xpredDist=SepiaDistCov(xpredt, cat_ind=np.concatenate([data.x_cat_ind, data.t_cat_ind]))
+        zxpredDist=SepiaDistCov(data.zt,xpredt, cat_ind=np.concatenate([data.x_cat_ind, data.t_cat_ind]))
 
         Myhat=np.zeros((npred*pu,1))
         Syhat=np.zeros((npred*pu,npred*pu))

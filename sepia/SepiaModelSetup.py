@@ -115,23 +115,25 @@ def setup_model(data, Sigy=None, lamVzGroup=None):
         data.x = obs_data.x_trans
     else:
         data.x = np.array([], dtype=np.float).reshape((0, 1))
-    num.x0Dist = SepiaDistCov(data.x)
+    num.x0Dist = SepiaDistCov(data.x, cat_ind=data.x_cat_ind)
     if sim_data.t_trans is not None:
         data.zt = np.concatenate([sim_data.x_trans, sim_data.t_trans], axis=1)
     else:
         data.zt = sim_data.x_trans
-    num.ztDist = SepiaDistCov(data.zt)
+    num.ztDist = SepiaDistCov(data.zt, cat_ind=np.concatenate([data.x_cat_ind, data.t_cat_ind]))
 
     if not data.sim_only:
-        # Check for lamVzGroups, validate TODO validate
+        # Check for lamVzGroups, validate
         if lamVzGroup is not None:
             lamVzGnum = np.unique(lamVzGroup).shape[0]
         else:
             lamVzGroup = [0] * pv
-            lamVzGnum = 1
+            lamVzGnum = 1 if pv > 0 else 0
         num.lamVzGroup = lamVzGroup
         num.lamVzGnum = lamVzGnum
-        #assert (lamVzGnum == np.unique(lamVzGroup).shape[0])
+        for i in range(lamVzGnum):
+            if i not in lamVzGroup:
+                raise TypeError('lamVzGroup not correct')
 
     # Transform obs data using D, Kobs -> v, u
     if not data.sim_only:
