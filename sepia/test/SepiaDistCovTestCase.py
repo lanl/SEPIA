@@ -35,7 +35,6 @@ class SepiaDistCovTestCase(unittest.TestCase):
         sqdistmat = sqdistmat + sqdistmat.T
         self.assertTrue(np.allclose(sqdistmanual, sqdistmat))
 
-
     def test_square_dist_multidim_x(self):
         n = self.X1.shape[0]
         sqdistmanual = np.zeros((n, n))
@@ -48,6 +47,11 @@ class SepiaDistCovTestCase(unittest.TestCase):
         sqdistmat = sqdistmat + sqdistmat.T
         self.assertTrue(np.allclose(sqdistmanual, sqdistmat))
 
+    def test_square_dist_multidim_x_catind(self):
+        n = self.X1.shape[0]
+        self.X1[:, 3] = np.random.choice(range(1, 3), n)
+        cat_ind = [0, 0, 0, 3, 0]
+        cov = SepiaDistCov(self.X1, cat_ind=cat_ind)
 
     def test_rect_dist_unidim_x(self):
         m, n = self.x1.shape[0], self.x2.shape[0]
@@ -60,7 +64,6 @@ class SepiaDistCovTestCase(unittest.TestCase):
         sqdistmat[cov.ind] = np.sum(cov.sqdist, axis=-1)
         self.assertTrue(np.allclose(sqdistmanual, sqdistmat))
 
-
     def test_rect_dist_multidim_x(self):
         m, n = self.X1.shape[0], self.X2.shape[0]
         sqdistmanual = np.zeros((m, n))
@@ -72,6 +75,12 @@ class SepiaDistCovTestCase(unittest.TestCase):
         sqdistmat[cov.ind] = np.sum(cov.sqdist, axis=-1)
         self.assertTrue(np.allclose(sqdistmanual, sqdistmat))
 
+    def test_rect_dist_multidim_x_catind(self):
+        m, n = self.X1.shape[0], self.X2.shape[0]
+        self.X1[:, 3] = np.random.choice(range(1, 3), m)
+        self.X2[:, 3] = np.random.choice(range(1, 3), n)
+        cat_ind = [0, 0, 0, 3, 0]
+        cov = SepiaDistCov(self.X1, self.X2, cat_ind)
 
     def test_square_cov_unidim_x(self):
         n = self.x1.shape[0]
