@@ -37,6 +37,9 @@ For an emulator-only model, the possible inputs are:
   At least one of `x_sim` or `t_sim` must be provided to make a valid model.
 * `y_sim`: simulation outputs, must be provided.
 * `y_ind_sim`: vector of indices for multivariate simulation output, required if the output is multivariate.
+* `x_cat_ind`: list to identify columns of `x` that are categorical variables, where 0 means not categorical and an integer gives the number of categories. Categorical variables should be nonzero integers.
+* `t_cat_ind`: list to identify columns of `t` that are categorical variables, similar to `x_cat_ind`.
+
 
 If, in addition, observed data will be included, the following possible inputs would be included:
 
@@ -55,6 +58,8 @@ Univariate-output emulator-only data
     data = SepiaData(t_sim=t, y_sim=y)           # No controllable input
     data = SepiaData(x_sim=x, y_sim=y)           # Only controllable input
     data = SepiaData(x_sim=x, t_sim=t, y_sim=y)  # Controllable and other inputs
+    # Indicate that third column of x is categorical with 5 categories (takes values in [1, 2, 3, 4, 5])
+    data = SepiaData(x_sim=x, y_sim=y, x_cat_ind=[0, 0, 5])
 
 Multivariate-output emulator-only data
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
