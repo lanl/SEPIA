@@ -146,7 +146,34 @@ def component_sens(x, y, beta, lamUz, lamWs, xe, ngrid, varlist, jelist, rg):
         c1 = calc1(betaei, diff)
         C2 = calc2(x, xdist, m, rg, betaei, diff)
         # TODO stopping here, at matlab gSens line 322
-
+        for jj in range(m): c3[jj,:]=calc3(x[jj,:],rg,betaei,diff)
+        u2=np.prod(c3,2)
+        e2[ii]=np.prod(c1)/lamUzi-np.trace(np.squeeze(Q[ii,:,:])*\
+                                         varf(m,p,[],C2,u2))/lamUzi**2
+        e0[ii]=u2.T*My[:,ii]/lamUzi
+        # total variance
+        vt[ii]=1/lamUzi-np.trace(np.squeeze(Q[ii,:,:])*\
+                                varf(m,p,np.arange(p),C2,[]))/lamUzi**2-e2[ii]
+        # 1:p might be an index so we need an arrange from 0 to p-1
+        # main/total effect indices; main effect functions
+        for jj in range(p):
+            Js=[jj]; ll=np.setxor1d(np.arange(p),Js)
+            u1=np.prod(c3[:,ll],2); u4=prod(c1[ll])
+            sme[ii,jj]=u4/lamUzi-np.trace(np.squeeze(Q[ii,:,:])*\
+                                         varf(m,p,Js,C2,u1))/lamUzi**2-e2[ii]
+            sme[ii,jj]=sme[ii,jj]/vt[ii]
+            ME=etae(Js,x,u1,u4,xexdist[jj],xedist[jj],betaei,lamUzi,\
+                   lamWsi,My[:,ii],np.squeeze(P[ii,:,:]))
+            mef_m[ii,jj,:]=ME.m; mef_v[ii,jj,:]=ME.v
+            ll=[jj]; Js=np.setxor1d(np.arange(p),ll); u2=np.prod(c3[:,ll],2)
+            ste[ii,jj]=c1[ll]/lamUzi-np.trace(np.squeeze(Q[ii,:,:])*\
+                                              varf(m,p,Js,C2,u2))/lamUzi**2-e2[ii]
+            ste[ii,jj]=1-ste[ii,jj]/vt[ii]
+        # two-factor interaction indices, joint effects
+        if not varlist:
+            for jj in range(len(varlist)):
+                Js=varlist
+        
 def calc1(beta, diff):
     ncdf = scipy.stats.norm.cdf(np.sqrt(2 * beta) * diff)
     c1 = (np.sqrt(np.pi/beta) * diff * (2 * ncdf - 1) - (1./beta) * (1 - np.sqrt(2*np.pi) * ncdf)) / np.square(diff)
@@ -171,6 +198,34 @@ def calc3(x, rg, beta, diff):
     ncdf0 = scipy.stats.norm.cdf(np.sqrt(2 * beta) * (rg[:, 0] - x))
     c3 = np.sqrt(np.pi / beta) * (ncdf1 - ncdf0) / diff
     return c3
+
+def varf(m,p,Js,C2,ef):
+    kk=0; ll=np.setxor1d(np.arange(p),Js); Vf=np.zeros((m,m));
+    for ii in range(m-1):
+        for jj in range(ii,m):
+            kk=kk+1; Vf[ii,jj]=1
+            if not Js: Vf[ii,jj]=np.prod(C2[kk,Js])
+            if not ll: Vf[ii,jj]=Vf[ii,jj]*ef[ii]*ef[jj]
+    Vf=Vf+Vf.T;
+    for ii in range(m)
+        kk=kk+1; Vf[ii,ii]=1;
+        if not Js: Vf[ii,ii]=np.prod(C2[kk,Js])
+        if not ll: Vf[ii,ii]=Vf[ii,ii]*(ef[ii]**2)
+    return Vf
+
+class ee_struct:
+    def __init__(self,m_dim,v_dim):
+        self.m = np.zeros(nxe)
+        self.v = np.zeros(nxe)
+def etae(Js,x,ef,vf,xexdist,xedist,beta,lamUz,lamWs,My,P):
+    nxe=xedist.n
+    ee = ee_struct(m_dim=nxe,v_dim=nxe)
+    Ct = xexdist.compute_cov_mat(beta[Js].T,lamUz)
+    Ct = Ct*np.tile(ef.T,nxe)
+    ee.m=np.matmul(Ct,My)
+    C = xedist.compute_cov_mat(beta[Jt].T,lamUz,lamWs)
+    ee.v=np.diag(C*vf-np.matmul(np.matmul(Ct,P),Ct.T))
+    return ee
 
 if __name__ == '__main__':
     from dev_test.setup_test_cases import *
