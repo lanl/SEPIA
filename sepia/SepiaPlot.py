@@ -159,10 +159,11 @@ def param_stats(samples_dict,theta_names=None,q1=0.05,q2=0.95,digits=4):
     # theta_names : list
     # samples_dict : dictionary of samples
     # stats : dataframe with mean and std of all parameters
-    n_theta = samples_dict['theta'].shape[1]
-    if theta_names is not None and len(theta_names) != n_theta:
-        print('theta_names should have',n_theta, 'entries')
-        return
+    if 'theta' in samples_dict.keys():
+        n_theta = samples_dict['theta'].shape[1]
+        if theta_names is not None and len(theta_names) != n_theta:
+            print('theta_names should have',n_theta, 'entries')
+            return
     
     mean = []
     sd = []
