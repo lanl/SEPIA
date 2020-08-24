@@ -571,7 +571,14 @@ class SepiaModel:
                 prm.refVal = prm.val.copy()
                 self.refNum = self.num.ref_copy(prm.name)
                 # Draw candidate
-                cand = prm.mcmc.draw_candidate(arr_ind, do_propMH)
+                #  check for categorical theta
+                if prm.name == 'theta' and self.data.t_cat_ind[ind] > 0:
+                    # Get possible category values, excluding current value
+                    cat_vals = [i for i in range(1, self.data.t_cat_ind[ind]+1) if i != prm.val[arr_ind]]
+                    # Choose one
+                    cand = np.random.choice(cat_vals, 1)
+                else:
+                    cand = prm.mcmc.draw_candidate(arr_ind, do_propMH)
                 # Set value to candidate
                 prm.val[arr_ind] = cand
                 # print(prm.mcmc.aCorr)
