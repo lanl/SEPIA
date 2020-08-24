@@ -34,7 +34,13 @@ class SepiaHierarchicalThetaModels:
         # Example: hier_theta_inds = np.array([(1, 1, 1), (2, -1, 4)) for 3 models, theta index 1 hierarchical across all models,
         #          theta indices 2/4 hierarchical across models 1 and 3 but no corresponding theta in model 2.
         if not hier_theta_inds.shape[1] == len(model_list):
-            raise Exception('Number of models does not match provided hierarchical theta lists')
+            raise TypeError('Number of models does not match provided hierarchical theta lists')
+        # Check that categorical inds aren't done hierarchically
+        for ht in hier_theta_inds:
+            for mi in range(len(model_list)):
+                shared_idx = ht[mi]
+                if model_list[mi].data.t_cat_ind[shared_idx] > 0:
+                    raise TypeError('Cannot model categorical theta hierarchically.')
         self.setup_hier_theta()
 
     def setup_hier_theta(self):
