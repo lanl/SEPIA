@@ -82,6 +82,19 @@ def sensitivity(model, sampleset=False, ngrid=21, varlist=[], jelist=[], rg=None
 
     print('fin')
 
+class comp_sens_struct:
+    def __init__(self,e0,vt,sme,ste,varlist,jelist,sie,jef,sje):
+        self.e0=e0
+        self.vt=vt
+        self.sme=sme
+        self.ste=ste
+        if varlist:
+            sa.sie=sie
+            sa.jef=jef
+        sa.mef=mef
+        if jelist: 
+            sa.sje=sje
+            
 def component_sens(x, y, beta, lamUz, lamWs, xe, ngrid, varlist, jelist, rg):
 
     diff = rg[:, 1] - rg[:, 0]
@@ -147,7 +160,7 @@ def component_sens(x, y, beta, lamUz, lamWs, xe, ngrid, varlist, jelist, rg):
         C2 = calc2(x, xdist, m, rg, betaei, diff)
         # TODO stopping here, at matlab gSens line 322
         for jj in range(m): c3[jj,:]=calc3(x[jj,:],rg,betaei,diff)
-        u2=np.prod(c3,2)
+        u2=np.prod(c3,1)
         e2[ii]=np.prod(c1)/lamUzi-np.trace(np.squeeze(Q[ii,:,:])*\
                                          varf(m,p,[],C2,u2))/lamUzi**2
         e0[ii]=u2.T*My[:,ii]/lamUzi
@@ -158,21 +171,41 @@ def component_sens(x, y, beta, lamUz, lamWs, xe, ngrid, varlist, jelist, rg):
         # main/total effect indices; main effect functions
         for jj in range(p):
             Js=[jj]; ll=np.setxor1d(np.arange(p),Js)
-            u1=np.prod(c3[:,ll],2); u4=prod(c1[ll])
+            u1=np.prod(c3[:,ll],1); u4=prod(c1[ll])
             sme[ii,jj]=u4/lamUzi-np.trace(np.squeeze(Q[ii,:,:])*\
                                          varf(m,p,Js,C2,u1))/lamUzi**2-e2[ii]
             sme[ii,jj]=sme[ii,jj]/vt[ii]
             ME=etae(Js,x,u1,u4,xexdist[jj],xedist[jj],betaei,lamUzi,\
                    lamWsi,My[:,ii],np.squeeze(P[ii,:,:]))
             mef_m[ii,jj,:]=ME.m; mef_v[ii,jj,:]=ME.v
-            ll=[jj]; Js=np.setxor1d(np.arange(p),ll); u2=np.prod(c3[:,ll],2)
+            ll=[jj]; Js=np.setxor1d(np.arange(p),ll); u2=np.prod(c3[:,ll],1)
             ste[ii,jj]=c1[ll]/lamUzi-np.trace(np.squeeze(Q[ii,:,:])*\
                                               varf(m,p,Js,C2,u2))/lamUzi**2-e2[ii]
             ste[ii,jj]=1-ste[ii,jj]/vt[ii]
         # two-factor interaction indices, joint effects
         if not varlist:
             for jj in range(len(varlist)):
-                Js=varlist
+                Js=varlist[jj,:]; ll=np.setxor1d(np.arange(p),Js)
+                u3=np.prod(c3[:,ll],1); u5=np.prod(c1[ll])
+                sie[ii,jj]=u5/lamUzi-np.trace(np.squeeze(Q[ii,:,:])*\
+                                              varf(m,p,Js,C2,u3))/lamUzi**2-e2[ii]
+                sie[ii,jj]=sie[ii,jj]/vt[ii]-sme[ii,varlist[jj,1]]-\
+                     sme[ii,varlist[jj,2]]
+                JE=etae(Js,x,u3,u5,xexdist[p+jj],xedist[p+jj],betaei,lamUzi,\
+                       lamWsi,My[:,ii],np.squeeze(P[ii,:,:]))
+                jef_m[ii,jj,:,:]=np.reshape(JE.m,(ngrid,ngrid))
+                jef_v[ii,jj,:,:]=np.reshape(JE.v,(ngrid,ngrid))
+        # joint effect indices
+        if not jelist:
+            for jj in range(len(jelist)):
+                Js=jelist[jj]; ll=np.setxor1d(np.arange(p),Js)
+                u6=np.prod(c3[:,ll],1); u7=np.prod(c1[ll])
+                sje[ii,jj]=u7/lamUzi-np.trace(np.squeeze(Q[ii,:,:])*\
+                                             varf(m,p,Js,C2,u6))/lamUzi**2-e2[ii]
+                sje[ii,jj]=sje[ii,jj]/vt[ii]
+    
+    sa = comp_sens_struct(e0,vt,sme,ste,varlist,jelist,sie,jef,sje)
+    return sa
         
 def calc1(beta, diff):
     ncdf = scipy.stats.norm.cdf(np.sqrt(2 * beta) * diff)
