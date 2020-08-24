@@ -339,6 +339,8 @@ class SepiaModel:
             p_ss = np.array(step_sizes[p.name])   # (n_levels, dim of param)
             for ind in range(int(np.prod(p.val_shape))):  # Loop over each one
                 arr_ind = np.unravel_index(ind, p.val_shape, order='F')
+                if p.fixed[arr_ind[0], arr_ind[1]]:
+                    continue
                 p_acc_ind = p_acc[0, :, :, arr_ind[0], arr_ind[1]].squeeze()
                 p_ss_ind = p_ss[:, arr_ind[0], arr_ind[1]].squeeze()
                 y = np.vstack([np.sum(p_acc_ind, axis=1), n_burn - np.sum(p_acc_ind, axis=1)]).T
