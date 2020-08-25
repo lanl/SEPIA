@@ -349,7 +349,7 @@ class SepiaModel:
                 try:
                     res = glm_model.fit()
                 except Exception:
-                    print('problem fitting glm, reverting to default step size.')
+                    print('problem fitting glm on param %s index %d, reverting to default step size.' % (p.name, ind))
                     new_ss[arr_ind] = p.mcmc.stepParam[arr_ind]
                 else:
                     coefs = res.params
