@@ -269,6 +269,9 @@ class SepiaModel:
                     theta = p.mcmc_to_array(trim=nburn, flat=flat).T
             ess_max = 0
             for i in range(theta.shape[0]):
+                # Skip if categorical
+                if self.data.t_cat_ind[i] > 0:
+                    continue
                 tmp = self.ESS(theta[i,:])
                 if tmp > ess_max: ess_max = tmp
             # set ss to grab ess number of samples
