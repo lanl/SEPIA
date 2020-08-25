@@ -3,11 +3,11 @@ import numpy as np
 import itertools
 import scipy.stats
 
-from SepiaDistCov import SepiaDistCov
+from sepia.SepiaDistCov import SepiaDistCov
 
 # TODO this is not finished!
 
-def sensitivity(model, sampleset=False, ngrid=21, varlist=[], jelist=[], rg=None, option='mean'):
+def sensitivity(model, samples_dict=False, sampleset=False, ngrid=21, varlist=[], jelist=[], rg=None, option='mean'):
 
     # Extract things from model
     p = model.num.p
@@ -16,7 +16,7 @@ def sensitivity(model, sampleset=False, ngrid=21, varlist=[], jelist=[], rg=None
     pu = model.num.pu
     m = model.num.m
 
-    samples_dict = {p.name: p.mcmc_to_array(sampleset=sampleset, flat=True) for p in model.params.mcmcList}
+    if not samples_dict: samples_dict = {p.name: p.mcmc_to_array(sampleset=sampleset, flat=True) for p in model.params.mcmcList}
     betaU = samples_dict['betaU']
     lamUz = samples_dict['lamUz']
     lamWs = samples_dict['lamWs']
@@ -83,17 +83,19 @@ def sensitivity(model, sampleset=False, ngrid=21, varlist=[], jelist=[], rg=None
     print('fin')
 
 class comp_sens_struct:
-    def __init__(self,e0,vt,sme,ste,varlist,jelist,sie,jef,sje):
+    def __init__(self,e0,vt,sme,ste,varlist,jelist,sie,jef_m,jef_v,sje,mef_m,mef_v):
         self.e0=e0
         self.vt=vt
         self.sme=sme
         self.ste=ste
         if varlist:
-            sa.sie=sie
-            sa.jef=jef
-        sa.mef=mef
+            self.sie=sie
+            self.jef_m=jef_m
+            self.jef_v=jef_v
+        self.mef_m=mef_m
+        self.mef_v=mef_v
         if jelist: 
-            sa.sje=sje
+            self.sje=sje
             
 def component_sens(x, y, beta, lamUz, lamWs, xe, ngrid, varlist, jelist, rg):
 
@@ -148,9 +150,15 @@ def component_sens(x, y, beta, lamUz, lamWs, xe, ngrid, varlist, jelist, rg):
         sie = np.zeros((nmcmc, len(varlist)))
         jef_m = np.zeros((nmcmc, len(varlist), ngrid, ngrid))
         jef_v = np.zeros((nmcmc, len(varlist), ngrid, ngrid))
-        ue = np.zeros(m)
+        #ue = np.zeros(m)
+    else:
+        sie = None
+        jef_m = None
+        jef_v = None
     if len(jelist) > 0:
         sje = np.zeros((nmcmc, len(jelist)))
+    else:
+        sje = None
     for ii in range(nmcmc):
         betaei = beta[ii, :]
         lamUzi = lamUz[ii]
@@ -158,12 +166,12 @@ def component_sens(x, y, beta, lamUz, lamWs, xe, ngrid, varlist, jelist, rg):
         # initial calculations
         c1 = calc1(betaei, diff)
         C2 = calc2(x, xdist, m, rg, betaei, diff)
-        # TODO stopping here, at matlab gSens line 322
+        c3 = np.zeros((m,2))
         for jj in range(m): c3[jj,:]=calc3(x[jj,:],rg,betaei,diff)
         u2=np.prod(c3,1)
         e2[ii]=np.prod(c1)/lamUzi-np.trace(np.squeeze(Q[ii,:,:])*\
                                          varf(m,p,[],C2,u2))/lamUzi**2
-        e0[ii]=u2.T*My[:,ii]/lamUzi
+        e0[ii]=np.matmul(u2.T,My[:,ii])/lamUzi
         # total variance
         vt[ii]=1/lamUzi-np.trace(np.squeeze(Q[ii,:,:])*\
                                 varf(m,p,np.arange(p),C2,[]))/lamUzi**2-e2[ii]
@@ -171,7 +179,7 @@ def component_sens(x, y, beta, lamUz, lamWs, xe, ngrid, varlist, jelist, rg):
         # main/total effect indices; main effect functions
         for jj in range(p):
             Js=[jj]; ll=np.setxor1d(np.arange(p),Js)
-            u1=np.prod(c3[:,ll],1); u4=prod(c1[ll])
+            u1=np.prod(c3[:,ll],1); u4=np.prod(c1[ll])
             sme[ii,jj]=u4/lamUzi-np.trace(np.squeeze(Q[ii,:,:])*\
                                          varf(m,p,Js,C2,u1))/lamUzi**2-e2[ii]
             sme[ii,jj]=sme[ii,jj]/vt[ii]
@@ -204,7 +212,7 @@ def component_sens(x, y, beta, lamUz, lamWs, xe, ngrid, varlist, jelist, rg):
                                              varf(m,p,Js,C2,u6))/lamUzi**2-e2[ii]
                 sje[ii,jj]=sje[ii,jj]/vt[ii]
     
-    sa = comp_sens_struct(e0,vt,sme,ste,varlist,jelist,sie,jef,sje)
+    sa = comp_sens_struct(e0,vt,sme,ste,varlist,jelist,sie,jef_m,jef_v,sje,mef_m,mef_v)
     return sa
         
 def calc1(beta, diff):
@@ -237,26 +245,26 @@ def varf(m,p,Js,C2,ef):
     for ii in range(m-1):
         for jj in range(ii,m):
             kk=kk+1; Vf[ii,jj]=1
-            if not Js: Vf[ii,jj]=np.prod(C2[kk,Js])
-            if not ll: Vf[ii,jj]=Vf[ii,jj]*ef[ii]*ef[jj]
+            if len(Js) != 0: Vf[ii,jj]=np.prod(C2[kk,Js])
+            if len(ll) != 0: Vf[ii,jj]=Vf[ii,jj]*ef[ii]*ef[jj]
     Vf=Vf+Vf.T;
-    for ii in range(m)
+    for ii in range(m):
         kk=kk+1; Vf[ii,ii]=1;
-        if not Js: Vf[ii,ii]=np.prod(C2[kk,Js])
-        if not ll: Vf[ii,ii]=Vf[ii,ii]*(ef[ii]**2)
+        if len(Js) != 0: Vf[ii,ii]=np.prod(C2[kk,Js])
+        if len(ll) != 0: Vf[ii,ii]=Vf[ii,ii]*(ef[ii]**2)
     return Vf
 
 class ee_struct:
     def __init__(self,m_dim,v_dim):
-        self.m = np.zeros(nxe)
-        self.v = np.zeros(nxe)
+        self.m = np.zeros(m_dim)
+        self.v = np.zeros(v_dim)
 def etae(Js,x,ef,vf,xexdist,xedist,beta,lamUz,lamWs,My,P):
     nxe=xedist.n
     ee = ee_struct(m_dim=nxe,v_dim=nxe)
     Ct = xexdist.compute_cov_mat(beta[Js].T,lamUz)
-    Ct = Ct*np.tile(ef.T,nxe)
+    Ct = Ct*np.tile(ef.T,(nxe,1))
     ee.m=np.matmul(Ct,My)
-    C = xedist.compute_cov_mat(beta[Jt].T,lamUz,lamWs)
+    C = xedist.compute_cov_mat(beta[Js].T,lamUz,lamWs)
     ee.v=np.diag(C*vf-np.matmul(np.matmul(Ct,P),Ct.T))
     return ee
 
