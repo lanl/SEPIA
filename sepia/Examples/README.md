@@ -1,23 +1,21 @@
 ### Example notebooks
 
-These notebooks demonstrate various use cases.
-For a fast orientation, use `univariate_example.ipynb`, but see the other examples for handling multivariate-output data.
+The example notebooks demonstrate various use cases.
+For a fast orientation, use `Synthetic_toy_examples/univariate_example.ipynb` or 
+`Synthetic_toy_examples/multivariate_example_with_prediction.ipynb` for handling multivariate-output data.
+The directories are described below; each has its own README with more information.
 
-#### `univariate_example.ipynb`
-A simple synthetic-data example where the response variable is univariate.
-Demonstrates setting up the model, doing MCMC, and doing predictions.
+#### `Al_5083/`
+Real data example with multivariate output. Data comprised of features extracted from velocimetry curves in a 
+flyer plate impact experiment.
 
-#### `multivariate_example.ipynb`
-A synthetic-data example where the response variable is multivariate.
+#### `Ball_Drop/`
+Synthetic data example with multivariate output from a physically motivated model of dropping balls from a tower.
 
-#### `multivariate_example_with_prediction.ipynb`
-A synthetic-data example where the response variable is multivariate.
-Predictions of various kinds are done after MCMC.
+#### `Neddermeyer/`
+Synthetic data with 2D multivariate output from a physically motivated model.
+Demonstrates custom code for 2D outputs.
 
-#### Ball_Drop
-A more involved synthetic-data example that uses physics equations to generate data
-that might be observed from dropping balls off of a tower.
+#### `Synthetic_toy_examples/`
+Synthetic data toy examples. Used to explain basic ideas and show syntax, but results not particularly meaningful.
 
-#### Al_5083
-A real data example using features extracted from velocimetry curves in a flyer plate impact
-experiment involving aluminum. (Notebook not well explained yet)

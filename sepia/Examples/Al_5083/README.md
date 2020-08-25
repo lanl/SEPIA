@@ -1,4 +1,4 @@
-Flyer plate experiment data features
+Flyer plate experiment data features.
 
 Data LA-UR-18-20151
 
