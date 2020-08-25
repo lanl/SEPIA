@@ -346,10 +346,15 @@ class SepiaModel:
                 y = np.vstack([np.sum(p_acc_ind, axis=1), n_burn - np.sum(p_acc_ind, axis=1)]).T
                 x = np.vstack([np.ones(n_levels), np.log(p_ss_ind)]).T
                 glm_model = sm.GLM(y, x, family=sm.families.Binomial())
-                res = glm_model.fit()
-                coefs = res.params
-                opt_ss = np.exp((logit-coefs[0])/coefs[1])
-                new_ss[arr_ind] = opt_ss
+                try:
+                    res = glm_model.fit()
+                except Exception:
+                    print('problem fitting glm, reverting to default step size.')
+                    new_ss[arr_ind] = p.mcmc.stepParam[arr_ind]
+                else:
+                    coefs = res.params
+                    opt_ss = np.exp((logit-coefs[0])/coefs[1])
+                    new_ss[arr_ind] = opt_ss
             p.mcmc.stepParam = new_ss.copy()
             if update_vals:
                 p.val = mod_tmp.params.mcmcList[pi].val.copy()
