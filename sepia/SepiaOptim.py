@@ -2,6 +2,7 @@ import numpy as np
 from copy import deepcopy
 from scipy.optimize import minimize
 import pandas as pd
+import sys
 
 class SepiaOptim():
     """
@@ -9,21 +10,31 @@ class SepiaOptim():
     """
     def __init__(self, model=None):
         if model is None:
-            raise TypeError('model is required to set up optimizer.')
-            
+            raise TypeError('model is required to set up optimizer.')    
         self.model = model
         self.idx_to_transform = []
         
-    def log_transform(self,x): 
+    def log_transform(self,x):
+        """
+        1-1 log transformation, linear on [0,1]
+        """
         if x >= 1: return np.log(x)
         else: return x-1
     
     def inv_log_transform(self,x):
-        x[x>=0]=np.exp(x[x>=0])
-        x[x<0]=x[x<0]+1
+        """
+        inverse of log_transform
+        """
+        exp_idx = x>=0
+        add_idx = x<0
+        x[exp_idx]=np.exp(x[exp_idx])
+        x[add_idx]= x[add_idx]+1
         return x
     
     def check_params_valid(self,x):
+        """
+        Check that proposed parameter values lie within required bounds
+        """
         valid=True
         i=0
         for prm in self.model.params.mcmcList:
@@ -41,22 +52,32 @@ class SepiaOptim():
         x_cpy = deepcopy(x)
         x_cpy[self.idx_to_transform] = self.inv_log_transform(x_cpy[self.idx_to_transform])
         if self.check_params_valid(x_cpy):
-            # change params to x
             i = 0
             for prm in self.model.params.mcmcList:
-                # Loop over indices within parameter
+                if prm.name == 'logPost': continue
                 for ind in range(int(np.prod(prm.val_shape))):
                     arr_ind = np.unravel_index(ind, prm.val_shape, order='F')
                     prm.val[arr_ind] = x_cpy[i]
                     i+=1
         else:
-            return np.inf
+            return sys.maxsize - 1000 + np.random.uniform(0,1000)
+            # this seems strange but we can't use np.inf as it causes problems with convergence criteria
+            # we also dont want to return the same value twice in a row, as it may trigger convergence
+            # so we want a value as large as possible, but also with a random fluctuation
+            
 
         return -1*self.model.logPost()
     
     def particle_swarm(self,w_max=.9,w_min=.4,c1=.5,c2=.3,\
                              maxiter=1000,swarmsize=10,obj_tol=1e-8,step_tol=1e-8,
                             log_transform=None,verbose=True):
+        """        
+        Compute model log posterior with current values of variables.
+
+        :param cvar: string -- name of variables changed since last call (controls recomputation of num components), or 'all'
+        :param cindex: int -- index of flattened cvar that has changed since last call (or None)
+        :return: scalar -- log posterior value
+        """
         # don't want verbose model for optimizer but want to change back after
         was_verbose = False
         if self.model.verbose: 
@@ -78,34 +99,34 @@ class SepiaOptim():
         i = 0
         names = []
         for prm in self.model.params.mcmcList:
-                if prm.name != 'logPost':
-                    for ind in range(int(np.prod(prm.val_shape))):
-                        arr_ind = np.unravel_index(ind, prm.val_shape, order='F')
-                        if i in self.idx_to_transform:
-                            #lb.append(np.log(prm.prior.bounds[0]) if prm.prior.bounds[0] != 0 else -np.log(100000))
-                            lb.append(-1)
-                            ub.append(np.log(prm.prior.bounds[1]) if prm.prior.bounds[1] != np.inf else np.log(100000))
-                        elif prm.name == 'betaU':
-                            lb.append(0)
-                            ub.append(50)
-                        elif prm.name == 'betaV':
-                            lb.append(0)
-                            ub.append(20)
-                        else:
-                            lb.append(prm.prior.bounds[0])
-                            ub.append(prm.prior.bounds[1] if prm.prior.bounds[1] != np.inf else np.log(100000))
-                        names.append(prm.name)
-                        i+=1
+            if prm.name == 'logPost': continue
+            for ind in range(int(np.prod(prm.val_shape))):
+                arr_ind = np.unravel_index(ind, prm.val_shape, order='F')
+                if i in self.idx_to_transform:
+                    lb.append(np.log(prm.prior.bounds[0]) if prm.prior.bounds[0] != 0 else -1)
+                    if prm.name=='betaU' or prm.name=='betaV':
+                        ub.append(3)
+                    else:
+                        ub.append(np.log(prm.prior.bounds[1]) if prm.prior.bounds[1] != np.inf else np.log(100000))
+                else:
+                    lb.append(prm.prior.bounds[0])
+                    ub.append(prm.prior.bounds[1] if prm.prior.bounds[1] != np.inf else 100000)
+                names.append(prm.name)
+                i+=1
 
+        if verbose: print('optimization bounds:',(lb,ub))
         x_opt, f_opt, f_hist, it, fnc_calls = pso(self.optim_logPost, lb, ub, maxiter=maxiter, \
                                                  minstep=step_tol, minfunc=obj_tol, swarmsize=swarmsize,\
                                                 w_max=w_max, w_min=w_min,c1=c1, c2=c2)
-        if verbose: print(pd.DataFrame(data={'param': names, 'opt value': x_opt}).to_string(index=False))
+        if verbose: print('max obj fnc:',f_opt)
+        p_native=deepcopy(x_opt)
+        p_native[self.idx_to_transform] = self.inv_log_transform(p_native[self.idx_to_transform])
+        if verbose: print(pd.DataFrame(data={'param': names, 'opt value native': p_native}).to_string(index=False))
         self.verbose=was_verbose
-        return x_opt, f_opt, f_hist, it, fnc_calls
+        return x_opt, f_opt, f_hist, it, fnc_calls, p_native
 
     def nelder_mead(self,maxiter=1000,step_tol=.0001,obj_tol=.0001,\
-                    log_transform=None,verbose=True):
+                    log_transform=None,verbose=True,start='default'):
     
         # don't want verbose model for optimizer but want to change back after
         was_verbose = False
@@ -122,21 +143,51 @@ class SepiaOptim():
                     if prm.name in log_transform:
                         self.idx_to_transform.append(i)
                     i+=1
-                    
+        
+        # get parameter bounds for random start
+        lb = []
+        ub = []
+        if start=='random':
+            i = 0
+            for prm in self.model.params.mcmcList:
+                if prm.name == 'logPost': continue
+                for ind in range(int(np.prod(prm.val_shape))):
+                    arr_ind = np.unravel_index(ind, prm.val_shape, order='F')
+                    if i in self.idx_to_transform:
+                        lb.append(np.log(prm.prior.bounds[0]) if prm.prior.bounds[0] != 0 else -1)
+                        if prm.name=='betaU' or prm.name=='betaV':
+                            ub.append(3)
+                        else:
+                            ub.append(np.log(prm.prior.bounds[1]) if prm.prior.bounds[1] != np.inf else np.log(100000))
+                    elif prm.name=='lamUz':
+                        lb.append(0)
+                        ub.append(5)
+                    else:
+                        lb.append(prm.prior.bounds[0])
+                        ub.append(prm.prior.bounds[1] if prm.prior.bounds[1] != np.inf else 100000)
+                    i+=1
+
+        # set initial values
         i = 0
         names = []
         x0 = []
         for prm in self.model.params.mcmcList:
-            if prm.name != 'logPost':
-                for ind in range(int(np.prod(prm.val_shape))):
-                    arr_ind = np.unravel_index(ind, prm.val_shape, order='F')
+            if prm.name == 'logPost': continue
+            for ind in range(int(np.prod(prm.val_shape))):
+                arr_ind = np.unravel_index(ind, prm.val_shape, order='F')
+                if start=='default':
                     if i in self.idx_to_transform:
                         x0.append(self.log_transform(prm.val[arr_ind]))
                     else:
                         x0.append(prm.val[arr_ind])
-                    names.append(prm.name)
-                    i+=1
-                    
+                elif start=='random':
+                    x0.append(np.random.uniform(lb[i],ub[i]))
+                else:
+                    raise ValueError('start must be either default, or random')
+                names.append(prm.name)
+                i+=1
+        
+        # callback function to store history at each iteration
         lp_hist = []
         param_hist = []
         def callback(x):
@@ -144,13 +195,18 @@ class SepiaOptim():
             lp_hist.append(fobj)
             param_hist.append(x)
 
+        # call optimizer
         x_opt = minimize(self.optim_logPost, x0, method='nelder-mead',callback=callback,
                options={'xatol': step_tol, 'fatol': obj_tol,'disp': True,'maxiter':maxiter, 'adaptive': True})
+        
+        # get opt params on original scale and return
+        p_native = deepcopy(x_opt['x'])
+        p_native[self.idx_to_transform] = self.inv_log_transform(p_native[self.idx_to_transform])
         if verbose: 
             print('logPost value:',x_opt['fun'])
-            print(pd.DataFrame(data={'param': names, 'init value': x0, 'opt value': x_opt['x']}).to_string(index=False))
+            print(pd.DataFrame(data={'param': names, 'init value': x0, 'opt value native': p_native}).to_string(index=False))
         self.verbose=was_verbose
-        return x_opt,lp_hist,param_hist 
+        return x_opt,lp_hist,p_native
     
 ###################### PARTICLE SWARM OPTIMIZATION ALGORITHM ##########################    
 from functools import partial
