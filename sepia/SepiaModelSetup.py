@@ -11,7 +11,7 @@ import numpy as np
 
 # TODO no categorical indicator, or separable cov structure
 # TODO process optional thetaconstraints object
-def setup_model(data, Sigy=None, lamVzGroup=None):
+def setup_model(data, Sigy=None, lamVzGroup=None, LamSim=None):
     """
     Sets up SepiaModel object based on SepiaData object.
 
@@ -187,10 +187,9 @@ def setup_model(data, Sigy=None, lamVzGroup=None):
 
     # Compute LamSim
     if data.scalar_out:
-        LamSim = np.ones(1)
-    else:
-        LamSim = np.diag(np.dot(sim_data.K, sim_data.K.T))
-    num.LamSim = LamSim
+        num.LamSim = np.ones(1)
+    elif LamSim is None:
+        num.LamSim = np.diag(np.dot(sim_data.K, sim_data.K.T))
 
     # Compute LamObs
     if not data.sim_only:
@@ -213,7 +212,10 @@ def setup_model(data, Sigy=None, lamVzGroup=None):
                 DKprod = [np.linalg.multi_dot([DK[i], Lamy[i], DK[i].T]) for i in range(n)]
             else:
                 DKprod = [np.linalg.multi_dot([DK, Lamy, DK.T]) for i in range(n)]
-            LamObs = scipy.linalg.block_diag(*DKprod)
+            if LamSim is None:
+                LamObs = scipy.linalg.block_diag(*DKprod)
+            else:
+                LamObs = np.diag(LamSim)
             rankLO = np.linalg.matrix_rank(LamObs, hermitian=True)  # Same as value in matlab
             LamObs = LamObs + scipy.linalg.block_diag(*[DKridge for i in range(n)])
             # Reorder indices: is currently v1 u1 v2 u2 ... want v1 v2 v3 ... u1 u2 ...
@@ -273,6 +275,14 @@ def setup_model(data, Sigy=None, lamVzGroup=None):
         model.set_params_noD(lamOs_a_corr, lamOs_b_corr, lamWOs_a_corr, lamWOs_b_corr)
     else:
         model.set_params_full(lamOs_a_corr, lamOs_b_corr, lamWOs_a_corr, lamWOs_b_corr)
+
+    # If cat ind, fix start values, bounds, prior variance for corresponding theta
+    for i in range(len(data.t_cat_ind)):
+        if data.t_cat_ind[i] > 0:
+            model.params.theta.val[:, i] = 1
+            model.params.theta.prior.params[1][:, i] = np.inf
+            model.params.theta.prior.bounds[0][:, i] = -np.inf
+            model.params.theta.prior.bounds[1][:, i] = np.inf
 
     return model
 

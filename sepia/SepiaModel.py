@@ -582,8 +582,8 @@ class SepiaModel:
                 # Set value to candidate
                 prm.val[arr_ind] = cand
                 # print(prm.mcmc.aCorr)
-                if not prm.fixed[arr_ind]:  # If not supposed to be fixed, check for acceptance
-                    if prm.mcmc.aCorr and prm.prior.is_in_bounds(prm.val[arr_ind]):
+                if not prm.fixed[arr_ind]: # If not supposed to be fixed, check for acceptance
+                    if prm.mcmc.aCorr and prm.prior.is_in_bounds():
                         # This logPost uses val which has the candidate modification
                         clp = self.logPost(cvar=prm.name, cindex=ind)
                         if np.log(np.random.uniform()) < (clp - self.params.lp.val + np.log(prm.mcmc.aCorr)):

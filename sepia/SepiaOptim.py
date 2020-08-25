@@ -25,11 +25,15 @@ class SepiaOptim():
     
     def check_params_valid(self,x):
         valid=True
-        i=0
+        i = 0
         for prm in self.model.params.mcmcList:
-            for ind in range(int(np.prod(prm.val_shape))):
-                if not prm.prior.is_in_bounds(x[i]): valid = False
-                i+=1
+            if not prm.prior.is_in_bounds(x[i:(i+int(np.prod(prm.val_shape)))].reshape(prm.val_shape)):
+                valid = False
+                break
+            i += int(np.prod(prm.val_shape))
+            #for ind in range(int(np.prod(prm.val_shape))):
+            #    if not prm.prior.is_in_bounds(x[i]): valid = False
+            #    i+=1
         return valid
     
     def optim_logPost(self,x):

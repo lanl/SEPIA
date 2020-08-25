@@ -115,15 +115,15 @@ class SepiaHierarchicalThetaModels:
                     delta_cand = self.hier_delta[hi].mcmc.draw_candidate(arr_ind, False)
                     mu_cand = delta_cand + mu_param.val[0, 0].copy()
                     # check in bounds for mu; check in bounds for theta (TODO other constraints...)
-                    inb = mu_param.prior.is_in_bounds(mu_cand)
+                    inb = mu_param.prior.is_in_bounds(mu_cand) # TODO See if this still works since mu is scalar
                     if inb:
                         for mi in range(n_models):
                             if theta_inds[mi] > -1:
                                 theta_param = self.model_list[mi].params.theta
-                                inb = inb and (mu_cand > theta_param.prior.bounds[0] and mu_cand < theta_param.prior.bounds[1])
+                                inb = inb and np.all(mu_cand > theta_param.prior.bounds[0]) and np.all(mu_cand < theta_param.prior.bounds[1])
                                 # Check if new thetas will be in bounds, too, and don't continue if not
                                 tv = theta_param.val[0, theta_inds[mi]]
-                                inb = inb and (tv + delta_cand > theta_param.prior.bounds[0] and tv + delta_cand < theta_param.prior.bounds[1])
+                                inb = inb and (tv + delta_cand > theta_param.prior.bounds[0][0, theta_inds[mi]] and tv + delta_cand < theta_param.prior.bounds[1][0, theta_inds[mi]])
                     # If in bounds, evaluate draw to decide whether or not to accept
                     if inb:
                         # Store old/current log prior and prior params for thetas in case reject,
@@ -184,7 +184,7 @@ class SepiaHierarchicalThetaModels:
         arr_ind = np.unravel_index(0, hprm.val_shape, order='F')
         hprm_cand = hprm.mcmc.draw_candidate(arr_ind, True)
         # check in bounds for mu; check in bounds for theta? (TODO other constraints...)
-        inb = hprm.prior.is_in_bounds(hprm_cand)
+        inb = hprm_cand > hprm.prior.bounds[0][arr_ind] and hprm_cand < hprm.prior.bounds[1][arr_ind]
         # If in bounds, evaluate draw to decide whether or not to accept; if not in bounds, nothing changes
         if inb:
             # Store old/current log prior and prior params for thetas in case reject, put cand into theta priors
