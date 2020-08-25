@@ -38,7 +38,7 @@ class SepiaParam:
     :var orig_range: list -- range for untransformed parameter, if transformation was applied (typically for 'theta' only)
     """
 
-    def __init__(self, val, name, val_shape=1, dist='Normal', params=[], bounds=False, mcmcStepType='Normal',
+    def __init__(self, val, name, val_shape=1, dist='Normal', params=[], bounds=None, mcmcStepType='Normal',
                  mcmcStepParam=0.1, orig_range=None):
         """
         Initialize SepiaParam object, which initializes the contained SepiaPrior and SepiaMCMC objects as well.

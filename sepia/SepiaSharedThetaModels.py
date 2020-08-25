@@ -32,7 +32,11 @@ class SepiaSharedThetaModels:
         # Example: shared_theta_inds = np.array([(1, 1, 1), (2, -1, 4)) for 3 models, theta index 1 tied in all,
         #          theta indices 2/4 tied in models 1 and 3 but no corresponding theta in model 2.
         if not shared_theta_inds.shape[1] == len(model_list):
-            raise ValueError('Number of models does not match provided shared theta lists')
+            raise TypeError('Number of models does not match provided shared theta lists')
+        for st in shared_theta_inds:
+            t_cat = [model_list[i].data.t_cat_ind[st[i]] for i in range(len(model_list)) if st[i] >= 0]
+            if not np.all(t_cat == t_cat[0]):
+                raise TypeError('Shared indices must share same t_cat_ind values.')
         self.setup_shared_theta()
 
     def setup_shared_theta(self):
@@ -83,19 +87,27 @@ class SepiaSharedThetaModels:
                         # Check whether this theta ind is shared
                         if prm.name is 'theta' and np.any(ind == self.shared_theta_inds[:, mi]):
                             shr_ind = np.where(self.shared_theta_inds[:, mi] == ind)[0]
-                            cand = prm.mcmc.draw_candidate(arr_ind, do_propMH) # to match matlab, we will draw here (may not be used at all)
+                            # to match matlab, we will draw here (may not be used at all)
+                            #  check for categorical theta
+                            if prm.name == 'theta' and model.data.t_cat_ind[ind] > 0:
+                                # Get possible category values, excluding current value
+                                cat_vals = [i for i in range(1, model.data.t_cat_ind[ind] + 1) if i != prm.val[arr_ind]]
+                                # Choose one
+                                cand = np.random.choice(cat_vals, 1)
+                            else:
+                                cand = prm.mcmc.draw_candidate(arr_ind, do_propMH)
                             # If this is the model to sample from, do sample and update other models
                             if self.to_sample[shr_ind, mi] == 1:
                                 # Draw candidate
                                 #cand = prm.mcmc.drawCand(arr_ind, do_propMH)
-                                inb = prm.prior.is_in_bounds(cand)
+                                inb = cand > prm.prior.bounds[0][arr_ind] and cand < prm.prior.bounds[1][arr_ind]
                                 other_model_inds = np.where(self.to_update[shr_ind, :].squeeze() == 1)[0]
                                 # Make reference copies across other models in case we reject, check if cand in bounds
                                 for omi in other_model_inds:
                                     om = self.model_list[omi]
                                     om.params.theta.refVal = om.params.theta.val.copy()
                                     om.refNum = om.num.ref_copy('theta')
-                                    inb = inb and om.params.theta.prior.is_in_bounds(cand)
+                                    inb = inb and cand > om.params.theta.prior.bounds[0][arr_ind] and cand < om.params.theta.prior.bounds[1][arr_ind]
                                 # If in bounds, put cand in val and evaluate log lik
                                 if inb:
                                     # Get current logpost: only evaluate theta prior on this model!
@@ -142,7 +154,7 @@ class SepiaSharedThetaModels:
                             # Set value to candidate
                             prm.val[arr_ind] = cand
                             if not prm.fixed[arr_ind]: # If not supposed to be fixed, check for acceptance
-                                if prm.mcmc.aCorr and prm.prior.is_in_bounds(prm.val[arr_ind]):
+                                if prm.mcmc.aCorr and prm.prior.is_in_bounds():
                                     # This logPost uses val which has the candidate modification
                                     clp = model.logPost(prm.name, ind)
                                     if np.log(np.random.uniform()) < (clp - lp + np.log(prm.mcmc.aCorr)):

@@ -12,14 +12,14 @@ class SepiaPrior:
     :var bounds: list -- bounds for each prior (can be np.inf)
     """
 
-    def __init__(self, parent, dist='Normal', params=False, bounds=False):
+    def __init__(self, parent, dist='Normal', params=None, bounds=None):
         """
         Instantiate SepiaPrior object.
 
         :param parent: SepiaParam -- parent object
         :param dist: string -- prior distribution name ('Normal', 'Gamma', 'Beta', 'Uniform')
         :param params: list -- each element of list is a different parameter to the distribution, can be ndarray or scalar
-        :param bounds: list -- list of bounds for prior
+        :param bounds: list -- two-element list of bounds for prior, each element can be scalar or list to provide different bounds to each param
         """
         self.parent = parent
         self.dist = dist 
@@ -45,14 +45,19 @@ class SepiaPrior:
             elif dist is 'Uniform':
                 self.params = []
         # Set bounds
-        if dist is 'Normal':
-            self.bounds = bounds if bounds else [0, 1]
-        elif dist is 'Gamma':
-            self.bounds = bounds if bounds else [0, 1e6]
-        elif dist is 'Beta':
-            self.bounds = bounds if bounds else [0, 1]
-        elif dist is 'Uniform':
-            self.bounds = bounds if bounds else [0, 1]
+        if bounds is not None:
+            lb = bounds[0] * np.ones(parent.val_shape) if np.isscalar(bounds[0]) else bounds[0]
+            ub = bounds[1] * np.ones(parent.val_shape) if np.isscalar(bounds[1]) else bounds[1]
+            self.bounds = [lb, ub]
+        else:
+            if dist is 'Normal':
+                self.bounds = [np.zeros(parent.val_shape), np.ones(parent.val_shape)]
+            elif dist is 'Gamma':
+                self.bounds = [np.zeros(parent.val_shape), 1e6 * np.ones(parent.val_shape)]
+            elif dist is 'Beta':
+                self.bounds = [np.zeros(parent.val_shape), np.ones(parent.val_shape)]
+            elif dist is 'Uniform':
+                self.bounds = [np.zeros(parent.val_shape), np.ones(parent.val_shape)]
 
     def compute_log_prior(self):
         """
@@ -62,7 +67,7 @@ class SepiaPrior:
         """
         x = self.parent.val
         lp = 0
-        if not self.is_in_bounds(x):
+        if not self.is_in_bounds():
             lp = -np.inf
         else:
             if self.dist is 'Normal':
@@ -79,12 +84,14 @@ class SepiaPrior:
                     lp = np.sum((self.params[0] - 1) * np.log(x) + (self.params[1] - 1) * np.log(1 - x))
         return lp
 
-    def is_in_bounds(self, x):
+    def is_in_bounds(self, x=None):
         """
-        Check whether x is in bounds.
+        Check whether value is in bounds. By default, with no x, checks self.parent.val.
 
-        :param x: scalar, array -- value to check
+        :param: x -- nparray value, with self.parent.val_shape; if none, defaults to self.parent.val
         :return: bool -- True if all in bounds, False otherwise
         """
+        if x is None:
+            x = self.parent.val
         # check whether bounds are satisfied for all variables
         return True if np.all(np.logical_and(x > self.bounds[0], x < self.bounds[1])) else False
