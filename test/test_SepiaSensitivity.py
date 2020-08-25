@@ -1,14 +1,14 @@
 import unittest
 import numpy as np
-import copy
 
-from sepia.Examples import generate_data
+import generate_data
 from sepia.SepiaData import SepiaData
 from sepia.SepiaModelSetup import setup_model
+from sepia.SepiaSensitivity import sensitivity
 
 np.random.seed(42)
 
-class SepiaMCMCTestCase(unittest.TestCase):
+class SepiaSensitivityTestCase(unittest.TestCase):
 
     def setUp(self, m=100, n=1, nt_sim=50, nt_obs=20, n_theta=3, n_basis=5, sig_n=0.1, seed=42):
         multi_data_dict = generate_data.generate_multi_sim_and_obs(m=m, n=n, nt_sim=nt_sim, nt_obs=nt_obs,
@@ -50,71 +50,33 @@ class SepiaMCMCTestCase(unittest.TestCase):
         d.create_D_basis('linear')
         self.multi_sim_and_obs_model = setup_model(d)
 
-    def test_univariate_sim_only_mcmc(self):
+    def test_univariate_sim_only_sensitivity(self):
         """
-        Tests MCMC for univariate sim only model
+        Testssensitivity for univariate sim only model
         """
 
-        print('Testing univariate sim-only SepiaMCMC...', flush=True)
+        print('Testing univariate sim-only SepiaSensitivity...', flush=True)
 
         model = self.univ_sim_only_model
 
         model.tune_step_sizes(50, 10)
         model.do_mcmc(100)
-        samples_dict = {p.name: p.mcmc_to_array() for p in model.params.mcmcList}
-        samples_dict = {p.name: p.mcmc_to_array(trim=10, flat=True) for p in model.params.mcmcList}
-        samples_dict = {p.name: p.mcmc_to_array(sampleset=np.arange(50)) for p in model.params.mcmcList}
+        samples_dict = model.get_samples(20)
+        sens = sensitivity(model, samples_dict)
 
-    def test_univariate_sim_and_obs_mcmc(self):
+    def test_multivariate_sim_only_sensitivity(self):
         """
-        Tests mcmc for univariate sim and obs model
-        """
-
-        print('Testing univariate sim and obs SepiaMCMC...', flush=True)
-
-        model = self.univ_sim_and_obs_model
-
-        model.tune_step_sizes(50, 10)
-        model.do_mcmc(100)
-        samples_dict = {p.name: p.mcmc_to_array() for p in model.params.mcmcList}
-
-    def test_multivariate_sim_only_mcmc(self):
-        """
-        Tests MCMC for multivariate sim only model
+        Tests sensitivity for multivariate sim only model
         """
 
-        print('Testing multivariate sim-only SepiaMCMC...', flush=True)
+        print('Testing multivariate sim-only SepiaSensitivity...', flush=True)
 
         model = self.multi_sim_only_model
 
         model.tune_step_sizes(50, 10)
         model.do_mcmc(100)
-        samples_dict = {p.name: p.mcmc_to_array() for p in model.params.mcmcList}
-
-    def test_multivariate_sim_and_obs_mcmc(self):
-        """
-        Tests mcmc for multivariate sim and obs model
-        """
-
-        print('Testing multivariate sim and obs SepiaMCMC...', flush=True)
-
-        model = self.multi_sim_and_obs_model
-
-        model.tune_step_sizes(50, 10)
-        model.do_mcmc(100)
-
-    def test_multivariate_sim_and_obs_noD_mcmc(self):
-        """
-        Tests mcmc for multivariate sim and obs model no discrep
-        """
-
-        print('Testing multivariate sim and obs no discrep SepiaMCMC...', flush=True)
-
-        model = self.multi_sim_and_obs_noD_model
-
-        model.tune_step_sizes(50, 10)
-        model.do_mcmc(100)
-
+        samples_dict = model.get_samples(20)
+        sens = sensitivity(model, samples_dict)
 
 
 

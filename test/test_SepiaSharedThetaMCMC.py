@@ -1,8 +1,7 @@
 import unittest
 import numpy as np
-import copy
 
-from sepia.Examples import generate_data
+import generate_data
 from sepia.SepiaData import SepiaData
 from sepia.SepiaModelSetup import setup_model
 from sepia.SepiaSharedThetaModels import SepiaSharedThetaModels
@@ -42,7 +41,7 @@ class SepiaSharedThetaMCMCTestCase(unittest.TestCase):
 
     def test_univariate_sim_and_obs_shared_theta_mcmc(self):
         """
-        Tests mcmc for univariate sim and obs model with shared thetas
+        Tests mcmc for univariate sim and obs model with shared thetas TODO this breaks, univ models have one t but shared idx has three, should add error check to setup
         """
 
         print('Testing univariate sim and obs shared theta SepiaMCMC...', flush=True)

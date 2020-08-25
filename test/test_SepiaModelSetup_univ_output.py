@@ -2,7 +2,7 @@ import unittest
 import numpy as np
 import copy
 
-from sepia.Examples import generate_data
+import generate_data
 from sepia.SepiaData import SepiaData
 from sepia.SepiaModelSetup import setup_model
 
