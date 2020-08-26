@@ -1,0 +1,10 @@
+.idea/*
+*.cprof
+*.profile
+*.png
+*.mat
+*.pdf
+*.pyc
+.vscode/*
+*.m~
+*.DS_Store
