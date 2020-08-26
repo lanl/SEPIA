@@ -19,6 +19,9 @@ def theta_pairs(samples_dict,design_names=[],native=False,lims=None,theta_ref=No
     :param lims: list of tuples -- optional, limits for each theta value for plotting; defaults to [0, 1] if native=False
     :param vlines: list -- optional, scalar values to place vlines on diagonal distplots
     """
+    if 'theta' not in samples_dict.keys():
+        raise ValueError('No thetas to plot')
+        
     if native is False:
         theta = samples_dict['theta']
     else:
@@ -126,7 +129,7 @@ def mcmc_trace(samples_dict,theta_names=None,start=0,end=None,n_to_plot=500,by_g
                 plt.show()
     else:
         lgds = []
-        n_axes = len(samples_dict)-1 # wont be plotting theta_native
+        n_axes = len(samples_dict)-1 if 'theta_native' in samples_dict.keys() else len(samples_dict) # dont plot theta_native
         fig, axs = plt.subplots(n_axes,1,sharex=True,figsize=[10,1.5*n_axes])
         fig.subplots_adjust(hspace=0)
         for i, k in enumerate(samples_dict.keys()):
