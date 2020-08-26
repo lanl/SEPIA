@@ -1,6 +1,6 @@
 import unittest
 import numpy as np
-from sepia.DataContainer import DataContainer
+from sepia.SepiaData import DataContainer
 
 class DataContainerTestCase(unittest.TestCase):
     """

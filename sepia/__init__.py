@@ -1,5 +1,4 @@
 from .SepiaData import SepiaData
-from .DataContainer import DataContainer
 from .SepiaModel import ModelContainer
 from .SepiaDistCov import SepiaDistCov
 from .SepiaLogLik import compute_log_lik
@@ -13,4 +12,3 @@ from .SepiaPredict import SepiaPrediction, SepiaFullPrediction, SepiaEmulatorPre
 from .SepiaSharedThetaModels import SepiaSharedThetaModels
 from .SepiaHierarchicalThetaModels import SepiaHierarchicalThetaModels
 
-from .util import timeit
