@@ -107,14 +107,14 @@ class SepiaOptim():
             for ind in range(int(np.prod(prm.val_shape))):
                 arr_ind = np.unravel_index(ind, prm.val_shape, order='F')
                 if i in self.idx_to_transform:
-                    lb.append(np.log(prm.prior.bounds[0]) if prm.prior.bounds[0] != 0 else -1)
+                    lb.append(np.log(prm.prior.bounds[0][arr_ind]) if prm.prior.bounds[0][arr_ind] != 0 else -1)
                     if prm.name=='betaU' or prm.name=='betaV':
                         ub.append(3)
                     else:
-                        ub.append(np.log(prm.prior.bounds[1]) if prm.prior.bounds[1] != np.inf else np.log(100000))
+                        ub.append(np.log(prm.prior.bounds[1][arr_ind]) if prm.prior.bounds[1][arr_ind] != np.inf else np.log(100000))
                 else:
-                    lb.append(prm.prior.bounds[0])
-                    ub.append(prm.prior.bounds[1] if prm.prior.bounds[1] != np.inf else 100000)
+                    lb.append(prm.prior.bounds[0][arr_ind])
+                    ub.append(prm.prior.bounds[1][arr_ind] if prm.prior.bounds[1][arr_ind] != np.inf else 100000)
                 names.append(prm.name)
                 i+=1
 
@@ -158,17 +158,17 @@ class SepiaOptim():
                 for ind in range(int(np.prod(prm.val_shape))):
                     arr_ind = np.unravel_index(ind, prm.val_shape, order='F')
                     if i in self.idx_to_transform:
-                        lb.append(np.log(prm.prior.bounds[0]) if prm.prior.bounds[0] != 0 else -1)
+                        lb.append(np.log(prm.prior.bounds[0][arr_ind]) if prm.prior.bounds[0][arr_ind] != 0 else -1)
                         if prm.name=='betaU' or prm.name=='betaV':
                             ub.append(3)
                         else:
-                            ub.append(np.log(prm.prior.bounds[1]) if prm.prior.bounds[1] != np.inf else np.log(100000))
+                            ub.append(np.log(prm.prior.bounds[1][arr_ind]) if prm.prior.bounds[1][arr_ind] != np.inf else np.log(100000))
                     elif prm.name=='lamUz':
                         lb.append(0)
                         ub.append(5)
                     else:
-                        lb.append(prm.prior.bounds[0])
-                        ub.append(prm.prior.bounds[1] if prm.prior.bounds[1] != np.inf else 100000)
+                        lb.append(prm.prior.bounds[0][arr_ind])
+                        ub.append(prm.prior.bounds[1][arr_ind] if prm.prior.bounds[1][arr_ind] != np.inf else 100000)
                     i+=1
 
         # set initial values
