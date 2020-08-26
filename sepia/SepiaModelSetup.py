@@ -190,6 +190,8 @@ def setup_model(data, Sigy=None, lamVzGroup=None, LamSim=None):
         num.LamSim = np.ones(1)
     elif LamSim is None:
         num.LamSim = np.diag(np.dot(sim_data.K, sim_data.K.T))
+    else:
+        num.LamSim = LamSim
 
     # Compute LamObs
     if not data.sim_only:
