@@ -166,6 +166,23 @@ To extract samples into a friendly dictionary format (see :ref:`sepiamodel` docu
 
 Notice that the samples dictionary has both `theta` (in [0, 1]) and `theta_native` (untransformed to original scale).
 
+Saving samples
+^^^^^^^^^^^^^^
+
+To save a samples dictionary, you could pickle the dictionary itself::
+
+    with open('mysamples.pkl', 'wb') as f:
+        pickle.dump(samples, f)
+
+Or if you want to avoid pickles, you could save each array::
+
+    import numpy as np
+    np.save('mysamples_theta.npy', samples['theta'])
+
+Note that you can also pickle the entire `SepiaModel` object, but this could run into compatibility issues in the future
+if the class definition or package namespace changes, so use this with caution. To archive your results, it may be safer
+to save the samples dictionary itself.
+
 Diagnostics
 ^^^^^^^^^^^
 
