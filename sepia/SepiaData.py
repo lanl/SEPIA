@@ -152,51 +152,74 @@ class SepiaData(object):
                     res += 't index %d with %d categories\n' % (i, ci)
         return res
 
-    def transform_xt(self, xt_min=0.0, xt_max=1.0, x_notrans=[], t_notrans=[]):
+    def transform_xt(self, x_notrans=None, t_notrans=None, x=None, t=None):
         """
-        Transforms sim_data x and t and obs_data x to lie in [xt_min, xt_max], columnwise.
+        Transforms sim_data x and t and obs_data x to lie in [0, 1], columnwise, or applies
+        same transformation to new x and t.
 
         If min/max of inputs in a column are equal, it does nothing to that column.
+        Also leaves column alone if categorical, or if user specifies with x_notrans/t_notrans.
         Stores original min/max as orig_t_min/max, orig_x_min/max for untransforming.
 
-        :param xt_min: scalar -- minimum x or t value
-        :param xt_max: scalar -- maximum x or t value
-        :param x_notrans: list -- column indices of x that should not be transformed
-        :param t_notrans: list -- column indices of t that should not be transformed
+        :param x_notrans: list -- optional, column indices of x that should not be transformed
+        :param t_notrans: list -- optional, column indices of t that should not be transformed
+        :param x: ndarray -- optional, new x values to transform to [0, 1] using same rules as original x data
+        :param t: ndarray -- optional, new t values to transform to [0, 1] using same rules as original t data
         """
-        def trans(x, a, b, x_min, x_max, notrans=[]):
-            a_vec = a * np.ones_like(x_min)
-            b_vec = b * np.ones_like(x_min)
-            xmm = x_max - x_min
-            # If min/max are equal, don't want to transform
-            x_min = x_min.copy()
-            x_min[xmm == 0] = 0
-            a_vec[xmm == 0] = 0
-            b_vec[xmm == 0] = 1
-            xmm[xmm == 0] = 1
-            # Set values not to transform
-            x_min[:, notrans] = 0
-            xmm[:, notrans] = 1
-            a_vec[:, notrans] = 0
-            b_vec[:, notrans] = 1
-            return (x - x_min) / xmm * (b_vec - a_vec) + a_vec
-        self.sim_data.orig_x_min = np.min(self.sim_data.x, 0, keepdims=True)
-        self.sim_data.orig_x_max = np.max(self.sim_data.x, 0, keepdims=True)
-        if self.x_cat_ind is not None:
-            x_notrans = list(set(x_notrans) | set([i for i in range(len(self.x_cat_ind)) if self.x_cat_ind[i] > 0]))
-        if self.t_cat_ind is not None:
-            t_notrans = list(set(t_notrans) | set([i for i in range(len(self.t_cat_ind)) if self.t_cat_ind[i] > 0]))
-        self.sim_data.x_trans = trans(self.sim_data.x, xt_min, xt_max, self.sim_data.orig_x_min, self.sim_data.orig_x_max, x_notrans)
+        x_trans, t_trans = None, None
+        if x_notrans is None:
+            x_notrans = []
+        if t_notrans is None:
+            t_notrans = []
+        # Transform x to unit hypercube
+        # if not computed, compute orig x min and orig x max, accounting for notrans_x, all equal x, and categorical x
+        if self.sim_data.orig_x_min is None or self.sim_data.orig_x_max is None or self.sim_data.x_trans is None:
+            nx = self.sim_data.x.shape[1]
+            orig_x_min = np.min(self.sim_data.x, 0, keepdims=True)
+            orig_x_max = np.max(self.sim_data.x, 0, keepdims=True)
+            # If any xmin/xmax are equal, don't transform
+            xmm = orig_x_max - orig_x_min
+            x_notrans = list(set(x_notrans) | set([i for i in range(nx) if xmm[:, i] == 0]))
+            # If there are cat inds, do not transform
+            if self.x_cat_ind is not None:
+                x_notrans = list(set(x_notrans) | set([i for i in range(nx) if self.x_cat_ind[i] > 0]))
+            orig_x_min[:, x_notrans] = 0
+            orig_x_max[:, x_notrans] = 1
+            self.sim_data.x_trans = (self.sim_data.x - orig_x_min) / (orig_x_max - orig_x_min)
+            self.sim_data.orig_x_min = orig_x_min
+            self.sim_data.orig_x_max = orig_x_max
+            if not self.sim_only:
+                self.obs_data.orig_x_min = orig_x_min
+                self.obs_data.orig_x_max = orig_x_max
+                self.obs_data.x_trans = (self.obs_data.x - orig_x_min) / (orig_x_max - orig_x_min)
+        # If a new x was passed in, transform it
+        if x is not None:
+            x_trans = (x - self.sim_data.orig_x_min) / (self.sim_data.orig_x_max - self.sim_data.orig_x_min)
+        # Transform t to unit hypercube
         if self.sim_data.t is not None:
-            self.sim_data.orig_t_min = np.min(self.sim_data.t, 0, keepdims=True)
-            self.sim_data.orig_t_max = np.max(self.sim_data.t, 0, keepdims=True)
-            self.sim_data.t_trans = trans(self.sim_data.t, xt_min, xt_max, self.sim_data.orig_t_min, self.sim_data.orig_t_max, t_notrans)
-        if not self.sim_only:
-            self.obs_data.orig_x_min = self.sim_data.orig_x_min
-            self.obs_data.orig_x_max = self.sim_data.orig_x_max
-            self.obs_data.orig_t_min = self.sim_data.orig_t_min
-            self.obs_data.orig_t_max = self.sim_data.orig_t_max
-            self.obs_data.x_trans = trans(self.obs_data.x, xt_min, xt_max, self.obs_data.orig_x_min, self.obs_data.orig_x_max, x_notrans)
+            # if not computed, compute orig t min and orig t max, accounting for notrans_t, all equal t, and categorical t
+            if self.sim_data.orig_t_min is None or self.sim_data.orig_t_max is None or self.sim_data.t_trans is None:
+                nt = self.sim_data.t.shape[1]
+                orig_t_min = np.min(self.sim_data.t, 0, keepdims=True)
+                orig_t_max = np.max(self.sim_data.t, 0, keepdims=True)
+                # If any tmin/tmax are equal, don't transform
+                tmm = orig_t_max - orig_t_min
+                t_notrans = list(set(t_notrans) | set([i for i in range(nt) if tmm[:, i] == 0]))
+                # If there are cat inds, do not transform
+                if self.t_cat_ind is not None:
+                    t_notrans = list(set(t_notrans) | set([i for i in range(nt) if self.t_cat_ind[i] > 0]))
+                orig_t_min[:, t_notrans] = 0
+                orig_t_max[:, t_notrans] = 1
+                self.sim_data.t_trans = (self.sim_data.t - orig_t_min) / (orig_t_max - orig_t_min)
+                self.sim_data.orig_t_min = orig_t_min
+                self.sim_data.orig_t_max = orig_t_max
+                if not self.sim_only:
+                    self.obs_data.orig_t_min = orig_t_min
+                    self.obs_data.orig_t_max = orig_t_max
+            # If a new t was passed in, transform it
+            if t is not None:
+                t_trans = (t - self.sim_data.orig_t_min) / (self.sim_data.orig_t_max - self.sim_data.orig_t_min)
+        return x_trans, t_trans
 
     def standardize_y(self, center=True, scale='scalar'):
         """

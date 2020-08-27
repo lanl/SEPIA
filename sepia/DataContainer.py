@@ -57,6 +57,10 @@ class DataContainer(object):
         self.y_std = None
         self.x_trans = None
         self.t_trans = None
+        self.orig_t_min = None
+        self.orig_t_max = None
+        self.orig_x_min = None
+        self.orig_x_max = None
 
     # These make sure x/y/t are 2D no matter what
     @property

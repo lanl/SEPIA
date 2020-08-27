@@ -28,10 +28,6 @@ class SepiaDataTestCase(unittest.TestCase):
         self.assertTrue(np.all(np.min(d.sim_data.x_trans, 0) == 0))
         self.assertTrue(np.all(np.max(d.sim_data.x_trans, 0) == 1))
 
-        d.transform_xt(-10, 10)
-        self.assertTrue(np.all(np.min(d.sim_data.x_trans, 0) == -10))
-        self.assertTrue(np.all(np.max(d.sim_data.x_trans, 0) == 10))
-
         d.standardize_y(center=False, scale=False)
         self.assertEqual(d.sim_data.orig_y_sd, 1)
         self.assertEqual(d.sim_data.orig_y_mean, 0)
@@ -106,10 +102,6 @@ class SepiaDataTestCase(unittest.TestCase):
         d.transform_xt()
         self.assertTrue(np.all(np.min(d.sim_data.x_trans, 0) == 0))
         self.assertTrue(np.all(np.max(d.sim_data.x_trans, 0) == 1))
-
-        d.transform_xt(-10, 10)
-        self.assertTrue(np.all(np.min(d.sim_data.x_trans, 0) == -10))
-        self.assertTrue(np.all(np.max(d.sim_data.x_trans, 0) == 10))
 
         d.standardize_y(center=False, scale=False)
         self.assertEqual(d.sim_data.orig_y_sd, 1)
@@ -198,12 +190,6 @@ class SepiaDataTestCase(unittest.TestCase):
         self.assertTrue(np.all(np.max(d.sim_data.x_trans, 0) == 1))
         self.assertTrue(np.all(np.min(d.sim_data.t_trans, 0) == 0))
         self.assertTrue(np.all(np.max(d.sim_data.t_trans, 0) == 1))
-
-        d.transform_xt(-10, 10)
-        self.assertTrue(np.all(np.min(d.sim_data.x_trans, 0) == -10))
-        self.assertTrue(np.all(np.max(d.sim_data.x_trans, 0) == 10))
-        self.assertTrue(np.all(np.min(d.sim_data.t_trans, 0) == -10))
-        self.assertTrue(np.all(np.max(d.sim_data.t_trans, 0) == 10))
 
         d.standardize_y(center=False, scale=False)
         self.assertEqual(d.sim_data.orig_y_sd, 1)
