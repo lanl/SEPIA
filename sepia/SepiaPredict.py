@@ -56,6 +56,12 @@ class SepiaPrediction():
                 raise ValueError('x_pred and t_pred have different number of rows: %d vs %d resp.'%\
                                  (x_pred.shape[0],t_pred.shape[0]))
 
+        # transform x and/or t from native scale to emulator scale
+        if t_pred is None:
+            x_pred,_ = model.data.transform_xt(x=x_pred)
+        else:
+            x_pred,t_pred = model.data.transform_xt(x=x_pred,t=t_pred)
+
         self.model=model
         self.xpred=x_pred
         self.t_pred=t_pred
