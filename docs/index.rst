@@ -27,7 +27,7 @@ Welcome to Sepia!
         Users should pull the newest code frequently, particularly if you encounter errors. If you have installed using the
         instructions on GitHub, you should not need to reinstall after pulling new code.
 
-.. _here: https://github.com/lanl/SEPIA/tree/master/sepia/Examples
+.. _here: https://github.com/lanl/SEPIA/tree/master/examples
 
 .. _GitHub: https://github.com/lanl/SEPIA
 
