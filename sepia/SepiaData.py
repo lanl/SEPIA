@@ -152,7 +152,7 @@ class SepiaData(object):
                     res += 't index %d with %d categories\n' % (i, ci)
         return res
 
-    def transform_xt(self, xt_min=0.0, xt_max=1.0):
+    def transform_xt(self, xt_min=0.0, xt_max=1.0, x_notrans=[], t_notrans=[]):
         """
         Transforms sim_data x and t and obs_data x to lie in [xt_min, xt_max], columnwise.
 
@@ -161,6 +161,8 @@ class SepiaData(object):
 
         :param xt_min: scalar -- minimum x or t value
         :param xt_max: scalar -- maximum x or t value
+        :param x_notrans: list -- column indices of x that should not be transformed
+        :param t_notrans: list -- column indices of t that should not be transformed
         """
         def trans(x, a, b, x_min, x_max, notrans=[]):
             a_vec = a * np.ones_like(x_min)
@@ -180,12 +182,10 @@ class SepiaData(object):
             return (x - x_min) / xmm * (b_vec - a_vec) + a_vec
         self.sim_data.orig_x_min = np.min(self.sim_data.x, 0, keepdims=True)
         self.sim_data.orig_x_max = np.max(self.sim_data.x, 0, keepdims=True)
-        x_notrans = []
-        t_notrans = []
         if self.x_cat_ind is not None:
-            x_notrans = [i for i in range(len(self.x_cat_ind)) if self.x_cat_ind[i] > 0]
+            x_notrans = list(set(x_notrans) | set([i for i in range(len(self.x_cat_ind)) if self.x_cat_ind[i] > 0]))
         if self.t_cat_ind is not None:
-            t_notrans = [i for i in range(len(self.t_cat_ind)) if self.t_cat_ind[i] > 0]
+            t_notrans = list(set(t_notrans) | set([i for i in range(len(self.t_cat_ind)) if self.t_cat_ind[i] > 0]))
         self.sim_data.x_trans = trans(self.sim_data.x, xt_min, xt_max, self.sim_data.orig_x_min, self.sim_data.orig_x_max, x_notrans)
         if self.sim_data.t is not None:
             self.sim_data.orig_t_min = np.min(self.sim_data.t, 0, keepdims=True)
