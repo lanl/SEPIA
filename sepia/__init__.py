@@ -1,4 +1,5 @@
 from .SepiaData import SepiaData
+from .DataContainer import DataContainer
 from .SepiaModel import ModelContainer
 from .SepiaDistCov import SepiaDistCov
 from .SepiaLogLik import compute_log_lik
