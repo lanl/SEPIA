@@ -2,7 +2,7 @@ import numpy as np
 import pickle
 
 from sepia.SepiaData import SepiaData
-from sepia.SepiaModelSetup import setup_model
+from sepia.SepiaModel import SepiaModel
 
 # Load raw data
 sim_s104 = np.genfromtxt('data/features_cdf104S.csv', delimiter=',', skip_header=1)
@@ -34,7 +34,7 @@ print(data)
 # Setup model
 # We have a known observation error
 Sigy = np.diag(np.squeeze((0.01 * np.ones(n_features) * y_obs)/data.sim_data.orig_y_sd**2))
-model = setup_model(data, Sigy)
+model = SepiaModel(data, Sigy)
 
 # Modify priors to match Matlab
 model.params.lamWs.prior.bounds[1] = np.inf

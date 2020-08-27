@@ -12,7 +12,7 @@ Test problem for Sepia. Univariate-output, eta-only model with univariate x/t.
 
 import matplotlib.pyplot as plt
 import numpy as np
-from sepia.SepiaModelSetup import setup_model
+from sepia.SepiaModel import SepiaModel
 from sepia.SepiaData import SepiaData
 
 np.random.seed(42)
@@ -34,7 +34,7 @@ data.standardize_y()
 data.transform_xt()
 
 # Call setup_model to do a bunch of stuff
-model = setup_model(data)
+model = SepiaModel(data)
 
 # To start using the full covariance calculation
 #g.fullCov=True

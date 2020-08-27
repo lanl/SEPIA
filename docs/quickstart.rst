@@ -93,7 +93,7 @@ Model setup
 
 Once the data has been set up and checked, setting up the :ref:`sepiamodel` object is one line::
 
-    model = setup_model(data)
+    model = SepiaModel(data)
 
 
 MCMC
@@ -329,9 +329,9 @@ that the thetas tend to be more similar to each other than if they were modeled 
 
 The syntax for both cases is similar. First, set up each model, then put them in a list::
 
-    m1 = setup_model(d1)
-    m2 = setup_model(d2)
-    m3 = setup_model(d3)
+    m1 = SepiaModel(d1)
+    m2 = SepiaModel(d2)
+    m3 = SepiaModel(d3)
     model_list = [m1, m2, m3]
 
 Then we need to specify which thetas are shared or modeled hierarchically. The way to do this is with a numpy array

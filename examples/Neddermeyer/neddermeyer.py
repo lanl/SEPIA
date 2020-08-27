@@ -5,7 +5,7 @@
 
 
 import os
-from sepia.SepiaModelSetup import setup_model
+from sepia.SepiaModel import SepiaModel
 from sepia.SepiaData import SepiaData as SepiaData
 import numpy as np
 import sepia.SepiaPlot as SepiaPlot
@@ -331,7 +331,7 @@ data.plot_u_w_pairs()
 
 
 print(data)
-model = setup_model(data)
+model = SepiaModel(data)
 
 
 # In[125]:

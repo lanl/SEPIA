@@ -1,6 +1,6 @@
 % Sets up test case for comparing univ sim only to python
 
-function res = setup_univ_sim_only(m, seed, n_lik, n_mcmc, n_pred, n_lev, n_burn)
+function res = setup_univ_sim_only(m, seed, n_lik, n_mcmc, n_pred, n_lev, n_burn, sens)
 
     fprintf('\nStarting matlab setup_univ_sim_only.m\n')
 
@@ -28,7 +28,7 @@ function res = setup_univ_sim_only(m, seed, n_lik, n_mcmc, n_pred, n_lev, n_burn
     simData.yStd = y_std';
     simData.orig.y = y;
     simData.orig.ymean = mean(y);
-    simData.orig.yd = y_sd;
+    simData.orig.ysd = y_sd;
     simData.Ksim = [1];
     data.simData = simData;
 
@@ -80,6 +80,17 @@ function res = setup_univ_sim_only(m, seed, n_lik, n_mcmc, n_pred, n_lev, n_burn
         mcmc_out = [];
     end
 
+    % Do sensitivity analysis
+    % For now will just compare smePm, stePm to check against sepia
+    if sens == 1
+        sa = gSens(mcmc);
+        smePm = sa.smePm;
+        stePm = sa.stePm;
+    else
+        smePm = [];
+        stePm = [];
+    end
+
     if n_pred > 0
         %% make some predictions to test
         % basic samples prediction
@@ -117,4 +128,6 @@ function res = setup_univ_sim_only(m, seed, n_lik, n_mcmc, n_pred, n_lev, n_burn
     res.pred_Myhat = pred_Myhat;
     res.pred_Syhat = pred_Syhat;
     res.pred_plot_w = pred_plot_w;
+    res.smePm = smePm;
+    res.stePm = stePm;
 end

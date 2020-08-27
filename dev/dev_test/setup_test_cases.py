@@ -6,7 +6,7 @@ import numpy as np
 import matlab.engine
 
 from sepia.SepiaData import SepiaData
-from sepia.SepiaModelSetup import setup_model
+from sepia.SepiaModel import SepiaModel
 
 import os
 import sys
@@ -14,12 +14,12 @@ import sys
 root_path = os.path.dirname(os.path.realpath(__file__))
 
 
-def setup_univ_sim_only(m=300, seed=42., n_lik=0, n_mcmc=0, n_pred=0, n_lev=0, n_burn=0):
+def setup_univ_sim_only(m=300, seed=42., n_lik=0, n_mcmc=0, n_pred=0, n_lev=0, n_burn=0, sens=0):
     try:
         eng = matlab.engine.start_matlab()
         eng.cd(root_path)
         eng.addpath('matlab/', nargout=0)
-        res = eng.setup_univ_sim_only(m, seed, n_lik, n_mcmc, n_pred, n_lev, n_burn, nargout=1)
+        res = eng.setup_univ_sim_only(m, seed, n_lik, n_mcmc, n_pred, n_lev, n_burn, sens, nargout=1)
         eng.quit()
     except Exception as e:
         print(e)
@@ -30,7 +30,7 @@ def setup_univ_sim_only(m=300, seed=42., n_lik=0, n_mcmc=0, n_pred=0, n_lev=0, n
     print(data)
     data.standardize_y()
     data.transform_xt()
-    model = setup_model(data)
+    model = SepiaModel(data)
     return model, res
 
 
@@ -52,7 +52,7 @@ def setup_univ_sim_and_obs(m=100, n=50, seed=42., n_lik=0, n_mcmc=0, n_pred=0):
     data.standardize_y()
     data.transform_xt()
     print(data)
-    model = setup_model(data)
+    model = SepiaModel(data)
     return model, res
 
 
@@ -76,7 +76,7 @@ def setup_multi_sim_only(m=300, nt=20, nx=5, n_pc=10, seed=42., n_lik=0, n_mcmc=
     if fix_K:
         data.sim_data.K = np.array(res['K']).T
     print(data)
-    model = setup_model(data)
+    model = SepiaModel(data)
     return model, res
 
 
@@ -106,7 +106,7 @@ def setup_multi_sim_and_obs(m=100, n=10, nt_sim=20, nt_obs=15, noise_sd=0.1, nx=
         data.create_K_basis(n_pc)
     data.create_D_basis('constant')
     print(data)
-    model = setup_model(data)
+    model = SepiaModel(data)
     return model, res
 
 
@@ -132,7 +132,7 @@ def setup_multi_sim_and_obs_noD(m=100, n=10, nt_sim=20, nt_obs=15, noise_sd=0.1,
     data.transform_xt()
     data.create_K_basis(n_pc)
     print(data)
-    model = setup_model(data)
+    model = SepiaModel(data)
     return model, res
 
 def setup_multi_sim_and_obs_sharedtheta(m=100, n=10, nt_sim=20, nt_obs=15, noise_sd=0.1, nx=5, n_pc=10, seed=42., n_lik=0,
@@ -160,7 +160,7 @@ def setup_multi_sim_and_obs_sharedtheta(m=100, n=10, nt_sim=20, nt_obs=15, noise
         data.standardize_y()
         data.transform_xt()
         data.create_K_basis(n_pc)
-        model = setup_model(data)
+        model = SepiaModel(data)
         model_list.append(model)
     return model_list, res
 
@@ -189,7 +189,7 @@ def setup_multi_sim_and_obs_hiertheta(m=100, n=10, nt_sim=20, nt_obs=15, noise_s
         data.standardize_y()
         data.transform_xt()
         data.create_K_basis(n_pc)
-        model = setup_model(data)
+        model = SepiaModel(data)
         model_list.append(model)
     return model_list, res
 

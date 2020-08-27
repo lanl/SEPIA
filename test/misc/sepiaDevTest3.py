@@ -12,7 +12,7 @@ Test problem for Sepia. Univariate-output, sim and obs model with univariate x/t
 
 import matplotlib.pyplot as plt
 import numpy as np
-from sepia.SepiaModelSetup import setup_model
+from sepia.SepiaModel import SepiaModel
 from sepia.SepiaData import SepiaData
 
 np.random.seed(42)
@@ -26,12 +26,12 @@ x = np.tile(np.linspace(0, 1, m), (p, 1)).T
 y = 5*np.sin(5*x[:, 0]) - 5*x[:, 1]
 y = y - np.mean(y)
 
-# Create SepiaData object and standardize y before calling setup_model
+# Create SepiaData object and standardize y before calling SepiaModel
 data = SepiaData(x_sim=x, t_sim=t, y_sim=y)
 data.standardize_y()
 
-# Call setup_model to do a bunch of stuff
-g = setup_model(data)
+# Call SepiaModel to do a bunch of stuff
+g = SepiaModel(data)
 
 # Test logPost call
 print('log post initial %0.3g' % g.logPost())

@@ -4,7 +4,7 @@ import copy
 
 import generate_data
 from sepia.SepiaData import SepiaData
-from sepia.SepiaModelSetup import setup_model
+from sepia.SepiaModel import SepiaModel
 
 np.random.seed(42)
 
@@ -23,12 +23,12 @@ class SepiaModelSetupUnivOutputTestCase(unittest.TestCase):
         print(d, flush=True)
 
         # Try it without doing standardization/transform to be sure it doesn't break
-        model_notrans = setup_model(copy.deepcopy(d))
+        model_notrans = SepiaModel(copy.deepcopy(d))
 
         # Do explicit transformation
         d.transform_xt()
         d.standardize_y()
-        model = setup_model(d)
+        model = SepiaModel(d)
 
         # Check that either way gives same transformation
         self.assertTrue(np.allclose(model_notrans.data.sim_data.orig_y_mean, model.data.sim_data.orig_y_mean))
@@ -85,12 +85,12 @@ class SepiaModelSetupUnivOutputTestCase(unittest.TestCase):
         print(d, flush=True)
 
         # Try it without doing standardization/transform to be sure it doesn't break
-        model_notrans = setup_model(copy.deepcopy(d))
+        model_notrans = SepiaModel(copy.deepcopy(d))
 
         # Do explicit transformation
         d.transform_xt()
         d.standardize_y()
-        model = setup_model(d)
+        model = SepiaModel(d)
 
         # Check that either way gives same transformation
         self.assertTrue(np.allclose(model_notrans.data.sim_data.orig_y_mean, model.data.sim_data.orig_y_mean))

@@ -3,8 +3,8 @@ import scipy.io
 import matlab.engine
 
 from sepia.SepiaData import SepiaData
-from sepia.SepiaModelSetup import setup_model
-from sepia.util import timeit
+from sepia.SepiaModel import SepiaModel
+from test.util import timeit
 from sepia.SepiaPredict import wPred, uvPred
 
 import os
@@ -60,7 +60,7 @@ data.create_D_basis(D_obs=matfile['Dobs'].T)
 print(data)
 
 np.random.seed(int(seed))
-model = setup_model(data)
+model = SepiaModel(data)
 if lamWOs_init > 0:
     model.params.lamWOs.val = np.array([[lamWOs_init]])
 

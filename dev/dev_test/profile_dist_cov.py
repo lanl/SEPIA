@@ -4,7 +4,7 @@ import os
 import matlab.engine
 
 from sepia.SepiaDistCov import SepiaDistCov
-from sepia.util import timeit
+from test.util import timeit
 
 
 script_path = os.path.dirname(os.path.realpath(__file__))

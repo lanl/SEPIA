@@ -3,7 +3,7 @@ import numpy as np
 
 import generate_data
 from sepia.SepiaData import SepiaData
-from sepia.SepiaModelSetup import setup_model
+from sepia.SepiaModel import SepiaModel
 from sepia.SepiaSharedThetaModels import SepiaSharedThetaModels
 
 np.random.seed(42)
@@ -35,8 +35,8 @@ class SepiaSharedThetaMCMCTestCase(unittest.TestCase):
             d.create_D_basis('constant')
             multi_data_list.append(d)
 
-        self.univ_model_list = [setup_model(d) for d in univ_data_list]
-        self.multi_model_list = [setup_model(d) for d in multi_data_list]
+        self.univ_model_list = [SepiaModel(d) for d in univ_data_list]
+        self.multi_model_list = [SepiaModel(d) for d in multi_data_list]
 
 
     def test_univariate_sim_and_obs_shared_theta_mcmc(self):

@@ -8,7 +8,7 @@ import os
 import matlab.engine
 
 from sepia.SepiaData import SepiaData
-from sepia.SepiaModelSetup import setup_model
+from sepia.SepiaModel import SepiaModel
 from sepia.SepiaPredict import wPred
 from sepia.SepiaPredict import uvPred
 
@@ -53,7 +53,7 @@ if not multi:
     data.standardize_y()
     data.transform_xt()
     print(data)
-    model = setup_model(data)
+    model = SepiaModel(data)
     nsamp = int(matfile['nsamp'])
     nburn = int(matfile['nburn'])
     #nsamp=20
@@ -70,7 +70,7 @@ else:
     data.transform_xt()
     data.create_K_basis(n_pc=n_pc)
     print(data)
-    model = setup_model(data)
+    model = SepiaModel(data)
     nsamp = int(matfile['nsamp'])
     nburn = int(matfile['nburn'])
     if lamWOs_init > 0:
@@ -148,7 +148,7 @@ import os
 import matlab.engine
 
 from sepia.SepiaData import SepiaData
-from sepia.SepiaModelSetup import setup_model
+from sepia.SepiaModel import SepiaModel
 from sepia.SepiaPredict import wPred
 from sepia.SepiaPredict import uvPred
 
@@ -199,7 +199,7 @@ data.create_D_basis(D=matfile['Dobs'].T)
 print(data)
 
 np.random.seed(int(seed))
-model = setup_model(data)
+model = SepiaModel(data)
 if lamWOs_init > 0:
     model.params.lamWOs.val = np.array([[lamWOs_init]])
 

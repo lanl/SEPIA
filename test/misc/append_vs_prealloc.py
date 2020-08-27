@@ -1,7 +1,7 @@
 # Test appending to list vs preallocating
 
 import numpy as np
-from sepia.util import timeit
+from test.util import timeit
 
 
 class listContainer:

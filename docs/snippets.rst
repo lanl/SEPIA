@@ -142,8 +142,7 @@ Set up model
 Once the data structure is set up correctly, the inputs are in the unit hypercube, the outputs are standardized,
 and basis vectors are created (for multivariate output), we are ready to set up the Sepia model::
 
-    from SepiaModelSetup import setup_model
-    model = setup_model(data)
+    model = SepiaModel(data)
     print(model)
 
 The model parses the `SepiaData` structure to understand what kind of model is being set up and does a lot of
@@ -160,7 +159,7 @@ To see information about the default setup, you can use::
 Customize and run MCMC
 ----------------------
 
-After calling `setup_model`, various aspects of the MCMC can be customized prior to doing MCMC.
+After instantiating the `SepiaModel` object, various aspects of the MCMC can be customized prior to doing MCMC.
 
 Custom start values
 ^^^^^^^^^^^^^^^^^^^
@@ -187,7 +186,7 @@ Change prior distribution and prior parameters
 
 Currently, there are only four distributions supported for priors: Normal, Gamma, Beta, and Uniform.
 *Note*: this user interface will probably change to be more extendable and user-friendly.
-After calling `setup_model`, we can modify priors as follows::
+After instantiating the `SepiaModel`, we can modify priors as follows::
 
     prior_dist_name = 'Normal'
     prior_mu = 0.1
@@ -362,9 +361,9 @@ Hierarchical or shared theta models
 
 The syntax for both cases is similar. First, set up each model, then put them in a list::
 
-    m1 = setup_model(d1)
-    m2 = setup_model(d2)
-    m3 = setup_model(d3)
+    m1 = SepiaModel(d1)
+    m2 = SepiaModel(d2)
+    m3 = SepiaModel(d3)
     model_list = [m1, m2, m3]
 
 Then we need to specify which thetas are shared or modeled hierarchically. The way to do this is with a numpy array

@@ -3,8 +3,8 @@ import scipy.io
 import matlab.engine
 
 from sepia.SepiaData import SepiaData
-from sepia.SepiaModelSetup import setup_model
-from sepia.util import timeit
+from sepia.SepiaModel import SepiaModel
+from test.util import timeit
 
 import os
 script_path = os.path.dirname(os.path.realpath(__file__))
@@ -33,7 +33,7 @@ data.standardize_y()
 data.transform_xt()
 data.create_K_basis(n_pc=2)
 data.create_D_basis(D_sim=matfile['Dsim'].T)
-model = setup_model(data)
+model = SepiaModel(data)
 
 @timeit
 def do_loglik():

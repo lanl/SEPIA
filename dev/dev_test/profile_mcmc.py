@@ -4,8 +4,8 @@ import scipy.stats
 import os
 
 from sepia.SepiaData import SepiaData
-from sepia.SepiaModelSetup import setup_model
-from sepia.util import timeit
+from sepia.SepiaModel import SepiaModel
+from test.util import timeit
 import matlab.engine
 
 """
@@ -53,7 +53,7 @@ data.create_K_basis(n_pc=2)
 data.create_D_basis(D_obs=matfile['Dobs'].T)
 print(data)
 
-model = setup_model(data)
+model = SepiaModel(data)
 
 nsamp = int(matfile['nsamp'])
 nburn = int(matfile['nburn'])

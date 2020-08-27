@@ -3,7 +3,7 @@ import numpy as np
 
 import generate_data
 from sepia.SepiaData import SepiaData
-from sepia.SepiaModelSetup import setup_model
+from sepia.SepiaModel import SepiaModel
 from sepia.SepiaSensitivity import sensitivity
 
 np.random.seed(42)
@@ -19,19 +19,19 @@ class SepiaSensitivityTestCase(unittest.TestCase):
         d = SepiaData(t_sim=univ_data_dict['t_sim'], y_sim=univ_data_dict['y_sim'])
         d.transform_xt()
         d.standardize_y()
-        self.univ_sim_only_model = setup_model(d)
+        self.univ_sim_only_model = SepiaModel(d)
 
         d = SepiaData(t_sim=univ_data_dict['t_sim'], y_sim=univ_data_dict['y_sim'], y_obs=univ_data_dict['y_obs'])
         d.transform_xt()
         d.standardize_y()
-        self.univ_sim_and_obs_model = setup_model(d)
+        self.univ_sim_and_obs_model = SepiaModel(d)
 
         d = SepiaData(t_sim=multi_data_dict['t_sim'], y_sim=multi_data_dict['y_sim'],
                       y_ind_sim=multi_data_dict['y_ind_sim'])
         d.transform_xt()
         d.standardize_y()
         d.create_K_basis(5)
-        self.multi_sim_only_model = setup_model(d)
+        self.multi_sim_only_model = SepiaModel(d)
 
         d = SepiaData(t_sim=multi_data_dict['t_sim'], y_sim=multi_data_dict['y_sim'],
                       y_ind_sim=multi_data_dict['y_ind_sim'], y_obs=multi_data_dict['y_obs'],
@@ -39,7 +39,7 @@ class SepiaSensitivityTestCase(unittest.TestCase):
         d.transform_xt()
         d.standardize_y()
         d.create_K_basis(5)
-        self.multi_sim_and_obs_noD_model = setup_model(d)
+        self.multi_sim_and_obs_noD_model = SepiaModel(d)
 
         d = SepiaData(t_sim=multi_data_dict['t_sim'], y_sim=multi_data_dict['y_sim'],
                       y_ind_sim=multi_data_dict['y_ind_sim'], y_obs=multi_data_dict['y_obs'],
@@ -48,7 +48,7 @@ class SepiaSensitivityTestCase(unittest.TestCase):
         d.standardize_y()
         d.create_K_basis(5)
         d.create_D_basis('linear')
-        self.multi_sim_and_obs_model = setup_model(d)
+        self.multi_sim_and_obs_model = SepiaModel(d)
 
     def test_univariate_sim_only_sensitivity(self):
         """

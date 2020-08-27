@@ -3,7 +3,7 @@ import numpy as np
 
 import generate_data
 from sepia.SepiaData import SepiaData
-from sepia.SepiaModelSetup import setup_model
+from sepia.SepiaModel import SepiaModel
 
 np.random.seed(42)
 
@@ -26,7 +26,7 @@ class SepiaLogLikTestCase(unittest.TestCase):
 
         d.transform_xt()
         d.standardize_y()
-        model = setup_model(d)
+        model = SepiaModel(d)
 
         model.logLik()
 
@@ -48,7 +48,7 @@ class SepiaLogLikTestCase(unittest.TestCase):
         # Do explicit transformation
         d.transform_xt()
         d.standardize_y()
-        model = setup_model(d)
+        model = SepiaModel(d)
 
         model.logLik()
 
@@ -70,7 +70,7 @@ class SepiaLogLikTestCase(unittest.TestCase):
         d.transform_xt()
         d.standardize_y()
         d.create_K_basis(5)
-        model = setup_model(d)
+        model = SepiaModel(d)
 
         model.logLik()
 
@@ -94,7 +94,7 @@ class SepiaLogLikTestCase(unittest.TestCase):
         d.standardize_y()
         d.create_K_basis(5)
         d.create_D_basis('linear')
-        model = setup_model(d)
+        model = SepiaModel(d)
 
         model.logLik()
 
@@ -117,7 +117,7 @@ class SepiaLogLikTestCase(unittest.TestCase):
         d.transform_xt()
         d.standardize_y()
         d.create_K_basis(5)
-        model = setup_model(d)
+        model = SepiaModel(d)
 
         model.logLik()
 

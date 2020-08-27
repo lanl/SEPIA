@@ -6,7 +6,7 @@ import scipy.stats
 import os
 
 from sepia.SepiaData import SepiaData
-from sepia.SepiaModelSetup import setup_model
+from sepia.SepiaModel import SepiaModel
 import matlab.engine
 from sepia.SepiaPredict import wPred, uvPred
 
@@ -59,7 +59,7 @@ class SepiaPredictTestCase(unittest.TestCase):
         data.standardize_y()
         data.transform_xt()
         print(data)
-        model = setup_model(data)
+        model = SepiaModel(data)
         nsamp = int(matfile['nsamp'])
         nburn = int(matfile['nburn'])
         t_start = time()
@@ -168,7 +168,7 @@ class SepiaPredictTestCase(unittest.TestCase):
         print(data)
 
         np.random.seed(int(seed))
-        model = setup_model(data)
+        model = SepiaModel(data)
         if lamWOs_init > 0:
             model.params.lamWOs.val = np.array([[lamWOs_init]])
         model.params.mcmcList = [model.params.mcmcList[i-1] for i in list_to_sample]
@@ -284,7 +284,7 @@ class SepiaPredictTestCase(unittest.TestCase):
         print(data)
 
         np.random.seed(int(seed))
-        model = setup_model(data)
+        model = SepiaModel(data)
         if lamWOs_init > 0:
             model.params.lamWOs.val = np.array([[lamWOs_init]])
 
@@ -373,7 +373,7 @@ class SepiaPredictTestCase(unittest.TestCase):
         print(data)
 
         np.random.seed(int(seed))
-        model = setup_model(data)
+        model = SepiaModel(data)
         if lamWOs_init > 0:
             model.params.lamWOs.val = np.array([[lamWOs_init]])
 

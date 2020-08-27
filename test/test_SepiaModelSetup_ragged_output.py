@@ -3,7 +3,7 @@ import numpy as np
 
 import generate_data
 from sepia.SepiaData import SepiaData
-from sepia.SepiaModelSetup import setup_model
+from sepia.SepiaModel import SepiaModel
 
 np.random.seed(42)
 
@@ -46,7 +46,7 @@ class SepiaModelSetupRaggedOutputTestCase(unittest.TestCase):
         d = SepiaData(x_sim=x_sim, y_sim=y_sim, t_sim=t, y_ind_sim=y_ind_sim, x_obs=x_obs, y_obs=y_obs,
                       y_ind_obs=y_ind_obs)
 
-        model = setup_model(d)
+        model = SepiaModel(d)
 
 
 

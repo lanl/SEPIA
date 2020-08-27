@@ -1,13 +1,7 @@
 import unittest
 import numpy as np
-import scipy.io
 from time import time
-import scipy.stats
-import os
-import matlab.engine
 
-from sepia.SepiaData import SepiaData
-from sepia.SepiaModelSetup import setup_model
 from setup_test_cases import *
 from sepia.SepiaSharedThetaModels import SepiaSharedThetaModels
 

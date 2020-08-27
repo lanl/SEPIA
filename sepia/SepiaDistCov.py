@@ -1,7 +1,6 @@
 
 import numpy as np
 
-
 class SepiaDistCov(object):
     """
     Class for computing/storing distances and covariance matrix, typically not called directly by user but used in model.
@@ -84,11 +83,10 @@ class SepiaDistCov(object):
             cov = np.zeros((self.n, self.n))
             cov[self.ind] = sqdist_exp_sum
             cov = cov + cov.T
-            lam = 1/lamz 
+            lam = 1/lamz
             if lams is not None: lam += 1/lams
             np.fill_diagonal(cov, lam)
         elif self.type == 2:
             cov = np.zeros((self.n, self.m))
             cov[self.ind] = sqdist_exp_sum
         return cov
-

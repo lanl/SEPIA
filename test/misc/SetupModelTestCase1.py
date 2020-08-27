@@ -4,7 +4,7 @@ import scipy.io
 import pickle
 
 from sepia.SepiaData import SepiaData
-from sepia.SepiaModelSetup import setup_model
+from sepia.SepiaModel import SepiaModel
 
 # TODO currently broken due to reorganizing files, check later, may not need this test much anymore
 
@@ -22,7 +22,7 @@ class SetupModelTestCase1(unittest.TestCase):
 
         # Create saved test case in python
         create_test_case()
-        # Run setup_model in matlab GPMSA on saved test case
+        # Run SepiaModel in matlab GPMSA on saved test case
         # This currently doesn't work, just run matlab/multi_sim_and_obs_sepia_gpmsa_test1.m to be sure the .mat file is there
         #octave.generate_test('%s/matlab/' % os.path.dirname(os.path.abspath( __file__ )))
 
@@ -82,7 +82,7 @@ def create_test_case():
                 'y_obs_std':data.obs_data.y_std, 'y_sim_std':data.sim_data.y_std, 'y_sd':data.sim_data.orig_y_sd}
     scipy.io.savemat('data/test_case_matlab.mat', savedict)
 
-    g = setup_model(data)
+    g = SepiaModel(data)
 
     # Save pickle file of results
     savedict = {'model': g, 'data': data}

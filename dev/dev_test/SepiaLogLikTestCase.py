@@ -1,12 +1,7 @@
 import unittest
 import numpy as np
-import scipy.io
 from time import time
-from tqdm import tqdm
-import matlab.engine
 
-from sepia.SepiaData import SepiaData
-from sepia.SepiaModelSetup import setup_model
 from setup_test_cases import *
 
 import os

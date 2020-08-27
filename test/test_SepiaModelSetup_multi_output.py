@@ -4,7 +4,7 @@ import copy
 
 import generate_data
 from sepia.SepiaData import SepiaData
-from sepia.SepiaModelSetup import setup_model
+from sepia.SepiaModel import SepiaModel
 
 np.random.seed(42)
 
@@ -25,12 +25,12 @@ class SepiaModelSetupMultiOutputTestCase(unittest.TestCase):
         print(d, flush=True)
 
         # Try it without doing standardization/transform to be sure it doesn't break
-        model_notrans = setup_model(copy.deepcopy(d))
+        model_notrans = SepiaModel(copy.deepcopy(d))
 
         # Do explicit transformation
         d.transform_xt()
         d.standardize_y()
-        model = setup_model(d)
+        model = SepiaModel(d)
 
         # Check that either way gives same transformation
         self.assertTrue(np.allclose(model_notrans.data.sim_data.orig_y_mean, model.data.sim_data.orig_y_mean))
@@ -88,13 +88,13 @@ class SepiaModelSetupMultiOutputTestCase(unittest.TestCase):
         print(d, flush=True)
 
         # Try it without doing standardization/transform/pc basis to be sure it doesn't break
-        model_notrans = setup_model(copy.deepcopy(d))
+        model_notrans = SepiaModel(copy.deepcopy(d))
 
         # Do explicit transformation
         d.transform_xt()
         d.standardize_y()
         d.create_K_basis(n_pc=5)
-        model = setup_model(d)
+        model = SepiaModel(d)
 
         # Check that either way gives same transformation
         self.assertTrue(np.allclose(model_notrans.data.sim_data.orig_y_mean, model.data.sim_data.orig_y_mean))
@@ -170,7 +170,7 @@ class SepiaModelSetupMultiOutputTestCase(unittest.TestCase):
         print(d, flush=True)
 
         # Try it without doing standardization/transform/pc basis to be sure it doesn't break
-        model_notrans = setup_model(copy.deepcopy(d))
+        model_notrans = SepiaModel(copy.deepcopy(d))
 
         # Do explicit transformation
         d.transform_xt()
@@ -180,7 +180,7 @@ class SepiaModelSetupMultiOutputTestCase(unittest.TestCase):
         d.create_D_basis(type='linear')
         custom_D = np.vstack([np.ones(d.obs_data.y.shape[1]), d.obs_data.y_ind])
         d.create_D_basis(D_obs=custom_D)
-        model = setup_model(d)
+        model = SepiaModel(d)
 
         # Check that either way gives same transformation
         self.assertTrue(np.allclose(model_notrans.data.sim_data.orig_y_mean, model.data.sim_data.orig_y_mean))
@@ -274,7 +274,7 @@ class SepiaModelSetupMultiOutputTestCase(unittest.TestCase):
         custom_D = np.vstack([np.ones(d.obs_data.y.shape[1]), d.obs_data.y_ind, d.obs_data.y_ind**2])
         d.create_D_basis(D_obs=custom_D)
         lamVzGroup = [0, 1, 1]
-        model = setup_model(d, lamVzGroup=lamVzGroup)
+        model = SepiaModel(d, lamVzGroup=lamVzGroup)
 
         # Check model components are set up as expected
         self.assertTrue(not model.num.scalar_out)
@@ -374,7 +374,7 @@ class SepiaModelSetupMultiOutputTestCase(unittest.TestCase):
     #     d = SepiaData(x_sim=x_sim, y_sim=y_sim, t_sim=t, y_ind_sim=y_ind_sim, x_obs=x_obs, y_obs=y_obs,
     #                   y_ind_obs=y_ind_obs)
     #
-    #     model = setup_model(d)
+    #     model = SepiaModel(d)
 
 
 

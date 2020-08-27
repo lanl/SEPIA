@@ -1,13 +1,7 @@
 import unittest
 import numpy as np
-import scipy.io
 from time import time
-import scipy.stats
-import os
 
-from sepia.SepiaData import SepiaData
-from sepia.SepiaModelSetup import setup_model
-import matlab.engine
 from sepia.SepiaPredict import SepiaEmulatorPrediction, SepiaFullPrediction
 from setup_test_cases import *
 

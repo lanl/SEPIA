@@ -237,3 +237,4 @@ def compute_log_lik(g, cvar='all', cindex=None):
     num.logLik = LogLikVUgW + LogLikW
     
     return num.logLik
+

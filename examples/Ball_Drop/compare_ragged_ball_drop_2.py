@@ -13,7 +13,7 @@ import seaborn as sns
 sns.set()
 import matplotlib.pyplot as plt
 #import pyDOE
-from sepia.SepiaModelSetup import setup_model
+from sepia.SepiaModel import SepiaModel
 from sepia.SepiaData import SepiaData
 import sepia.SepiaPlot as SepiaPlot
 import os
@@ -51,7 +51,7 @@ data.standardize_y()
 data.create_K_basis(3)
 data.create_D_basis('linear')
 print(data)
-model = setup_model(data)
+model = SepiaModel(data)
 
 #%% Ragged data and model setup
 y_obs_ragged = [np.array(field_data[0:3,4]),np.array(field_data[3:6,4]),\
@@ -75,7 +75,7 @@ data_ragged.standardize_y()
 data_ragged.create_K_basis(3)
 data_ragged.create_D_basis('linear')
 print(data_ragged)
-model_ragged = setup_model(data_ragged)
+model_ragged = SepiaModel(data_ragged)
 
 #%% Check for same model elements
 print('logLik',model.logLik(),model_ragged.logLik())

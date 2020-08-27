@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 from invertH import invertHsim, invertHtrue
-from sepia.SepiaModelSetup import setup_model
+from sepia.SepiaModel import SepiaModel
 from sepia.SepiaData import SepiaData
 from scipy.stats import norm
 
@@ -272,7 +272,7 @@ data.plot_K_residuals()
 # can be initialized and the posterior distributions of parameters sampled via 
 # Markov chain Monte Carlo (MCMC). Before performing MCMC, we call 
 # tune_step_sizes() to optimize proposal widths for each parameter.
-model = setup_model(data)
+model = SepiaModel(data)
 cachefile_name='ball_drop_1.pkl'
 import os.path
 import pickle

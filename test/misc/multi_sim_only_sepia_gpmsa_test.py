@@ -2,7 +2,7 @@
 import scipy.io
 import numpy as np
 
-from sepia.SepiaModelSetup import setup_model
+from sepia.SepiaModel import SepiaModel
 from sepia.SepiaData import SepiaData
 
 matfile = scipy.io.loadmat('multi_sim_only_sepia_gpmsa_test.mat')
@@ -19,7 +19,7 @@ data.transform_xt()
 data.create_K_basis(n_pc=2)
 assert np.allclose(data.sim_data.K, matfile['Ksim'].T, rtol=0.01)
 
-model = setup_model(data)
+model = SepiaModel(data)
 
 ll = model.logLik()
 

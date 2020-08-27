@@ -7,7 +7,7 @@ sns.set()
 
 from generate_data import generate_multi_sim_and_obs
 
-from sepia.SepiaModelSetup import setup_model
+from sepia.SepiaModel import SepiaModel
 from sepia.SepiaData import SepiaData
 
 #%load_ext autoreload
@@ -47,7 +47,7 @@ print(data)
 
 #%%
 
-model = setup_model(data)
+model = SepiaModel(data)
 
 #%%
 
@@ -201,7 +201,7 @@ data2.create_K_basis(5)
 
 print(data2)
 
-model2 = setup_model(data2)
+model2 = SepiaModel(data2)
 
 
 #%%
