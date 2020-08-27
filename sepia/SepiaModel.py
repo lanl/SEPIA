@@ -549,23 +549,6 @@ class SepiaModel:
         if diagnostics:
             return step_sizes, acc, mod_tmp
 
-    def optim_lag(self, chain, alpha=.05, cutoff=None):
-        """
-        Find first lag in acf such that autocorrelation < cutoff or significance line
-
-        :param chain: ndarray -- mcmc chain
-        :param alpha: float -- confidence level for significance line (0,1)
-        :param cutoff: float -- optional cutoff to override significance line
-        """
-        if np.ndim(chain) == 1:
-            chain = chain.reshape(1, chain.shape[0])
-        acf, sigline = self.acf(chain, len(chain) - 1, plot=False, alpha=alpha, ESS=False)
-        if cutoff:
-            optim_lag = np.where(acf < cutoff)
-        else:
-            optim_lag = np.where(acf < sigline)
-        return (optim_lag[0][0])
-
     def set_params_sim_only(self, lamWOs_a_corr=0, lamWOs_b_corr=0):
         #
         # Set up parameters and priors for simulation-only model.

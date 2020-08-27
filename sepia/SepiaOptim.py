@@ -13,7 +13,28 @@ class SepiaOptim():
             raise TypeError('model is required to set up optimizer.')    
         self.model = model
         self.idx_to_transform = []
-        
+    
+    def set_model_params(self,p):
+        i=0
+        for prm in self.model.params.mcmcList:
+            if prm.name == 'logPost': continue
+            for ind in range(int(np.prod(prm.val_shape))):
+                arr_ind = np.unravel_index(ind, prm.val_shape, order='F')
+                prm.val[arr_ind] = p[i]
+                i+=1
+    
+    def get_model_params(self):
+        params = []
+        i=0
+        for prm in self.model.params.mcmcList:
+            if prm.name == 'logPost': continue
+            for ind in range(int(np.prod(prm.val_shape))):
+                arr_ind = np.unravel_index(ind, prm.val_shape, order='F')
+                params.append(prm.val[arr_ind])
+                i+=1
+        params = np.array(params)
+        return np.array(params)
+    
     def log_transform(self,x):
         """
         1-1 log transformation, linear on [0,1]
