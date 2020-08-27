@@ -35,8 +35,9 @@ Establish appropriate (and/or pythonic) naming more systematically in
 - setup, logLik, predict, covariance model
 - this is relatively easy.
 
-##### Additions to SepiaModelSetup
+##### Additions to SepiaModel setup
 - thetaconstraints option
+- Kron
 
 ##### fledging out the predict class
 - Establish semantics for prediction calls and data structures

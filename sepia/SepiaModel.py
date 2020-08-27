@@ -31,7 +31,7 @@ class SepiaModel:
         :param LamSim: option to pass custom LamSim (warning: don't change unless know what you're doing)
         :return: instantiated SepiaModel object
         """
-        # Creates SepiaModel; not usually called by user, but done through setup_model()
+    
         self.verbose = False
         self.data = data
         self.num = ModelContainer() # num for numeric state
@@ -295,12 +295,6 @@ class SepiaModel:
                 self.params.theta.prior.params[1][:, i] = np.inf
                 self.params.theta.prior.bounds[0][:, i] = -np.inf
                 self.params.theta.prior.bounds[1][:, i] = np.inf
-
-    #def __str__(self):
-    #    if self.data is None:
-    #        print('SepiaModel is not set up; call setup_model(SepiaData_object)')
-    #    else:
-    #        print(self.data)
 
     def log_prior(self):
         """

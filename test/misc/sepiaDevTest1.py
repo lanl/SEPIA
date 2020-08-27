@@ -26,14 +26,13 @@ y = y - np.mean(y)
 xp = np.linspace(0, 1, 100)[:, None]
 tp = 0.5*np.ones((100, 1))
 
-# Create SepiaData object and standardize y before calling setup_model
+# Create SepiaData object and standardize y
 data = SepiaData(x_sim=x, t_sim=t, y_sim=y)
 print(data)
 
 data.standardize_y()
 data.transform_xt()
 
-# Call setup_model to do a bunch of stuff
 model = SepiaModel(data)
 
 # To start using the full covariance calculation
