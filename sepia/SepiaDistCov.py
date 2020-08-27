@@ -27,6 +27,7 @@ class SepiaDistCov(object):
         if data2 is None:
             self.type = 1
             self.n = data.shape[0]
+            self.p = data.shape[1]
             self.ind = np.triu_indices(n=self.n, k=1)
             if cat_ind is None:
                 self.sqdist = np.square(data[self.ind[0], :] - data[self.ind[1], :])
@@ -43,6 +44,9 @@ class SepiaDistCov(object):
             self.type = 2
             self.n = data.shape[0]
             self.m = data2.shape[0]
+            self.p = data.shape[1]
+            if data.shape[1] != data2.shape[1]:
+                raise ValueError('SepiaDistCov: p for data and data2 not the same')
             self.ind = np.unravel_index(np.arange(self.n * self.m), (self.n, self.m))
             if cat_ind is None:
                 self.sqdist = np.square(data[self.ind[0], :] - data2[self.ind[1], :])
@@ -69,6 +73,7 @@ class SepiaDistCov(object):
         :return: computed covariance matrix
         """
         if verbose:
+            # TODO: Should be checks whether these conform
             print('in covMat, beta shape ',beta.shape,
                     ', lamz shape ',lamz.shape,
                     ', sqdist shape ',self.sqdist.shape)
