@@ -171,6 +171,11 @@ class SepiaData(object):
             x_notrans = []
         if t_notrans is None:
             t_notrans = []
+        if x_notrans is True:
+            x_notrans = np.arange(self.sim_data.x.shape[1])
+        if t_notrans is True:
+            t_notrans = np.arange(self.sim_data.t.shape[1])
+
         # Transform x to unit hypercube
         # if not computed, compute orig x min and orig x max, accounting for notrans_x, all equal x, and categorical x
         if self.sim_data.orig_x_min is None or self.sim_data.orig_x_max is None or self.sim_data.x_trans is None:
