@@ -123,9 +123,10 @@ class SepiaModel:
         # Set up GP inputs/DistCov objects
         if not data.sim_only:
             data.x = obs_data.x_trans
+            self.num.x0Dist = SepiaDistCov(data.x, cat_ind=data.x_cat_ind)
         else:
             data.x = np.array([], dtype=np.float).reshape((0, 1))
-        self.num.x0Dist = SepiaDistCov(data.x, cat_ind=data.x_cat_ind)
+            self.num.x0Dist = SepiaDistCov(data.x)
         if sim_data.t_trans is not None:
             data.zt = np.concatenate([sim_data.x_trans, sim_data.t_trans], axis=1)
         else:
