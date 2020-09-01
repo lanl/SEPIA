@@ -290,12 +290,13 @@ class SepiaModel:
             self.set_params_full(lamOs_a_corr, lamOs_b_corr, lamWOs_a_corr, lamWOs_b_corr)
 
         # If cat ind, fix start values, bounds, prior variance for corresponding theta
-        for i in range(len(data.t_cat_ind)):
-            if data.t_cat_ind[i] > 0:
-                self.params.theta.val[:, i] = 1
-                self.params.theta.prior.params[1][:, i] = np.inf
-                self.params.theta.prior.bounds[0][:, i] = -np.inf
-                self.params.theta.prior.bounds[1][:, i] = np.inf
+        if not self.num.sim_only:
+            for i in range(len(data.t_cat_ind)):
+                if data.t_cat_ind[i] > 0:
+                    self.params.theta.val[:, i] = 1
+                    self.params.theta.prior.params[1][:, i] = np.inf
+                    self.params.theta.prior.bounds[0][:, i] = -np.inf
+                    self.params.theta.prior.bounds[1][:, i] = np.inf
 
     def log_prior(self):
         """
@@ -346,7 +347,7 @@ class SepiaModel:
         if pnames is None:
             pnames = [p.name for p in self.params]
         for p in self.params:
-            if p.name in pnames:
+            if p.name in pnames and p.name != 'logPost':
                 print('%s prior distribution: %s' % (p.name, p.prior.dist))
                 print('bounds: ')
                 print(p.prior.bounds)
