@@ -461,9 +461,10 @@ class SepiaModel:
             print("Max effective sample size over thetas: {}".format(ess_max))
             print("Total samples: {}".format(theta.shape[1]))
         plist = self.params.mcmcList
-        if includelogpost: plist.append(self.params.lp)
         samples = {p.name: p.mcmc_to_array(trim=nburn, sampleset=ss, flat=flat, untransform_theta=False)
                    for p in plist}
+        if includelogpost:
+            samples['logPost'] = self.params.lp.mcmc_to_array(trim=nburn, sampleset=ss, flat=flat, untransform_theta=False)
         # Add theta in native space as new key
         if 'theta' in samples.keys():
             samples['theta_native'] = self.params.theta.mcmc_to_array(trim=nburn, sampleset=ss, flat=flat, untransform_theta=True)
