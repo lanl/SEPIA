@@ -102,7 +102,7 @@ class SepiaHierThetaTestCase(unittest.TestCase):
 
         for i in range(n_shared):
             for k in samples_dicts[i].keys():
-                if k is not 'logPost': # TODO mistmatch in recorded logPost, does not seem to affect sampling though, so...?
+                if k != 'logPost': # TODO mistmatch in recorded logPost, does not seem to affect sampling though, so...?
                     self.assertTrue(np.allclose(np.mean(samples_dicts[i][k], 0), np.mean(mcmc_mat[k][:, :, i], 0)),
                                     msg='fail to match sample mean on model %d param %s' % (i, k))
                     self.assertTrue(np.allclose(np.std(samples_dicts[i][k], 0), np.std(mcmc_mat[k][:, :, i], 0)),
