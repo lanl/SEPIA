@@ -63,7 +63,7 @@ class SepiaParam:
         self.fixed = np.zeros_like(self.val, dtype=bool)
         self.name = name
         self.val_shape = val_shape
-        if dist is not 'Recorder':
+        if dist != 'Recorder':
             self.refVal = False  # place to put val when mcmc cand eval
             self.prior = SepiaPrior(self, dist=dist, params=params, bounds=bounds)
             if np.isscalar(mcmcStepParam):

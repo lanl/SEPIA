@@ -23,7 +23,7 @@ class SepiaPrior:
         """
         self.parent = parent
         self.dist = dist 
-        if not (dist is 'Normal' or dist is 'Gamma' or  dist is 'Beta' or dist is 'Uniform'):
+        if not (dist == 'Normal' or dist == 'Gamma' or dist == 'Beta' or dist == 'Uniform'):
             raise Exception('Invalid dist type {dist} in sepPrior')
         # If params given, process into correct format; params input should always be a list, either of arrays or scalars,
         # and is transformed into a list of arrays that match param val_shape
@@ -36,13 +36,13 @@ class SepiaPrior:
             self.params = params
         # Set default prior parameters if params not given
         else:
-            if dist is 'Normal':
+            if dist == 'Normal':
                 self.params = [np.zeros(parent.val_shape), np.ones(parent.val_shape)]
-            elif dist is 'Gamma':
+            elif dist == 'Gamma':
                 self.params = [10 * np.ones(parent.val_shape), 10 * np.ones(parent.val_shape)]
-            elif dist is 'Beta':
+            elif dist == 'Beta':
                 self.params = [np.ones(parent.val_shape), np.ones(parent.val_shape)]
-            elif dist is 'Uniform':
+            elif dist == 'Uniform':
                 self.params = []
         # Set bounds
         if bounds is not None:
@@ -50,13 +50,13 @@ class SepiaPrior:
             ub = bounds[1] * np.ones(parent.val_shape) if np.isscalar(bounds[1]) else bounds[1]
             self.bounds = [lb, ub]
         else:
-            if dist is 'Normal':
+            if dist == 'Normal':
                 self.bounds = [np.zeros(parent.val_shape), np.ones(parent.val_shape)]
-            elif dist is 'Gamma':
+            elif dist == 'Gamma':
                 self.bounds = [np.zeros(parent.val_shape), 1e6 * np.ones(parent.val_shape)]
-            elif dist is 'Beta':
+            elif dist == 'Beta':
                 self.bounds = [np.zeros(parent.val_shape), np.ones(parent.val_shape)]
-            elif dist is 'Uniform':
+            elif dist == 'Uniform':
                 self.bounds = [np.zeros(parent.val_shape), np.ones(parent.val_shape)]
 
     def compute_log_prior(self):
@@ -70,13 +70,13 @@ class SepiaPrior:
         if not self.is_in_bounds():
             lp = -np.inf
         else:
-            if self.dist is 'Normal':
+            if self.dist == 'Normal':
                 # proportional to log normal density
                 lp = -0.5 * np.sum(np.square((x - self.params[0])/self.params[1]))
-            elif self.dist is 'Gamma':
+            elif self.dist == 'Gamma':
                 lp = np.sum((self.params[0] - 1) * np.log(x) - self.params[1] * x)
-            elif self.dist is 'Beta':
-                if self.parent.name is 'betaU' or 'betaV':
+            elif self.dist == 'Beta':
+                if self.parent.name in ['betaU', 'betaV']:
                     rho = np.exp(-0.25 * x)
                     rho[rho > 0.999] = 0.999
                     lp = np.sum((self.params[0] - 1) * np.log(rho) + (self.params[1] - 1) * np.log(1 - rho))
