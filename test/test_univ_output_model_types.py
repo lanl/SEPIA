@@ -1,7 +1,8 @@
 import unittest
 import numpy as np
 
-
+import matplotlib
+matplotlib.use('Agg')
 
 from sepia.SepiaData import SepiaData
 from sepia.SepiaModel import SepiaModel
