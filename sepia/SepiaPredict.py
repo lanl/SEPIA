@@ -177,7 +177,7 @@ class SepiaXvalEmulatorPrediction(SepiaEmulatorPrediction):
             sub_model.data.zt = sub_model.data.zt[fit_inds, :]
             sub_model.num.m = len(fit_inds)
             sub_model.num.ztDist = SepiaDistCov(sub_model.data.zt, cat_ind=np.concatenate([sub_model.data.x_cat_ind, sub_model.data.t_cat_ind]))
-            # Subset x/t to predict inds
+            # Subset x/t to predict inds TODO check if both x and t exist first
             self.xpred = sub_model.data.sim_data.x_trans[li, :]
             self.t_pred = sub_model.data.sim_data.t_trans[li, :]
             # Subset w's -- need to index for each pu
@@ -612,13 +612,16 @@ def wPred(pred):
 
         if theta_pred is not None:
             xpredt = np.concatenate((xpred,theta_pred),axis=1)
+            cat_ind = np.concatenate([data.x_cat_ind, data.t_cat_ind])
         elif not num.sim_only:
             xpredt = np.concatenate( ( xpred,np.tile(theta,(npred, 1)) ),axis=1)
+            cat_ind = np.concatenate([data.x_cat_ind, data.t_cat_ind])
         else:
             xpredt=xpred
+            cat_ind = data.x_cat_ind
 
-        xpredDist=SepiaDistCov(xpredt, cat_ind=np.concatenate([data.x_cat_ind, data.t_cat_ind]))
-        zxpredDist=SepiaDistCov(data.zt,xpredt, cat_ind=np.concatenate([data.x_cat_ind, data.t_cat_ind]))
+        xpredDist=SepiaDistCov(xpredt, cat_ind=cat_ind)
+        zxpredDist=SepiaDistCov(data.zt,xpredt, cat_ind=cat_ind)
 
         Myhat=np.zeros((npred*pu,1))
         Syhat=np.zeros((npred*pu,npred*pu))
