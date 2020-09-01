@@ -187,3 +187,142 @@ class TestUnivOutputModelTypes(unittest.TestCase):
         xpred.get_y()
         xpred.get_mu_sigma()
 
+    def test_sim_and_obs_t_only(self):
+        m = 20
+        n = 10
+        t = np.random.uniform(-1, 3, (m, 3))
+        y = np.random.normal(size=(m, 1))
+        y2 = np.random.normal(size=(n, 1))
+
+        data = SepiaData(t_sim=t, y_sim=y, y_obs=y2)
+        call_data_methods(data)
+
+        model = SepiaModel(data)
+        call_model_methods(model)
+
+        samples = model.get_samples()
+        mcmc_trace(samples)
+        param_stats(samples)
+
+        pred = SepiaEmulatorPrediction(x_pred=0.5 * np.ones((m, 1)), t_pred=t, samples=samples, model=model)
+        pred.get_w()
+        pred.get_y()
+        pred.get_mu_sigma()
+
+        xpred = SepiaXvalEmulatorPrediction(samples=samples, model=model)
+        xpred.get_w()
+        xpred.get_y()
+        xpred.get_mu_sigma()
+
+        # TODO fails because no betaV/lamVz
+        #pred = SepiaFullPrediction(x_pred=0.5 * np.ones((m, 1)), t_pred=t, samples=samples, model=model)
+        #pred.get_u_v()
+        #pred.get_ysim()
+        #pred.get_yobs()
+
+    def test_sim_and_obs_t_only_cat(self):
+        m = 20
+        n = 10
+        t = np.concatenate([np.random.uniform(-1, 3, (m, 3)), 1+np.random.choice(3,size=(m, 1))], axis=1)
+        y = np.random.normal(size=(m, 1))
+        y2 = np.random.normal(size=(n, 1))
+        cat_inds = [0, 0, 0, 3]
+
+        data = SepiaData(t_sim=t, y_sim=y, t_cat_ind=cat_inds, y_obs=y2)
+        call_data_methods(data)
+
+        model = SepiaModel(data)
+        call_model_methods(model)
+
+        samples = model.get_samples()
+        mcmc_trace(samples)
+        param_stats(samples)
+
+        pred = SepiaEmulatorPrediction(x_pred=0.5 * np.ones((m, 1)), t_pred=t, samples=samples, model=model)
+        pred.get_w()
+        pred.get_y()
+        pred.get_mu_sigma()
+
+        xpred = SepiaXvalEmulatorPrediction(samples=samples, model=model)
+        xpred.get_w()
+        xpred.get_y()
+        xpred.get_mu_sigma()
+
+        # TODO fails because no betaV/lamVz
+        #pred = SepiaFullPrediction(x_pred=0.5 * np.ones((m, 1)), t_pred=t, samples=samples, model=model)
+        #pred.get_u_v()
+        #pred.get_ysim()
+        #pred.get_yobs()
+
+    def test_sim_and_obs_x_and_t(self):
+        m = 20
+        n = 10
+        x = np.random.uniform(-1, 3, (m, 3))
+        x2 = np.random.uniform(-1, 3, (n, 3))
+        t = np.random.uniform(-1, 3, (m, 2))
+        y = np.random.normal(size=(m, 1))
+        y2 = np.random.normal(size=(n, 1))
+
+        data = SepiaData(x_sim=x, t_sim=t, y_sim=y, x_obs=x2, y_obs=y2)
+        call_data_methods(data)
+
+        model = SepiaModel(data)
+        call_model_methods(model)
+
+        samples = model.get_samples()
+        mcmc_trace(samples)
+        param_stats(samples)
+
+        pred = SepiaEmulatorPrediction(x_pred=x, t_pred=t, samples=samples, model=model)
+        pred.get_w()
+        pred.get_y()
+        pred.get_mu_sigma()
+
+        xpred = SepiaXvalEmulatorPrediction(samples=samples, model=model)
+        xpred.get_w()
+        xpred.get_y()
+        xpred.get_mu_sigma()
+
+        # TODO fails because no betaV/lamVz
+        #pred = SepiaFullPrediction(x_pred=0.5 * np.ones((m, 1)), t_pred=t, samples=samples, model=model)
+        #pred.get_u_v()
+        #pred.get_ysim()
+        #pred.get_yobs()
+
+    def test_sim_and_obs_x_and_t_cat(self):
+        m = 20
+        n = 10
+        x = np.concatenate([np.random.uniform(-1, 3, (m, 3)), 1 + np.random.choice(3,size=(m, 1))], axis=1)
+        x2 = np.concatenate([np.random.uniform(-1, 3, (n, 3)), 1 + np.random.choice(3, size=(n, 1))], axis=1)
+        t = np.concatenate([np.random.uniform(-1, 3, (m, 2)), 1 + np.random.choice(4, size=(m, 1))], axis=1)
+        y = np.random.normal(size=(m, 1))
+        y2 = np.random.normal(size=(n, 1))
+        x_cat_ind = [0, 0, 0, 3]
+        t_cat_ind = [0, 0, 4]
+
+        data = SepiaData(x_sim=x, t_sim=t, y_sim=y, x_obs=x2, y_obs=y2, x_cat_ind=x_cat_ind, t_cat_ind=t_cat_ind)
+        call_data_methods(data)
+
+        model = SepiaModel(data)
+        call_model_methods(model)
+
+        samples = model.get_samples()
+        mcmc_trace(samples)
+        param_stats(samples)
+
+        pred = SepiaEmulatorPrediction(x_pred=x, t_pred=t, samples=samples, model=model)
+        pred.get_w()
+        pred.get_y()
+        pred.get_mu_sigma()
+
+        xpred = SepiaXvalEmulatorPrediction(samples=samples, model=model)
+        xpred.get_w()
+        xpred.get_y()
+        xpred.get_mu_sigma()
+
+        # TODO fails because no betaV/lamVz
+        #pred = SepiaFullPrediction(x_pred=0.5 * np.ones((m, 1)), t_pred=t, samples=samples, model=model)
+        #pred.get_u_v()
+        #pred.get_ysim()
+        #pred.get_yobs()
+
