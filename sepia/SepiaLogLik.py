@@ -52,20 +52,20 @@ def compute_log_lik(g, cvar='all', cindex=None):
 
     # The precomputation steps
     do_theta = do_betaV = do_lamVz = do_betaU = do_lamUz = do_lamWs = do_lamWOs = False
-    if cvar is 'all':
+    if cvar == 'all':
         do_theta = do_betaV = do_lamVz = do_betaU = do_lamUz = do_lamWs = do_lamWOs = True
-    elif cvar is 'theta': do_theta = True
-    elif cvar is 'betaV': do_betaV = True
-    elif cvar is 'lamVz': do_lamVz = True
-    elif cvar is 'betaU': do_betaU = True
-    elif cvar is 'lamUz': do_lamUz = True
-    elif cvar is 'lamWs': do_lamWs = True
-    elif cvar is 'lamWOs': do_lamWOs = True
-    elif cvar is 'lamOs': pass
+    elif cvar == 'theta': do_theta = True
+    elif cvar == 'betaV': do_betaV = True
+    elif cvar == 'lamVz': do_lamVz = True
+    elif cvar == 'betaU': do_betaU = True
+    elif cvar == 'lamUz': do_lamUz = True
+    elif cvar == 'lamWs': do_lamWs = True
+    elif cvar == 'lamWOs': do_lamWOs = True
+    elif cvar == 'lamOs': pass
     else: print('Invalid computeLogLik input cvar')
 
     # These are both related to recalculating x dists, whether with theta or not
-    if num.sim_only and cvar is 'all': # calculating everything
+    if num.sim_only and cvar == 'all': # calculating everything
         #num.xDist = SepiaDistCov(g.data.x, cat_ind=g.data.x_cat_ind)
         num.xDist = SepiaDistCov(g.data.x, cat_ind=[])
     elif do_theta:  # calculating everything involving theta [note this includes the case 'all']
@@ -88,10 +88,10 @@ def compute_log_lik(g, cvar='all', cindex=None):
         SigU = num.SigU
 
     if (do_betaU or do_lamUz or do_lamWs or do_lamWOs):
-        if   cvar is 'all': jinds = np.arange(pu)
-        elif cvar is 'betaU': jinds = [int(np.ceil( (cindex+1)/(p+q) ) - 1)]
+        if   cvar == 'all': jinds = np.arange(pu)
+        elif cvar == 'betaU': jinds = [int(np.ceil( (cindex+1)/(p+q) ) - 1)]
         elif cvar in ['lamUz', 'lamWs']: jinds = [cindex]
-        elif cvar is 'lamWOs': jinds = np.arange(pu)
+        elif cvar == 'lamWOs': jinds = np.arange(pu)
 
         lamUz_val = g.params.lamUz.val
         betaU_val = g.params.betaU.val
