@@ -4,8 +4,7 @@ from sepia.DataContainer import DataContainer
 
 class DataContainerTestCase(unittest.TestCase):
     """
-    DataContainer mostly exists to check dimensions, so this test module is making sure setting up the objects
-    does not trigger exceptions.
+    DataContainer mostly exists to check dimensions are conformal and that the correct inputs are given.
     """
 
     def setUp(self):
@@ -27,7 +26,7 @@ class DataContainerTestCase(unittest.TestCase):
                                  y=np.random.uniform(-3, 5, (self.n, 50)), y_ind=np.linspace(0, 10, 50),
                                  t=np.concatenate([0.5*np.ones((self.n, 1)), np.random.uniform(-5, 5, (self.n, 4))], axis=1))
         # Multi-output, multi-dimensional x/t, ragged obs
-        y_ell = np.random.random_integers(10, 60, self.n)
+        y_ell = np.random.randint(10, 60+1, size=self.n)
         y = [np.random.uniform(-3, 5, y_ell[i]) for i in range(len(y_ell))]
         y_ind = [np.linspace(0, 10, y_ell[i]) for i in range(len(y_ell))]
         self.dc6 = DataContainer(x=np.random.uniform(-1, 2, (self.n, 3)), y=y,
