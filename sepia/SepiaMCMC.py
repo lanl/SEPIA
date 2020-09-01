@@ -23,7 +23,7 @@ class SepiaMCMC:
         """
         self.stepType = stepType
         self.parent = parent
-        if self.stepType is 'Recorder':
+        if self.stepType == 'Recorder':
             self.draws = []
             self.stepParam = None
         else:
