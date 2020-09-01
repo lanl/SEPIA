@@ -35,7 +35,6 @@ class SepiaDataTestCase(unittest.TestCase):
 
         d.standardize_y(scale='columnwise')
         self.assertTrue(np.allclose(d.sim_data.orig_y_sd, 5, rtol=0.1))
-        #self.assertTrue(np.allclose(d.sim_data.orig_y_mean, 2, rtol=0.1))
         self.assertTrue(np.allclose(np.mean(d.sim_data.y_std, 0), 0, rtol=0.1))
         self.assertTrue(np.allclose(np.std(d.sim_data.y_std, 0), 1, rtol=0.1))
         self.assertTrue(d.sim_data.y.shape == d.sim_data.y_std.shape)
@@ -131,11 +130,7 @@ class SepiaDataTestCase(unittest.TestCase):
         y_ind = np.linspace(0, 100, ell)
         K_true = np.vstack([0.5 * (np.sin(y_ind) + 1), np.square(-y_ind + 50) / 2500, y_ind / 100])
         y = np.transpose(np.log(1 + y_ind)[:, None] + np.dot(K_true.T,
-                                                             2 * np.array([1, 0.5, 0.2])[:, None] * np.random.normal(0,
-                                                                                                                     1,
-                                                                                                                     (
-                                                                                                                     pu,
-                                                                                                                     m))))
+                                                             2 * np.array([1, 0.5, 0.2])[:, None] * np.random.normal(0,1,(pu,m))))
         t = 0.5 * np.random.uniform(-1, 3, (m, p))
         d = SepiaData(x_sim=None, y_sim=y, t_sim=t, y_ind_sim=y_ind)
 
@@ -429,14 +424,10 @@ class SepiaDataTestCase(unittest.TestCase):
         self.assertTrue(np.allclose(np.mean(d.sim_data.y_std, 0), 0, rtol=0.1))
         self.assertTrue(np.allclose(np.std(d.sim_data.y_std, 0), 1, rtol=0.1))
         self.assertTrue(d.sim_data.y.shape == d.sim_data.y_std.shape)
-        #self.assertTrue(np.allclose(d.obs_data.orig_y_mean, np.log(1 + y_ind_obs), rtol=0.1, atol=0.5))
-        #self.assertTrue(d.obs_data.y.shape == d.obs_data.y_std.shape)
 
         d.create_K_basis(3)
         self.assertTrue(d.sim_data.K.shape == (pu, ell_sim))
-        #self.assertTrue(d.obs_data.K.shape == (pu, ell_obs))
         d.create_D_basis()
-        #self.assertTrue(d.obs_data.D.shape == (1, ell_obs))
         print(d)
 
     def test_univariate_sim_only_x_only_cat_ind(self):
