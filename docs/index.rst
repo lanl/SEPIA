@@ -51,6 +51,11 @@ Welcome to Sepia!
 
     Familiar with the general workflow but looking for some tips on how to do common tasks? See :ref:`helpful-code-snippets`.
 
+.. topic:: Recent changes
+
+    * 8/27/2020: predictions now expect `x` and `t` to be passed in the native (untransformed) space.
+    * 8/25/2020: use `SepiaModel(data)` to set up model (no more `setup_model` function).
+
 .. topic:: Citing Sepia
 
     Using Sepia in your work? Cite as:
