@@ -85,7 +85,7 @@ class SepiaSharedThetaModels:
                         prm.refVal = prm.val.copy()
                         model.refNum = model.num.ref_copy(prm.name)
                         # Check whether this theta ind is shared
-                        if prm.name is 'theta' and np.any(ind == self.shared_theta_inds[:, mi]):
+                        if prm.name == 'theta' and np.any(ind == self.shared_theta_inds[:, mi]):
                             shr_ind = np.where(self.shared_theta_inds[:, mi] == ind)[0]
                             # to match matlab, we will draw here (may not be used at all)
                             #  check for categorical theta
