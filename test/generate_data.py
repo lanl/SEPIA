@@ -1,5 +1,5 @@
 """
-Some simple cases for generating data for unit tests, demos, etc.
+Some simple cases for generating data for unit tests.
 
 """
 
@@ -85,8 +85,6 @@ def generate_multi_sim_and_obs(m=100, n=1, nt_sim=50, nt_obs=20, n_theta=3, n_ba
     return {'y_sim': y_sim, 'y_ind_sim': y_ind_sim, 't_sim': t_sim,
             'y_obs': y_obs, 'y_ind_obs': y_ind_obs, 't_obs': t_obs}
 
-if __name__ == "__main__":
-    generate_multi_sim_and_obs()
 
 
 
