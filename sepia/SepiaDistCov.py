@@ -73,7 +73,6 @@ class SepiaDistCov(object):
         :return: computed covariance matrix
         """
         if verbose:
-            # TODO: Should be checks whether these conform
             print('in covMat, beta shape ',beta.shape,
                     ', lamz shape ',lamz.shape,
                     ', sqdist shape ',self.sqdist.shape)
