@@ -462,7 +462,7 @@ class SepiaModel:
                 if p.name == 'theta': 
                     theta = p.mcmc_to_array(trim=nburn, flat=flat).T
             ess_max = 0
-            for i in range(total_samples):
+            for i in range(theta.shape[0]):
                 # Skip if categorical
                 if self.data.t_cat_ind[i] > 0:
                     continue
