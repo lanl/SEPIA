@@ -57,6 +57,7 @@ class SepiaData(object):
             raise TypeError('At least one of x_sim or t_sim is required to set up model.')
         if x_sim is None:
             x_sim = 0.5 * np.ones((t_sim.shape[0], 1)) # sets up dummy x
+        self.kron_design=isinstance(x_sim,list)
         self.sim_data = DataContainer(x=x_sim, y=y_sim, t=t_sim, y_ind=y_ind_sim)
         self.ragged_obs = False
         if y_obs is None:
@@ -76,14 +77,18 @@ class SepiaData(object):
         else:
             self.scalar_out = True
         # Process categorical indices
-        if x_cat_ind is not None:
-            if len(x_cat_ind) != x_sim.shape[1]:
-                raise TypeError('x_cat_ind length should equal p.')
-            for i, ci in enumerate(x_cat_ind):
-                if ci > 0 and ci != np.max(x_sim[:, i]):
-                    raise TypeError('Nonzero values of x_cat_ind should equal number of categories.')
+        if not self.kron_design:
+            if x_cat_ind is not None:
+                if len(x_cat_ind) != x_sim.shape[1]:
+                    raise TypeError('x_cat_ind length should equal p.')
+                for i, ci in enumerate(x_cat_ind):
+                    if ci > 0 and ci != np.max(x_sim[:, i]):
+                        raise TypeError('Nonzero values of x_cat_ind should equal number of categories.')
+            else:
+                x_cat_ind = np.zeros(x_sim.shape[1])
         else:
-            x_cat_ind = np.zeros(x_sim.shape[1])
+            # TODO only consider the case of non-categorical inputs for the kron design for now ...
+            x_cat_ind = [np.zeros(x_sim[ii].shape[1]) for ii in range(len(x_sim))]
         self.x_cat_ind = x_cat_ind
         if t_cat_ind is not None:
             if t_sim is None:
@@ -106,8 +111,14 @@ class SepiaData(object):
         res += 'This SepiaData instance implies the following:\n'
         if self.sim_only:
             res += 'This is a simulator (eta)-only model, y dimension %d\n' % self.sim_data.y.shape[1]
-            res += 'm  = %5d (number of simulated data)\n' % self.sim_data.x.shape[0]
-            res += 'p  = %5d (number of inputs)\n' % self.sim_data.x.shape[1]
+            if not self.kron_design:
+                res += 'm  = %5d (number of simulated data)\n' % self.sim_data.x.shape[0]
+                res += 'p  = %5d (number of inputs)\n' % self.sim_data.x.shape[1]
+            else:
+                res += 'This is a Kronecker separable simulation design with components: \n'
+                for ii in range(len(self.sim_data.x)):
+                    res += '   x component 1 has m = %5d (simulated data design size) \n' % self.sim_data.x[ii].shape[0]
+                    res += '   x component 1 has p = %5d (number of inputs) \n' % self.sim_data.x[ii].shape[1]
             if self.sim_data.t is not None:
                 res += 'q  = %5d (number of additional simulation inputs)\n' % self.sim_data.t.shape[1]
             if self.scalar_out:
@@ -141,10 +152,13 @@ class SepiaData(object):
                     res += 'pv NOT SET (transformed discrepancy dimension); call method create_D_basis\n'
         # Print info on categorical variables
         if self.x_cat_ind is not None:
-            res += 'Categorical x input variables:\n'
-            for i, ci in enumerate(self.x_cat_ind):
-                if ci > 0:
-                    res += 'x index %d with %d categories\n' % (i, ci)
+            if not self.kron_design:
+                res += 'Categorical x input variables:\n'
+                for i, ci in enumerate(self.x_cat_ind):
+                    if ci > 0:
+                        res += 'x index %d with %d categories\n' % (i, ci)
+            else:
+                pass #TODO OMG....
         if self.t_cat_ind is not None:
             res += 'Categorical t input variables:\n'
             for i, ci in enumerate(self.t_cat_ind):
@@ -167,6 +181,11 @@ class SepiaData(object):
                   or if the user specifies no transformation using x_notrans or t_notrans arguments.
 
         """
+
+        # TODO fix this hack for kron development: x scaling needs to handle kron list
+        if self.kron_design:
+            return
+
         x_trans, t_trans = None, None
         if x_notrans is None:
             x_notrans = []
