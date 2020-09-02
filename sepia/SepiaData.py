@@ -1,16 +1,15 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec
-#from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 import seaborn as sns
 import pandas as pd
-sns.set()
 
 from sepia.DataContainer import DataContainer
+
+sns.set()
 
 
 class SepiaData(object):
@@ -57,6 +56,8 @@ class SepiaData(object):
             raise TypeError('At least one of x_sim or t_sim is required to set up model.')
         if x_sim is None:
             x_sim = 0.5 * np.ones((t_sim.shape[0], 1)) # sets up dummy x
+        if y_sim.shape[1] > 1 and y_ind_sim is None:
+            raise TypeError('Multivariate y requires y_ind to be specified.')
         self.sim_data = DataContainer(x=x_sim, y=y_sim, t=t_sim, y_ind=y_ind_sim)
         self.ragged_obs = False
         if y_obs is None:
@@ -323,7 +324,7 @@ class SepiaData(object):
         # :param n_pc: int -- number of components or a proportion of variance explained, in [0, 1].
         y_std = self.sim_data.y_std
         if y_std is None:
-            print('WARNING: y not standardized, doing default standardization before PCA...')
+            print('WARNING: y not standardized, applying default standardization before PCA...')
             self.standardize_y()
         U, s, V = np.linalg.svd(y_std.T, full_matrices=False)
         s2 = np.square(s)
@@ -334,453 +335,472 @@ class SepiaData(object):
             pu = int(n_pc)
         self.sim_data.K = np.transpose(np.dot(U[:, :pu], np.diag(s[:pu])) / np.sqrt(y_std.shape[0]))
 
-
     def create_D_basis(self, type='constant', D_obs=None, D_sim=None, norm=True):
         """
         Create D_obs, D_sim discrepancy bases. Can specify a type of default basis (constant/linear) or provide matrices.
 
-        :param type: string -- 'constant' or 'linear' -- optionally sets up default constant or linear D
+        :param type: string -- 'constant' or 'linear' -- optionally sets up default constant or linear D_sim and D_obs
         :param D_obs: nparray -- a basis matrix on obs indices of shape (n_basis_elements, ell_obs), or list of matrices
                                  for ragged obs; if D is given, type parameter is ignored.
-        :param D_sim: nparray -- a basis matrix on sim indices of shape (n_basis_elements, sim_obs); optional, not
-                                 needed to fit model, but if missing certain types of predictions are not available.
-        :param norm: boolean -- whether to normalize D matrices
+        :param D_sim: nparray -- a basis matrix on sim indices of shape (n_basis_elements, sim_obs); should provide if
+                                 providing D_obs.
+        :param norm: boolean -- whether to normalize D basis
         """
+        # Return early if sim only or univariate output
         if self.sim_only:
-            print('Sim only, skipping discrepancy...')
+            print('Model only has simulation data, skipping discrepancy...')
             return
-        if not self.sim_only:
+        if self.scalar_out:
+            print('Model has univariate output, skipping discrepancy...')
+            return
+        # Check if passed in D_sim/D_obs are correct shape and if so, set them into objects
+        if D_sim is not None:
+            if not D_sim.shape[1] == self.sim_data.y.shape[1]:
+                raise TypeError('D_sim basis shape incorrect; second dim should match ell_sim')
+            self.sim_data.D = D_sim
+        if D_obs is not None:
+            if self.ragged_obs:
+                for i in range(len(D_obs)):
+                    if not D_obs[i].shape[1] == (self.obs_data.y[i].shape[1] if self.obs_data.y[i].ndim == 2 else self.obs_data.y[i].shape[0]):
+                        raise TypeError('D basis shape incorrect; second dim should match ell_obs')
+            else:
+                if not D_obs.shape[1] == self.obs_data.y.shape[1]:
+                    raise TypeError('D_obs basis shape incorrect; second dim should match ell_obs')
+            self.obs_data.D = D_obs
+        elif type == 'constant':
+            if self.ragged_obs:
+                self.obs_data.D = [np.ones((1, self.obs_data.y[i].shape[0])) for i in range(len(self.obs_data.y))]
+            else:
+                self.obs_data.D = np.ones((1, self.obs_data.y.shape[1]))
+            self.sim_data.D = np.ones((1, self.sim_data.y.shape[1]))
+        elif type == 'linear':
+            self.sim_data.D = np.vstack([np.ones(self.sim_data.y.shape[1]), self.sim_data.y_ind])
+            if self.ragged_obs:
+                self.obs_data.D = [np.vstack([np.ones(self.obs_data.y[i].shape[0]), self.obs_data.y_ind[i]]) for i in range(len(self.obs_data.y))]
+            else:
+                self.obs_data.D = np.vstack([np.ones(self.obs_data.y.shape[1]), self.obs_data.y_ind])
+        # Normalize D to match priors
+        if norm:
             if D_sim is not None:
-                if not D_sim.shape[1] == self.sim_data.y.shape[1]:
-                    raise TypeError('D_sim basis shape incorrect; second dim should match ell_sim')
-                self.sim_data.D = D_sim
-
-            if D_obs is not None:
+                norm_scl = np.sqrt(np.max(np.dot(self.sim_data.D, self.sim_data.D.T)))
+                self.sim_data.D /= norm_scl
                 if self.ragged_obs:
-                    for i in range(len(D_obs)):
-                        if not D_obs[i].shape[1] == (self.obs_data.y[i].shape[1] if self.obs_data.y[i].ndim == 2 else self.obs_data.y[i].shape[0]):
-                            raise TypeError('D basis shape incorrect; second dim should match ell_obs')
+                    for i in range(len(self.obs_data.D)):
+                        self.obs_data.D[i] /= norm_scl
                 else:
-                    if not D_obs.shape[1] == self.obs_data.y.shape[1]:
-                        raise TypeError('D_obs basis shape incorrect; second dim should match ell_obs')
-                self.obs_data.D = D_obs
-            elif type == 'constant':
+                    self.obs_data.D /= norm_scl
+            else:
                 if self.ragged_obs:
-                    self.obs_data.D = [np.ones((1, self.obs_data.y[i].shape[0])) for i in range(len(self.obs_data.y))]
+                    norm_scl = np.sqrt(np.max(np.dot(self.obs_data.D[0], self.obs_data.D[0].T)))
+                    for i in range(len(self.obs_data.D)):
+                        self.obs_data.D[i] /= norm_scl
                 else:
-                    self.obs_data.D = np.ones((1, self.obs_data.y.shape[1]))
-                self.sim_data.D = np.ones((1, self.sim_data.y.shape[1]))
-            elif type == 'linear' and not self.scalar_out:
-                self.sim_data.D = np.vstack([np.ones(self.sim_data.y.shape[1]), self.sim_data.y_ind])
-                if self.ragged_obs:
-                    self.obs_data.D = [np.vstack([np.ones(self.obs_data.y[i].shape[0]), self.obs_data.y_ind[i]]) for i in range(len(self.obs_data.y))]
-                else:
-                    self.obs_data.D = np.vstack([np.ones(self.obs_data.y.shape[1]), self.obs_data.y_ind])
-            # Normalize D to match priors
-            if norm:
-                if D_sim is not None:
-                    norm_scl = np.sqrt(np.max(np.dot(self.sim_data.D, self.sim_data.D.T)))
-                    self.sim_data.D /= norm_scl
-                    if self.ragged_obs:
-                        for i in range(len(self.obs_data.D)):
-                            self.obs_data.D[i] /= norm_scl
-                    else:
-                        self.obs_data.D /= norm_scl
-                else:
-                    if self.ragged_obs:
-                        norm_scl = np.sqrt(np.max(np.dot(self.obs_data.D[0], self.obs_data.D[0].T)))
-                        for i in range(len(self.obs_data.D)):
-                            self.obs_data.D[i] /= norm_scl
-                    else:
-                        norm_scl = np.sqrt(np.max(np.dot(self.obs_data.D, self.obs_data.D.T)))
-                        self.obs_data.D /= norm_scl
+                    norm_scl = np.sqrt(np.max(np.dot(self.obs_data.D, self.obs_data.D.T)))
+                    self.obs_data.D /= norm_scl
 
     def plot_K_basis(self, max_plots=4):
         """
         Plots K basis elements for both sim and obs indices (if applicable).
+        Only applies to multivariate-output models.
 
         :param max_plots: int -- maximum number of principal components to plot
         """
+        # Return early if scalar out or basis not set up
         if self.scalar_out:
             print('Scalar output, no K basis to plot.')
-        else:
-            if not self.sim_data.K is None:
-                pu = self.sim_data.K.shape[0]
-                ncol = 5
-                nrow = int(np.ceil((min(pu,max_plots) + 1) / ncol)) # add 1 for mean line
-                fig, axs = plt.subplots(nrow,ncol,figsize=(12, 2 * nrow))
-                print(axs.shape)
-                fig.tight_layout()
-                for i,ax in enumerate(axs.flatten()):
-                    if i == 0: # plot mean line
-                        ax.plot(self.sim_data.y_ind, np.mean(self.sim_data.K,axis=0))
-                        ax.set_title('sim mean')
-                        ax.set_ylabel('sim K basis')
-                        ax.set_xlabel('sim y_ind')
-                    elif i < pu+1:
-                        ax.plot(self.sim_data.y_ind, self.sim_data.K.T[:,i-1])
-                        ax.set_title('PC %d' % (i))
-                        ax.set_xlabel('sim y_ind')
-                    else:
-                        ax.axis('off')          
-                plt.show()
-                
-            if not self.obs_data.K is None: 
-                if self.ragged_obs:
-                    pu = np.array([k.shape[0] for k in self.obs_data.K])
-                    if np.all(pu == pu[0]): pu = pu[0]
-                    else: raise ValueError('first dimension in lists not equal') 
+            return
+        if self.sim_data.K is None:
+            print('K basis not set up, call create_K_basis() first.')
+            return
+        # Plot sim basis
+        pu = self.sim_data.K.shape[0]
+        ncol = 5
+        nrow = int(np.ceil((min(pu, max_plots) + 1) / ncol)) # add 1 for mean line
+        fig, axs = plt.subplots(nrow, ncol, figsize=(12, 2 * nrow))
+        fig.tight_layout()
+        for i, ax in enumerate(axs.flatten()):
+            if i == 0: # plot mean line
+                ax.plot(self.sim_data.y_ind, np.mean(self.sim_data.K,axis=0))
+                ax.set_title('sim mean')
+                ax.set_ylabel('sim K basis')
+                ax.set_xlabel('sim y_ind')
+            elif i < pu+1:
+                ax.plot(self.sim_data.y_ind, self.sim_data.K.T[:,i-1])
+                ax.set_title('PC %d' % (i))
+                ax.set_xlabel('sim y_ind')
+            else:
+                ax.axis('off')
+        plt.show()
+        # If obs are present, plot obs basis
+        if not self.sim_only:
+            if self.ragged_obs:
+                pu = np.array([k.shape[0] for k in self.obs_data.K])
+                if np.all(pu == pu[0]): pu = pu[0]
+                else: raise ValueError('first dimension in lists not equal')
+            else:
+                pu = self.obs_data.K.shape[0]
+            ncol = 5
+            nrow = int(np.ceil((min(pu,max_plots) + 1) / ncol)) # add 1 for mean line
+            fig, axs = plt.subplots(nrow,ncol,figsize=(12, 2 * nrow))
+            fig.tight_layout()
+            for i,ax in enumerate(axs.flatten()):
+                if i == 0: # plot mean line
+                    if self.ragged_obs: ax.plot(self.obs_data.y_ind[i],np.mean(self.obs_data.K[i],axis=0))
+                    else: ax.plot(self.obs_data.y_ind, np.mean(self.obs_data.K,axis=0))
+                    ax.set_title('obs mean')
+                    ax.set_ylabel('obs K basis')
+                    ax.set_xlabel('obs y_ind')
+                elif i < pu+1:
+                    if self.ragged_obs: ax.plot(self.obs_data.y_ind[i],self.obs_data.K[i].T[:,i-1])
+                    else: ax.plot(self.obs_data.y_ind, self.obs_data.K.T[:,i-1])
+                    ax.set_title('PC %d' % (i))
+                    ax.set_xlabel('obs y_ind')
                 else:
-                    pu = self.obs_data.K.shape[0]
-                ncol = 5
-                nrow = int(np.ceil((min(pu,max_plots) + 1) / ncol)) # add 1 for mean line
-                fig, axs = plt.subplots(nrow,ncol,figsize=(12, 2 * nrow))
-                fig.tight_layout()
-                for i,ax in enumerate(axs.flatten()):
-                    if i == 0: # plot mean line
-                        if self.ragged_obs: ax.plot(self.obs_data.y_ind[i],np.mean(self.obs_data.K[i],axis=0))
-                        else: ax.plot(self.obs_data.y_ind, np.mean(self.obs_data.K,axis=0))
-                        ax.set_title('obs mean')
-                        ax.set_ylabel('obs K basis')
-                        ax.set_xlabel('obs y_ind')
-                    elif i < pu+1:
-                        if self.ragged_obs: ax.plot(self.obs_data.y_ind[i],self.obs_data.K[i].T[:,i-1])
-                        else: ax.plot(self.obs_data.y_ind, self.obs_data.K.T[:,i-1])
-                        ax.set_title('PC %d' % (i))
-                        ax.set_xlabel('obs y_ind')
-                    else:
-                        ax.axis('off')
-                plt.show()
+                    ax.axis('off')
+            plt.show()
 
     def plot_K_weights(self, max_u_plot=5, plot_sep=False):
         """
         Plots K basis weights for both sim and obs data (if applicable).
+        Only applies to multivariate-output models.
 
         :param max_u_plot: int -- optional max number of u's for which to plot vertical line over histogram of w's
         :param plot_sep: bool -- histogram w's and u's seperately
         """
+        # Return early if scalar out or basis not set up
         if self.scalar_out:
             print('Scalar output, no K weights to plot.')
-        else:
-            if not self.sim_data.K is None:
-                pu = self.sim_data.K.shape[0]
-                ncol = 5
-                nrow = int(np.ceil(pu / ncol))
-                w = np.dot(np.linalg.pinv(self.sim_data.K).T, self.sim_data.y_std.T).T
+            return
+        if self.sim_data.K is None:
+            print('K basis not set up, call create_K_basis() first.')
+            return
+        # Compute sim K weights
+        pu = self.sim_data.K.shape[0]
+        ncol = 5
+        nrow = int(np.ceil(pu / ncol))
+        w = np.dot(np.linalg.pinv(self.sim_data.K).T, self.sim_data.y_std.T).T
 
+        fig, axs = plt.subplots(nrow,ncol,figsize=(10,2*nrow))
+        fig.tight_layout()
+
+        # Compute obs K weights if obs are present
+        if not self.sim_only and self.obs_data.K is not None:
+            # set pu
+            if self.ragged_obs:
+                pu = np.array([k.shape[0] for k in self.obs_data.K])
+                if np.all(pu == pu[0]): pu = pu[0]
+                else: raise ValueError('first dimension in lists not equal')
+            else:
+                pu = self.obs_data.K.shape[0]
+                    
+            # No D
+            if self.obs_data.D is None:
+                pv = 0
+                DKridge = 1e-6 * np.diag(np.ones(pu + pv))  # (pu+pv, pu+pv)
+                # compute u
+                if self.ragged_obs:
+                    u = []
+                    for i in range(len(self.obs_data.y_ind)):
+                        DK = self.obs_data.K[i]
+                        Lamy = np.eye(self.obs_data.y_ind[i].shape[0])
+                        DKprod = np.linalg.multi_dot([DK, Lamy, DK.T])
+                        u.append(np.dot(np.linalg.inv(DKprod + DKridge), np.linalg.multi_dot([DK, Lamy, self.obs_data.y_std[i].T])).T)
+                    u = np.array(u)
+                else:
+                    DK = self.obs_data.K
+                    Lamy = np.eye(self.obs_data.y_ind.shape[0]) # Identity with size len(y_ind) how to do this with ragged?
+                    DKprod = np.linalg.multi_dot([DK, Lamy, DK.T])  # (pu+pv, pu+pv)
+                    u = np.dot(np.linalg.inv(DKprod + DKridge), np.linalg.multi_dot([DK, Lamy, self.obs_data.y_std.T])).T
+                            
+                nrow = int(np.ceil(pu / ncol))
+                if u.shape[1] == w.shape[1] and not plot_sep:
+                    for i,ax in enumerate(axs.flatten()):
+                        if i < w.shape[1]:
+                            limit = abs(max(max(w[:,i].min(), w[:,i].max(), key=abs),\
+                                            max(u[:,i].min(), u[:,i].max(), key=abs), key=abs))
+                            ax.set_xlim([-1.25*limit,1.25*limit])
+                            bins_uw = np.linspace(-limit,limit,15,endpoint=True)
+                            ax.set_xlabel('PC %d wt' % (i+1))
+                            ax.set_xlim([-limit,limit])
+                            ax.hist(w[:,i],bins=bins_uw,label='w',density=True)
+                            for j in range(min(u.shape[0],max_u_plot)):
+                                ax.axvline(u[j,i],color='darkorange',label='u' if j==0 else '_')
+                            ax.legend(prop={'size': 6})
+                        else:
+                            ax.axis('off')
+                    plt.show()
+                            
+                else: # do u and w independently
+                    # w
+                    for i,ax in enumerate(axs.flatten()):
+                        if i < w.shape[1]:
+                            w_abs_max = max(w[:,i].min(), w[:,i].max(), key=abs)
+                            ax.set_xlim([-1.25*w_abs_max,1.25*w_abs_max])
+                            ax.set_xlabel('PC %d wt : w' % (i+1))
+                            ax.hist(w[:,i],density=True)
+                        else:
+                            ax.axis('off')
+                    plt.show()
+                    # u
+                    fig, axs = plt.subplots(nrow,ncol,figsize=(10,2*nrow))
+                    fig.tight_layout()
+                    for i,ax in enumerate(axs.flatten()):
+                        if i < u.shape[1]:
+                            ax.hist(u[:,i],density=True)
+                            ax.set_xlabel('PC %d wt : u' % (i+1))
+                        else:
+                            ax.axis('off')
+                    plt.show()
+                                
+            else: # D
+                if self.ragged_obs:
+                    pv = np.array([d.shape[0] for d in self.obs_data.D])
+                    if np.all(pv == pv[0]): pv = pv[0]
+                    else: raise ValueError('first dimension in lists not equal')
+                    DKridge = 1e-6 * np.diag(np.ones(pu + pv))  # (pu+pv, pu+pv)
+                    u = []
+                    v = []
+                    for i in range(len(self.obs_data.D)):
+                        DK = np.concatenate([self.obs_data.D[i], self.obs_data.K[i]])
+                        Lamy = np.eye(self.obs_data.y_ind[i].shape[0])
+                        DKprod = np.linalg.multi_dot([DK, Lamy, DK.T])  # (pu+pv, pu+pv)
+                        vu = np.dot(np.linalg.inv(DKprod + DKridge), np.linalg.multi_dot([DK, Lamy, self.obs_data.y_std[i].T]))
+                        v.append(vu[:pv].T)
+                        u.append(vu[pv:].T)
+                    u = np.array(u)
+                    v = np.array(v)
+                else:
+                    pv = self.obs_data.D.shape[0]
+                    DK = np.concatenate([self.obs_data.D, self.obs_data.K])  # (pu+pv, ell_obs)
+                    DKridge = 1e-6 * np.diag(np.ones(pu + pv))  # (pu+pv, pu+pv)
+                    Lamy = np.eye(self.obs_data.y_ind.shape[0])
+                    DKprod = np.linalg.multi_dot([DK, Lamy, DK.T])  # (pu+pv, pu+pv)
+                    vu = np.dot(np.linalg.inv(DKprod + DKridge), np.linalg.multi_dot([DK, Lamy, self.obs_data.y_std.T]))
+                    v = vu[:pv, :].T
+                    u = vu[pv:, :].T
+                            
+                if u.shape[1] == w.shape[1] and not plot_sep:
+                    for i,ax in enumerate(axs.flatten()):
+                        if i < w.shape[1]:
+                            limit = abs(max(max(w[:,i].min(), w[:,i].max(), key=abs),\
+                                                  max(u[:,i].min(), u[:,i].max(), key=abs), key=abs))
+                            ax.set_xlim([-1.1*limit,1.1*limit])
+                            bins_uw = np.linspace(-limit,limit,15,endpoint=True)
+                            ax.set_xlabel('PC %d wt' % (i+1))
+                            ax.hist(w[:,i],bins=bins_uw,label='w',density=True)
+                            for j in range(min(u.shape[0],max_u_plot)):
+                                ax.axvline(u[j,i],color='darkorange',label='u' if j==0 else '_')
+                            ax.legend(prop={'size': 6})
+                        else:
+                            ax.axis('off')
+                    plt.show()
+
+                else: # do u and w independently
+                    # w
+                    for i,ax in enumerate(axs.flatten()):
+                        if i < w.shape[1]:
+                            w_abs_max = max(w[:,i].min(), w[:,i].max(), key=abs)
+                            ax.set_xlim([-1.1*w_abs_max,1.1*w_abs_max])
+                            ax.set_xlabel('PC %d wt : w' % (i+1))
+                            ax.hist(w[:,i],density=True)
+                        else:
+                            ax.axis('off')
+                    plt.show()
+                    # u
+                    pu = self.obs_data.K.shape[0]
+                    nrow = int(np.ceil(pu / ncol))
+                    fig, axs = plt.subplots(nrow,ncol,figsize=(10,2*nrow))
+                    fig.tight_layout()
+                    for i,ax in enumerate(axs.flatten()):
+                        if i < u.shape[1]:
+                            ax.hist(u[:,i],density=True)
+                            ax.set_xlabel('PC %d wt : u' % (i+1))
+                        else:
+                            ax.axis('off')
+                    plt.show()
+
+                # V
+                nrow = int(np.ceil(pv / ncol))
                 fig, axs = plt.subplots(nrow,ncol,figsize=(10,2*nrow))
                 fig.tight_layout()
-
-                if not self.obs_data.K is None:
-                    
-                    # set pu
-                    if self.ragged_obs:
-                        pu = np.array([k.shape[0] for k in self.obs_data.K])
-                        if np.all(pu == pu[0]): pu = pu[0]
-                        else: raise ValueError('first dimension in lists not equal') 
+                for i,ax in enumerate(axs.flatten()):
+                    if i < v.shape[1]:
+                        ax.hist(v[:,i],density=True)
+                        ax.set_xlabel('D %d wt : v' % (i+1))
                     else:
-                        pu = self.obs_data.K.shape[0]
-                    
-                    # No D
-                    if self.obs_data.D is None:
-                        pv = 0
-                        DKridge = 1e-6 * np.diag(np.ones(pu + pv))  # (pu+pv, pu+pv)
-                        
-                        # compute u
-                        if self.ragged_obs:
-                            u = []
-                            for i in range(len(self.obs_data.y_ind)):
-                                DK = self.obs_data.K[i]
-                                Lamy = np.eye(self.obs_data.y_ind[i].shape[0])
-                                DKprod = np.linalg.multi_dot([DK, Lamy, DK.T])
-                                u.append(np.dot(np.linalg.inv(DKprod + DKridge), np.linalg.multi_dot([DK, Lamy, self.obs_data.y_std[i].T])).T)
-                            u = np.array(u)
-                        else:
-                            DK = self.obs_data.K
-                            Lamy = np.eye(self.obs_data.y_ind.shape[0]) # Identity with size len(y_ind) how to do this with ragged?
-                            DKprod = np.linalg.multi_dot([DK, Lamy, DK.T])  # (pu+pv, pu+pv)
-                            u = np.dot(np.linalg.inv(DKprod + DKridge), np.linalg.multi_dot([DK, Lamy, self.obs_data.y_std.T])).T
-                            
-                        nrow = int(np.ceil(pu / ncol))
-                        if u.shape[1] == w.shape[1] and not plot_sep:
-                            for i,ax in enumerate(axs.flatten()):
-                                if i < w.shape[1]:
-                                    limit = abs(max(max(w[:,i].min(), w[:,i].max(), key=abs),\
-                                                  max(u[:,i].min(), u[:,i].max(), key=abs), key=abs))
-                                    ax.set_xlim([-1.25*limit,1.25*limit])
-                                    bins_uw = np.linspace(-limit,limit,15,endpoint=True)
-                                    ax.set_xlabel('PC %d wt' % (i+1))
-                                    ax.set_xlim([-limit,limit])
-                                    ax.hist(w[:,i],bins=bins_uw,label='w',density=True)
-                                    for j in range(min(u.shape[0],max_u_plot)): 
-                                        ax.axvline(u[j,i],color='darkorange',label='u' if j==0 else '_')
-                                    ax.legend(prop={'size': 6})
-                                else:
-                                    ax.axis('off')
-                            plt.show()
-                            
-                        else: # do u and w independently
-                            # w
-                            for i,ax in enumerate(axs.flatten()):
-                                if i < w.shape[1]:
-                                    w_abs_max = max(w[:,i].min(), w[:,i].max(), key=abs)
-                                    ax.set_xlim([-1.25*w_abs_max,1.25*w_abs_max])
-                                    ax.set_xlabel('PC %d wt : w' % (i+1))
-                                    ax.hist(w[:,i],density=True)
-                                else:
-                                    ax.axis('off')
-                            plt.show()
-                            # u
-                            fig, axs = plt.subplots(nrow,ncol,figsize=(10,2*nrow))
-                            fig.tight_layout()
-                            for i,ax in enumerate(axs.flatten()):
-                                if i < u.shape[1]:
-                                    ax.hist(u[:,i],density=True)
-                                    ax.set_xlabel('PC %d wt : u' % (i+1))
-                                else:
-                                    ax.axis('off')
-                            plt.show()
-                                
-                    else: # D
-                        if self.ragged_obs:
-                            pv = np.array([d.shape[0] for d in self.obs_data.D])
-                            if np.all(pv == pv[0]): pv = pv[0]
-                            else: raise ValueError('first dimension in lists not equal')
-                            DKridge = 1e-6 * np.diag(np.ones(pu + pv))  # (pu+pv, pu+pv)
-                            u = []
-                            v = []
-                            for i in range(len(self.obs_data.D)):
-                                DK = np.concatenate([self.obs_data.D[i], self.obs_data.K[i]])
-                                Lamy = np.eye(self.obs_data.y_ind[i].shape[0])
-                                DKprod = np.linalg.multi_dot([DK, Lamy, DK.T])  # (pu+pv, pu+pv)
-                                vu = np.dot(np.linalg.inv(DKprod + DKridge), np.linalg.multi_dot([DK, Lamy, self.obs_data.y_std[i].T]))
-                                v.append(vu[:pv].T)
-                                u.append(vu[pv:].T)
-                            u = np.array(u)
-                            v = np.array(v)
-                        else:
-                            pv = self.obs_data.D.shape[0]
-                            DK = np.concatenate([self.obs_data.D, self.obs_data.K])  # (pu+pv, ell_obs)
-                            DKridge = 1e-6 * np.diag(np.ones(pu + pv))  # (pu+pv, pu+pv)
-                            Lamy = np.eye(self.obs_data.y_ind.shape[0])
-                            DKprod = np.linalg.multi_dot([DK, Lamy, DK.T])  # (pu+pv, pu+pv)
-                            vu = np.dot(np.linalg.inv(DKprod + DKridge), np.linalg.multi_dot([DK, Lamy, self.obs_data.y_std.T]))
-                            v = vu[:pv, :].T
-                            u = vu[pv:, :].T
-                            
-                        if u.shape[1] == w.shape[1] and not plot_sep:
-                            for i,ax in enumerate(axs.flatten()):
-                                if i < w.shape[1]:
-                                    limit = abs(max(max(w[:,i].min(), w[:,i].max(), key=abs),\
-                                                  max(u[:,i].min(), u[:,i].max(), key=abs), key=abs))
-                                    ax.set_xlim([-1.1*limit,1.1*limit])
-                                    bins_uw = np.linspace(-limit,limit,15,endpoint=True)
-                                    ax.set_xlabel('PC %d wt' % (i+1))
-                                    ax.hist(w[:,i],bins=bins_uw,label='w',density=True)
-                                    for j in range(min(u.shape[0],max_u_plot)): 
-                                        ax.axvline(u[j,i],color='darkorange',label='u' if j==0 else '_')
-                                    ax.legend(prop={'size': 6})
-                                else:
-                                    ax.axis('off')
-                            plt.show()
-
-                        else: # do u and w independently
-                            # w
-                            for i,ax in enumerate(axs.flatten()):
-                                if i < w.shape[1]:
-                                    w_abs_max = max(w[:,i].min(), w[:,i].max(), key=abs)
-                                    ax.set_xlim([-1.1*w_abs_max,1.1*w_abs_max])
-                                    ax.set_xlabel('PC %d wt : w' % (i+1))
-                                    ax.hist(w[:,i],density=True)
-                                else:
-                                    ax.axis('off')
-                            plt.show()
-                            # u
-                            pu = self.obs_data.K.shape[0]
-                            nrow = int(np.ceil(pu / ncol))
-                            fig, axs = plt.subplots(nrow,ncol,figsize=(10,2*nrow))
-                            fig.tight_layout()
-                            for i,ax in enumerate(axs.flatten()):
-                                if i < u.shape[1]:
-                                    ax.hist(u[:,i],density=True)
-                                    ax.set_xlabel('PC %d wt : u' % (i+1))
-                                else:
-                                    ax.axis('off')
-                            plt.show()
-
-                        # V
-                        nrow = int(np.ceil(pv / ncol))
-                        fig, axs = plt.subplots(nrow,ncol,figsize=(10,2*nrow))
-                        fig.tight_layout()
-                        for i,ax in enumerate(axs.flatten()):
-                            if i < v.shape[1]:
-                                ax.hist(v[:,i],density=True)
-                                ax.set_xlabel('D %d wt : v' % (i+1))
-                            else:
-                                ax.axis('off')
-                        plt.show()            
+                        ax.axis('off')
+                plt.show()
 
     
     def plot_u_w_pairs(self, max_plots=5, save=False):
         """
         Plots principal component basis weights for both sim and obs data (if applicable).
+        Only applies to multivariate-output models.
 
         :param max_plots: int -- optional max number of principle components to plot
         """
+        # Return early if scalar out or basis not set up
         if self.scalar_out:
             print('Scalar output, no K weights to plot.')
-        else:
-            print('Plotting up to',max_plots,'pairs. Change with parameter \'max_plots\'')
-            if not self.sim_data.K is None:
-                pu = self.sim_data.K.shape[0]
-                ncol = 5
-                nrow = int(np.ceil(pu / ncol))
-                w = np.dot(np.linalg.pinv(self.sim_data.K).T, self.sim_data.y_std.T).T
+            return
+        if self.sim_data.K is None:
+            print('K basis not set up, call create_K_basis() first.')
+            return
+        print('Plotting up to',max_plots,'pairs. Change with parameter \'max_plots\'')
+        pu = self.sim_data.K.shape[0]
+        ncol = 5
+        nrow = int(np.ceil(pu / ncol))
+        w = np.dot(np.linalg.pinv(self.sim_data.K).T, self.sim_data.y_std.T).T
                 
-                if not self.obs_data.K is None:
-                    if self.ragged_obs:
-                        pu = np.array([k.shape[0] for k in self.obs_data.K])
-                        if np.all(pu == pu[0]): pu = pu[0]
-                        else: raise ValueError('first dimension in lists not equal')   
-                    else:
-                        pu = self.obs_data.K.shape[0]
+        if not self.sim_only and self.obs_data.K is not None:
+            if self.ragged_obs:
+                pu = np.array([k.shape[0] for k in self.obs_data.K])
+                if np.all(pu == pu[0]): pu = pu[0]
+                else: raise ValueError('first dimension in lists not equal')
+            else:
+                pu = self.obs_data.K.shape[0]
 
-                    # No D
-                    if self.obs_data.D is None:
-                        pv = 0
-                        DKridge = 1e-6 * np.diag(np.ones(pu + pv))  # (pu+pv, pu+pv)
-                        if self.ragged_obs:
-                            u = []
-                            for i in range(len(self.obs_data.K)):
-                                DK = self.obs_data.K[i]
-                                Lamy = np.eye(self.obs_data.y_ind[i].shape[0])
-                                DKprod = np.linalg.multi_dot([DK, Lamy, DK.T])  # (pu+pv, pu+pv)
-                                u.append(np.dot(np.linalg.inv(DKprod + DKridge), np.linalg.multi_dot([DK, Lamy, self.obs_data.y_std[i].T])).T)
-                            u = np.array(u)
-                        else:
-                            DK = self.obs_data.K
-                            Lamy = np.eye(self.obs_data.y_ind.shape[0])
-                            DKprod = np.linalg.multi_dot([DK, Lamy, DK.T])  # (pu+pv, pu+pv)
-                            u = np.dot(np.linalg.inv(DKprod + DKridge), np.linalg.multi_dot([DK, Lamy, self.obs_data.y_std.T])).T
+            # No D
+            if self.obs_data.D is None:
+                pv = 0
+                DKridge = 1e-6 * np.diag(np.ones(pu + pv))  # (pu+pv, pu+pv)
+                if self.ragged_obs:
+                    u = []
+                    for i in range(len(self.obs_data.K)):
+                        DK = self.obs_data.K[i]
+                        Lamy = np.eye(self.obs_data.y_ind[i].shape[0])
+                        DKprod = np.linalg.multi_dot([DK, Lamy, DK.T])  # (pu+pv, pu+pv)
+                        u.append(np.dot(np.linalg.inv(DKprod + DKridge), np.linalg.multi_dot([DK, Lamy, self.obs_data.y_std[i].T])).T)
+                    u = np.array(u)
+                else:
+                    DK = self.obs_data.K
+                    Lamy = np.eye(self.obs_data.y_ind.shape[0])
+                    DKprod = np.linalg.multi_dot([DK, Lamy, DK.T])  # (pu+pv, pu+pv)
+                    u = np.dot(np.linalg.inv(DKprod + DKridge), np.linalg.multi_dot([DK, Lamy, self.obs_data.y_std.T])).T
                             
-                    else: # D
-                        if self.ragged_obs:
-                            pv = np.array([d.shape[0] for d in self.obs_data.D])
-                            if np.all(pv == pv[0]): pv = pv[0]
-                            else: raise ValueError('first dimension in lists not equal')
-                            DKridge = 1e-6 * np.diag(np.ones(pu + pv))  # (pu+pv, pu+pv)
-                            u = []
-                            v = []
-                            for i in range(len(self.obs_data.D)):
-                                DK = np.concatenate([self.obs_data.D[i], self.obs_data.K[i]])
-                                Lamy = np.eye(self.obs_data.y_ind[i].shape[0])
-                                DKprod = np.linalg.multi_dot([DK, Lamy, DK.T])  # (pu+pv, pu+pv)
-                                vu = np.dot(np.linalg.inv(DKprod + DKridge), np.linalg.multi_dot([DK, Lamy, self.obs_data.y_std[i].T]))
-                                v.append(vu[:pv].T)
-                                u.append(vu[pv:].T)
-                            u = np.array(u)
-                            v = np.array(v)
-                        else:
-                            pv = self.obs_data.D.shape[0]
-                            DK = np.concatenate([self.obs_data.D, self.obs_data.K])  # (pu+pv, ell_obs)
-                            DKridge = 1e-6 * np.diag(np.ones(pu + pv))  # (pu+pv, pu+pv)
-                            Lamy = np.eye(self.obs_data.y_ind.shape[0])
-                            DKprod = np.linalg.multi_dot([DK, Lamy, DK.T])  # (pu+pv, pu+pv)
-                            vu = np.dot(np.linalg.inv(DKprod + DKridge), np.linalg.multi_dot([DK, Lamy, self.obs_data.y_std.T]))
-                            v = vu[:pv, :].T
-                            u = vu[pv:, :].T
+            else: # D
+                if self.ragged_obs:
+                    pv = np.array([d.shape[0] for d in self.obs_data.D])
+                    if np.all(pv == pv[0]): pv = pv[0]
+                    else: raise ValueError('first dimension in lists not equal')
+                    DKridge = 1e-6 * np.diag(np.ones(pu + pv))  # (pu+pv, pu+pv)
+                    u = []
+                    v = []
+                    for i in range(len(self.obs_data.D)):
+                        DK = np.concatenate([self.obs_data.D[i], self.obs_data.K[i]])
+                        Lamy = np.eye(self.obs_data.y_ind[i].shape[0])
+                        DKprod = np.linalg.multi_dot([DK, Lamy, DK.T])  # (pu+pv, pu+pv)
+                        vu = np.dot(np.linalg.inv(DKprod + DKridge), np.linalg.multi_dot([DK, Lamy, self.obs_data.y_std[i].T]))
+                        v.append(vu[:pv].T)
+                        u.append(vu[pv:].T)
+                    u = np.array(u)
+                    v = np.array(v)
+                else:
+                    pv = self.obs_data.D.shape[0]
+                    DK = np.concatenate([self.obs_data.D, self.obs_data.K])  # (pu+pv, ell_obs)
+                    DKridge = 1e-6 * np.diag(np.ones(pu + pv))  # (pu+pv, pu+pv)
+                    Lamy = np.eye(self.obs_data.y_ind.shape[0])
+                    DKprod = np.linalg.multi_dot([DK, Lamy, DK.T])  # (pu+pv, pu+pv)
+                    vu = np.dot(np.linalg.inv(DKprod + DKridge), np.linalg.multi_dot([DK, Lamy, self.obs_data.y_std.T]))
+                    v = vu[:pv, :].T
+                    u = vu[pv:, :].T
 
-                        # change u,w to match max_plots
-                        if w.shape[1]>max_plots: w = w[:,0:max_plots]
-                        col_names = []
-                        for i in range(w.shape[1]): col_names.append('w{}'.format(i+1))
-                        w_df = pd.DataFrame(data=w,columns=col_names)
-                        if u.shape[1]>max_plots: u = u[:,0:max_plots]
+                # change u,w to match max_plots
+                if w.shape[1]>max_plots: w = w[:,0:max_plots]
+                col_names = []
+                for i in range(w.shape[1]): col_names.append('w{}'.format(i+1))
+                w_df = pd.DataFrame(data=w,columns=col_names)
+                if u.shape[1]>max_plots: u = u[:,0:max_plots]
 
-                        lims = max(np.maximum(np.max(np.abs(w),axis=0),np.max(np.abs(u),axis=0))*1.1)
-                        with sns.plotting_context("notebook", font_scale=1):
-                            g = sns.PairGrid(w_df)
-                            g.map_diag(sns.distplot)
-                            g.map_offdiag(sns.scatterplot)
-                            for i in range(g.axes.shape[1]): # rows
-                                for j in range(g.axes.shape[0]): # columns
-                                    g.axes[i,j].set_xlim(-lims,lims); g.axes[i,j].set_ylim(-lims,lims)
-                                    if i == j:
-                                        for k in range(u.shape[0]):
-                                            g.axes[i,i].axvline(u[k,i],color='darkorange',label='u{}'.format(i+1) if k==0 else "_")
-                                        g.axes[i,i].legend(facecolor='white')
-                                    else:
-                                        g.axes[i,j].scatter(u[:,j],u[:,i],c='darkorange',label='(u{},u{})'.format(j+1,i+1))
-                                        g.axes[i,j].legend(facecolor='white')
-                        if save: plt.savefig('u_w_pairs.png',dpi=300)
-                        plt.show()
+                lims = max(np.maximum(np.max(np.abs(w),axis=0),np.max(np.abs(u),axis=0))*1.1)
+                with sns.plotting_context("notebook", font_scale=1):
+                    g = sns.PairGrid(w_df)
+                    g.map_diag(sns.distplot)
+                    g.map_offdiag(sns.scatterplot)
+                    for i in range(g.axes.shape[1]): # rows
+                        for j in range(g.axes.shape[0]): # columns
+                            g.axes[i,j].set_xlim(-lims,lims); g.axes[i,j].set_ylim(-lims,lims)
+                            if i == j:
+                                for k in range(u.shape[0]):
+                                    g.axes[i,i].axvline(u[k,i],color='darkorange',label='u{}'.format(i+1) if k==0 else "_")
+                                g.axes[i,i].legend(facecolor='white')
+                            else:
+                                g.axes[i,j].scatter(u[:,j],u[:,i],c='darkorange',label='(u{},u{})'.format(j+1,i+1))
+                                g.axes[i,j].legend(facecolor='white')
+                if save: plt.savefig('u_w_pairs.png',dpi=300)
+                plt.show()
 
     def plot_K_residuals(self):
         """
-        Plots residuals after projection to K basis.
+        Plots residuals after projection to K basis. Only applies to multivariate-output models.
 
         """
+        # Return early if scalar out or basis not set up
         if self.scalar_out:
-            print('Scalar output, no K weights to plot.')
-        else:
-            if not self.obs_data.K is None:
-                if isinstance(self.obs_data.K, list):
-                    print('plot_K_residuals cannot yet handle ragged observations')
-                else:
-                    pu = self.obs_data.K.shape[0]
-                    if self.obs_data.D is None:
-                        pv = 0
-                        DK = self.obs_data.K
-                        DKridge = 1e-6 * np.diag(np.ones(pu + pv))  # (pu+pv, pu+pv)
-                        Lamy = np.eye(self.obs_data.y_ind.shape[0])
-                        DKprod = np.linalg.multi_dot([DK, Lamy, DK.T])  # (pu+pv, pu+pv)
-                        u = np.dot(np.linalg.inv(DKprod + DKridge), np.linalg.multi_dot([DK, Lamy, self.obs_data.y_std.T])).T
-                        proj = np.dot(u, DK)
-                        resid = self.obs_data.y_std - proj
-                        plt.figure(1, figsize=(4, 6))
-                        plt.subplot(311)
-                        plt.plot(self.obs_data.y_ind, self.obs_data.y_std.squeeze())
-                        plt.title('obs y_std')
-                        plt.xlabel('obs y_ind')
-                        plt.subplot(312)
-                        plt.plot(self.obs_data.y_ind, proj.squeeze())
-                        plt.title('obs projection reconstruction')
-                        plt.xlabel('obs y_ind')
-                        plt.subplot(313)
-                        sns.lineplot(x=self.obs_data.y_ind, y=resid.squeeze())
-                        plt.title('obs projection residual')
-                        plt.xlabel('obs y_ind')
-                        plt.show()
-                    else:
-                        pv = self.obs_data.D.shape[0]
-                        DK = np.concatenate([self.obs_data.D, self.obs_data.K])  # (pu+pv, ell_obs)
-                        DKridge = 1e-6 * np.diag(np.ones(pu + pv))  # (pu+pv, pu+pv)
-                        Lamy = np.eye(self.obs_data.y_ind.shape[0])
-                        DKprod = np.linalg.multi_dot([DK, Lamy, DK.T])  # (pu+pv, pu+pv)
-                        vu = np.dot(np.linalg.inv(DKprod + DKridge), np.linalg.multi_dot([DK, Lamy, self.obs_data.y_std.T]))
-                        v = vu[:pv, :].T
-                        u = vu[pv:, :].T
-                        ncol = 5
-                        nrow = np.ceil(pu / ncol)
-                        plt.figure(2, figsize=(8, 2 * nrow))
-                        for i in range(pu):
-                            plt.subplot(nrow, ncol, i+1)
-                            plt.hist(u[:, i])
-                            plt.xlabel('PC %d wt' % (i+1))
-                        plt.show()
-                        ncol = 5
-                        nrow = np.ceil(pv / ncol)
-                        plt.figure(3, figsize=(8, 2 * nrow))
-                        for i in range(pu):
-                            plt.subplot(nrow, ncol, i+1)
-                            plt.hist(v[:, i])
-                            plt.xlabel('D %d wt' % (i+1))
-                        plt.show()
+            print('Scalar output, no K residuals to plot.')
+            return
+        if self.sim_data.K is None:
+            print('K basis not set up, call create_K_basis() first.')
+            return
+        if not self.sim_only and self.obs_data.K is not None:
+            if isinstance(self.obs_data.K, list):
+                print('plot_K_residuals cannot yet handle ragged observations')
+                return
+            pu = self.obs_data.K.shape[0]
+            if self.obs_data.D is None:
+                pv = 0
+                DK = self.obs_data.K
+                DKridge = 1e-6 * np.diag(np.ones(pu + pv))  # (pu+pv, pu+pv)
+                Lamy = np.eye(self.obs_data.y_ind.shape[0])
+                DKprod = np.linalg.multi_dot([DK, Lamy, DK.T])  # (pu+pv, pu+pv)
+                u = np.dot(np.linalg.inv(DKprod + DKridge), np.linalg.multi_dot([DK, Lamy, self.obs_data.y_std.T])).T
+                proj = np.dot(u, DK)
+                resid = self.obs_data.y_std - proj
+                plt.figure(1, figsize=(4, 6))
+                plt.subplot(311)
+                plt.plot(self.obs_data.y_ind, self.obs_data.y_std.squeeze().T)
+                plt.title('obs y_std')
+                plt.xlabel('obs y_ind')
+                plt.subplot(312)
+                plt.plot(self.obs_data.y_ind, proj.squeeze().T)
+                plt.title('obs projection reconstruction')
+                plt.xlabel('obs y_ind')
+                plt.subplot(313)
+                plt.plot(self.obs_data.y_ind, resid.squeeze().T, '-')
+                plt.title('obs projection residual')
+                plt.xlabel('obs y_ind')
+                plt.show()
+            else:
+                pv = self.obs_data.D.shape[0]
+                DK = np.concatenate([self.obs_data.D, self.obs_data.K])  # (pu+pv, ell_obs)
+                DKridge = 1e-6 * np.diag(np.ones(pu + pv))  # (pu+pv, pu+pv)
+                Lamy = np.eye(self.obs_data.y_ind.shape[0])
+                DKprod = np.linalg.multi_dot([DK, Lamy, DK.T])  # (pu+pv, pu+pv)
+                vu = np.dot(np.linalg.inv(DKprod + DKridge), np.linalg.multi_dot([DK, Lamy, self.obs_data.y_std.T]))
+                v = vu[:pv, :].T
+                u = vu[pv:, :].T
+                ncol = 5
+                nrow = np.ceil(pu / ncol)
+                plt.figure(2, figsize=(8, 2 * nrow))
+                for i in range(pu):
+                    plt.subplot(nrow, ncol, i+1)
+                    plt.hist(u[:, i])
+                    plt.xlabel('PC %d wt' % (i+1))
+                plt.show()
+                ncol = 5
+                nrow = np.ceil(pv / ncol)
+                plt.figure(3, figsize=(8, 2 * nrow))
+                for i in range(pu):
+                    plt.subplot(nrow, ncol, i+1)
+                    plt.hist(v[:, i])
+                    plt.xlabel('D %d wt' % (i+1))
+                plt.show()
 
     def plot_data(self,which_x = [],x_min=None,x_max=None,y_min=None,y_max=None,n_neighbors=3,max_sims=50):
         """
         Plots observed data and simulation runs on the same axis with n_neighbors nearest simulations
         in x-space colored
+        Only applies to multivariate-output models with both simulation and observed data.
         
         :param which_x: list -- optionally sets which x_obs indices to plot
         :param x_min: float -- optionally sets x lower limit on plot
@@ -790,6 +810,13 @@ class SepiaData(object):
         :param n_neighbors: int -- optionally sets number of nearest simulations to highlight
         :param max_sims: int -- optionally sets maximum number of simulation runs to plot
         """
+        if self.sim_only:
+            print('plot_data does not currently work for sim_only models.')
+            return
+        if self.scalar_out:
+            print('plot_data does not currently work for univariate output models.')
+            return
+
         n = self.obs_data.x.shape[0]
         m = self.sim_data.x.shape[0]
 
