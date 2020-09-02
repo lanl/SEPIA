@@ -41,8 +41,12 @@ class DataContainer(object):
             y_ind = [yel.squeeze() for yel in y_ind]  # squeeze extra dims if provided
         self.y = y
         # Parse mandatory inputs (x and y)
-        if self.x.shape[0] != len(self.y):
-            raise ValueError('Number of observations in x and y must be the same size.')
+        if not isinstance(self.x,list):
+            if self.x.shape[0] != len(self.y):
+                raise ValueError('Number of observations in x and y must be the same size.')
+        else: # in the kronecker setup, the composition of the matrices in the x list should be len(y)
+            if np.prod([len(g) for g in self.x]) != len(self.y):
+                raise ValueError('Number of observations in kron-composed-x and y must be the same size.')
         # Optional inputs (depending on if sim_only or scalar_out)
         if t is not None and t.shape[0] != self.x.shape[0]:
             raise ValueError('Dimension 0 of x and t must be the same size.')
@@ -79,8 +83,13 @@ class DataContainer(object):
 
     @x.setter
     def x(self, x):
-        if x.ndim == 1:
-            x = x[:, None]
+        if not isinstance(x, list):
+            if x.ndim == 1:
+                x = x[:, None]
+        else:
+            for ii in range(len(x)):
+                if x[ii].ndim == 1:
+                    x[ii] = x[ii][:, None]
         self.__x = x
 
     @property
