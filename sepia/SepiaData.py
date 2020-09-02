@@ -14,39 +14,40 @@ sns.set()
 
 class SepiaData(object):
     """
-    Data object used for SepiaModel, containing potentially both sim_data and obs_data.
+    Data object used for SepiaModel, containing potentially both `sim_data` and `obs_data` objects of type `sepia.DataContainer`.
 
-    :var x_sim: nparray -- (n, p) matrix of controllable inputs/experimental conditions (optional)
-    :var t_sim: nparray -- (n, q) matrix of non-controllable inputs, can be None (at least one of x_sim and t_sim must be provided)
-    :var y_sim: nparray -- (n, ell_sim) matrix of outputs (REQUIRED)
-    :var y_ind_sim: nparray -- (ell_sim, ) vector of indices for multivariate y, required if ell_sim > 1
-    :var x_obs: nparray -- (m, p) matrix of controllable inputs for observation data (optional)
-    :var y_obs:  nparray -- (m, ell_obs) matrix of obs outputs, or list length m of 1D arrays (for ragged y_ind_obs)
-    :var y_ind_obs: (l_obs, ) vector of indices for multivariate y or list length m of 1D arrays (for ragged y_ind_obs)
-    :var sim_only: boolean -- whether or not it is simulation-only data
-    :var scalar_out: boolean -- whether or not the output y is scalar
-    :var ragged_obs: boolean -- whether or not observations have ragged (non-shared) multivariate indices
-    :var x_cat_ind: list/1d array -- indices of x that are categorical (0 = not cat, int > 0 = how many categories)
-    :var t_cat_ind: list/1d array -- indices of t that are categorical (0 = not cat, int > 0 = how many categories)
+    :var numpy.ndarray/NoneType x_sim: controllable inputs/experimental conditions, shape (n, p) or None
+    :var numpy.ndarray/NoneType t_sim: non-controllable inputs, shape (n, q) or None
+    :var numpy.ndarray y_sim: simulation outputs, shape (n, ell_sim)
+    :var numpy.ndarray/NoneType y_ind_sim: indices for multivariate y, shape (ell_sim, ), required if ell_sim > 1
+    :var numpy.ndarray/NoneType x_obs: controllable inputs for observation data, shape (m, p) or None
+    :var numpy.ndarray/list/NoneType y_obs: observed outputs, shape (m, ell_obs), or list length m of 1D arrays (for ragged y_ind_obs), or None
+    :var numpy.ndarray/list/NoneType y_ind_obs: vector of indices for multivariate y, shape (l_obs, ), or list length m of 1D arrays (for ragged y_ind_obs), or None
+    :var bool sim_only: is it simulation-only data?
+    :var bool scalar_out: is the output y scalar?
+    :var bool ragged_obs: do the observations have ragged (non-shared) multivariate indices across instances?
+    :var numpy.ndarray/list x_cat_ind: indices of x that are categorical (0 = not cat, int > 0 = how many categories)
+    :var numpy.ndarray/list t_cat_ind: indices of t that are categorical (0 = not cat, int > 0 = how many categories)
     """
 
     def __init__(self, x_sim=None, t_sim=None, y_sim=None, y_ind_sim=None, x_obs=None, y_obs=None, y_ind_obs=None,
                  x_cat_ind=None, t_cat_ind=None):
         """
-        Create SepiaData object.
+        Create SepiaData object. Many arguments are optional depending on the type of model.
+        Users should instantiate with all data needed for the desired model. See documentation pages for more detail.
 
-        Many arguments are optional, but users should instantiate object with all data needed for the desired model.
-
-        :param x_sim: nparray -- (n, p) matrix of controllable inputs/experimental conditions (optional)
-        :param t_sim: nparray -- (n, q) matrix of non-controllable inputs, can be None (at least one of x_sim and t_sim must be provided)
-        :param y_sim: nparray -- (n, ell_sim) matrix of outputs (REQUIRED)
-        :param y_ind_sim: nparray -- (ell_sim, ) vector of indices for multivariate y, required if ell_sim > 1
-        :param x_obs: nparray -- (m, p) matrix of controllable inputs for observation data (optional)
-        :param y_obs:  nparray -- (m, ell_obs) matrix of obs outputs, or list length m of 1D arrays (for ragged y_ind_obs)
-        :param y_ind_obs: (l_obs, ) vector of indices for multivariate y or list length m of 1D arrays (for ragged y_ind_obs)
-        :param x_cat_ind: list/1d array -- indices of x that are categorical (0 = not cat, int > 0 = how many categories)
-        :param t_cat_ind: list/1d array -- indices of t that are categorical (0 = not cat, int > 0 = how many categories)
+        :param numpy.ndarray/NoneType x_sim: controllable inputs/experimental conditions, shape (n, p), or None
+        :param numpy.ndarray/NoneType t_sim: non-controllable inputs, shape (n, q), or None
+        :param numpy.ndarray y_sim: simulation outputs, shape (n, ell_sim)
+        :param numpy.ndarray/NoneType y_ind_sim: indices for multivariate y, shape (ell_sim, ), required if ell_sim > 1
+        :param numpy.ndarray/NoneType x_obs: controllable inputs for observation data, shape (m, p) or None
+        :param numpy.ndarray/list/NoneType y_obs: observed outputs, shape (m, ell_obs), or list length m of 1D arrays (for ragged y_ind_obs), or None
+        :param numpy.ndarray/list/NoneType y_ind_obs: vector of indices for multivariate y, shape (l_obs, ), or list length m of 1D arrays (for ragged y_ind_obs), or None
+        :param numpy.ndarray/list/NoneType x_cat_ind: indices of x that are categorical (0 = not cat, int > 0 = how many categories), or None
+        :param numpy.ndarray/list/NoneType t_cat_ind: indices of t that are categorical (0 = not cat, int > 0 = how many categories), or None
         :raises: TypeError if shapes not conformal or required data missing.
+
+        .. note: At least one of x_sim and t_sim must be provided, and y_sim must always be provided.
 
         """
 
@@ -156,14 +157,15 @@ class SepiaData(object):
         Transforms sim_data x and t and obs_data x to lie in [0, 1], columnwise, or applies
         same transformation to new x and t.
 
-        If min/max of inputs in a column are equal, it does nothing to that column.
-        Also leaves column alone if categorical, or if user specifies with x_notrans/t_notrans.
-        Stores original min/max as orig_t_min/max, orig_x_min/max for untransforming.
+        :param list/NoneType x_notrans: column indices of x that should not be transformed or None
+        :param list/NoneType t_notrans: column indices of t that should not be transformed or None
+        :param numpy.ndarray/NoneType x: new x values to transform to [0, 1] using same rules as original x data or None
+        :param numpy.ndarray/NoneType t: new t values to transform to [0, 1] using same rules as original t data or None
+        :returns: tuple of x_trans, t_trans if x and t arguments provided; otherwise returns (None, None)
 
-        :param x_notrans: list -- optional, column indices of x that should not be transformed
-        :param t_notrans: list -- optional, column indices of t that should not be transformed
-        :param x: ndarray -- optional, new x values to transform to [0, 1] using same rules as original x data
-        :param t: ndarray -- optional, new t values to transform to [0, 1] using same rules as original t data
+        .. note:: A column is not transformed if min/max of the column values are equal, if the column is categorical,
+                  or if the user specifies no transformation using x_notrans or t_notrans arguments.
+
         """
         x_trans, t_trans = None, None
         if x_notrans is None:
@@ -227,14 +229,10 @@ class SepiaData(object):
 
     def standardize_y(self, center=True, scale='scalar'):
         """
-        Standardizes both sim_data and obs_data GP outputs (y) based on sim_data.y mean/SD.
+        Standardizes both `sim_data` and `obs_data` outputs y based on sim_data.y mean/SD.
 
-        Stores orig_y_mean, orig_y_sd for untransforming.
-
-        :param center: boolean -- whether to subtract simulation mean (across observations)
-        :param scale: string/boolean -- how to rescale: 'scalar': single SD over all demeaned data,
-                                                        'columnwise': SD for each column of demeaned data,
-                                                        False: no rescaling
+        :param bool center: subtract simulation mean (across observations)?
+        :param string/bool scale: how to rescale: 'scalar': single SD over all demeaned data, 'columnwise': SD for each column of demeaned data, False: no rescaling
         """
         if center:
             self.sim_data.orig_y_mean = np.mean(self.sim_data.y, 0)
@@ -282,10 +280,12 @@ class SepiaData(object):
 
     def create_K_basis(self, n_pc=0.995, K=None):
         """
-        Creates K_sim and K_obs using PCA on sim_data.y_std; should be called after standardize_y.
+        Creates `K_sim` and `K_obs` basis functions using PCA on sim_data.y_std, or using given `K_sim` matrix.
 
-        :param n_pc: float, int -- proportion in [0, 1] of variance, or an integer number of components
-        :param K: nparray -- optional, a basis matrix on sim indices of shape (n_basis_elements, ell_sim)
+        :param float/int n_pc: proportion in [0, 1] of variance, or an integer number of components
+        :param numpy.ndarray/None K: a basis matrix on sim indices of shape (n_basis_elements, ell_sim) or None
+
+        .. note:: if standardize_y() method has not been called first, it will be called automatically by this method.
         """
         if self.scalar_out:
             if n_pc == 1:
@@ -319,7 +319,7 @@ class SepiaData(object):
     def compute_sim_PCA_basis(self, n_pc):
         # Does PCA basis computation on sim_data.y_std attribute, sets K attribute to calculated basis.
         # Used internally by create_K_basis.
-        # :param n_pc: int -- number of components or a proportion of variance explained, in [0, 1].
+        # :param float/int n_pc: number of components or a proportion of variance explained, in [0, 1].
         y_std = self.sim_data.y_std
         if y_std is None:
             print('WARNING: y not standardized, applying default standardization before PCA...')
@@ -333,16 +333,17 @@ class SepiaData(object):
             pu = int(n_pc)
         self.sim_data.K = np.transpose(np.dot(U[:, :pu], np.diag(s[:pu])) / np.sqrt(y_std.shape[0]))
 
-    def create_D_basis(self, type='constant', D_obs=None, D_sim=None, norm=True):
+    def create_D_basis(self, D_type='constant', D_obs=None, D_sim=None, norm=True):
         """
-        Create D_obs, D_sim discrepancy bases. Can specify a type of default basis (constant/linear) or provide matrices.
+        Create `D_obs`, `D_sim` discrepancy bases. Can specify a type of default basis (constant/linear) or provide matrices.
 
-        :param type: string -- 'constant' or 'linear' -- optionally sets up default constant or linear D_sim and D_obs
-        :param D_obs: nparray -- a basis matrix on obs indices of shape (n_basis_elements, ell_obs), or list of matrices
-                                 for ragged obs; if D is given, type parameter is ignored.
-        :param D_sim: nparray -- a basis matrix on sim indices of shape (n_basis_elements, sim_obs); should provide if
-                                 providing D_obs.
-        :param norm: boolean -- whether to normalize D basis
+        :param string D_type: 'constant' or 'linear' to set up constant or linear D_sim and D_obs
+        :param numpy.ndarray/list/NoneType D_obs: a basis matrix on obs indices of shape (n_basis_elements, ell_obs),
+                                                  or list of matrices for ragged observations.
+        :param numpy.ndarray/NoneType D_sim: a basis matrix on sim indices of shape (n_basis_elements, sim_obs).
+        :param bool norm: normalize D basis?
+
+        .. note:: `D_type` parameter is ignored if `D_obs` and `D_sim` are provided.
         """
         # Return early if sim only or univariate output
         if self.sim_only:
@@ -398,10 +399,9 @@ class SepiaData(object):
 
     def plot_K_basis(self, max_plots=4):
         """
-        Plots K basis elements for both sim and obs indices (if applicable).
-        Only applies to multivariate-output models.
+        Plots K basis elements for both sim and obs indices (if applicable). Only applies to multivariate-output models.
 
-        :param max_plots: int -- maximum number of principal components to plot
+        :param int max_plots: maximum number of principal components to plot
         """
         # Return early if scalar out or basis not set up
         if self.scalar_out:
@@ -459,11 +459,10 @@ class SepiaData(object):
 
     def plot_K_weights(self, max_u_plot=5, plot_sep=False):
         """
-        Plots K basis weights for both sim and obs data (if applicable).
-        Only applies to multivariate-output models.
+        Plots K basis weights for both sim and obs data (if applicable). Only applies to multivariate-output models.
 
-        :param max_u_plot: int -- optional max number of u's for which to plot vertical line over histogram of w's
-        :param plot_sep: bool -- histogram w's and u's seperately
+        :param int max_u_plot: max number of u's for which to plot vertical line over histogram of w's
+        :param bool plot_sep: histogram w's and u's separately?
         """
         # Return early if scalar out or basis not set up
         if self.scalar_out:
@@ -632,10 +631,9 @@ class SepiaData(object):
     
     def plot_u_w_pairs(self, max_plots=5, save=False):
         """
-        Plots principal component basis weights for both sim and obs data (if applicable).
-        Only applies to multivariate-output models.
+        Plots principal component basis weights for both sim and obs data (if applicable). Only applies to multivariate-output models.
 
-        :param max_plots: int -- optional max number of principle components to plot
+        :param int max_plots: max number of principal components to plot
         """
         # Return early if scalar out or basis not set up
         if self.scalar_out:
@@ -797,16 +795,15 @@ class SepiaData(object):
     def plot_data(self,which_x=None,x_min=None,x_max=None,y_min=None,y_max=None,n_neighbors=3,max_sims=50):
         """
         Plots observed data and simulation runs on the same axis with n_neighbors nearest simulations
-        in x-space colored
-        Only applies to multivariate-output models with both simulation and observed data.
+        in x-space. Only applies to multivariate-output models with both simulation and observed data.
         
-        :param which_x: list -- optionally sets which x_obs indices to plot
-        :param x_min: float -- optionally sets x lower limit on plot
-        :param x_max: float -- optionally sets x upper limit on plot
-        :param y_min: float -- optionally sets y lower limit on plot
-        :param y_max: float -- optionally sets y upper limit on plot
-        :param n_neighbors: int -- optionally sets number of nearest simulations to highlight
-        :param max_sims: int -- optionally sets maximum number of simulation runs to plot
+        :param list/NoneType which_x: optionally sets which x_obs indices to plot
+        :param float x_min: sets x lower limit on plot
+        :param float x_max: sets x upper limit on plot
+        :param float y_min: sets y lower limit on plot
+        :param float y_max: sets y upper limit on plot
+        :param int n_neighbors: sets number of nearest simulations to highlight
+        :param int max_sims: sets maximum number of simulation runs to plot
         """
         if self.sim_only:
             print('plot_data does not currently work for sim_only models.')
