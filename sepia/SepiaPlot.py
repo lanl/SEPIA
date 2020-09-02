@@ -5,7 +5,6 @@ import seaborn as sns
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
-from scipy import stats
 
 sns.set(style="ticks")
 
@@ -13,16 +12,17 @@ def theta_pairs(samples_dict,design_names=None,native=False,lims=None,theta_ref=
     """
     Create pairs plot of sampled thetas.
 
-    :param samples_dict: dictionary -- samples from model.get_samples()
-    :param design_names: list -- names for thetas, optional (None will use default names)
-    :param native: boolean -- whether to put theta on native scale (note: you may want to pass lims in this case)
-    :param lims: list of tuples -- optional, limits for each theta value for plotting; defaults to [0, 1] if native=False
-    :param vlines: list -- optional, scalar values to place vlines on diagonal distplots
+    :param dict samples_dict: samples from model.get_samples()
+    :param list/NoneType design_names: list of string names for thetas, optional (None will use default names)
+    :param bool native: put theta on native scale? (note: you likely want to pass lims in this case)
+    :param list lims: list of tuples, limits for each theta value for plotting; defaults to [0, 1] if native=False
+    :param list theta_ref: scalar reference values to plot as vlines on distplots and as red dots on bivariate plots
+    :param bool save: save the plot?
+    :returns: matplotlib figure
     """
     if 'theta' not in samples_dict.keys():
         print('No thetas to plot')
         return
-        
     if native is False:
         theta = samples_dict['theta']
     else:
@@ -71,26 +71,28 @@ def theta_pairs(samples_dict,design_names=None,native=False,lims=None,theta_ref=
         if save: 
             plt.tight_layout()
             plt.savefig("theta_pairs.png",dpi=300)
-        return(g)
+        return g
     else:
         fig,ax=plt.subplots()
         sns.distplot(theta_df.loc[:, theta_df.columns != 'idx'],hist=True,axlabel=design_names[0],ax=ax)
         if save: 
             plt.tight_layout()
             plt.savefig("theta_pairs.png",dpi=300)
-        return(fig)
+        return fig
         
 def mcmc_trace(samples_dict,theta_names=None,start=0,end=None,n_to_plot=500,by_group=True,max_print=10,save=False):
     """
-    Create trace plot of MCMC.
+    Create trace plot of MCMC samples.
 
-    :param samples_dict: dictionary -- samples from model.get_samples()
-    :param theta_names: list -- names for thetas, optional
-    :param start: int -- where to start plotting traces (sample index)
-    :param end: int -- where to end plotting traces (sample index)
-    :param n_to_plot: int -- how many samples to show
-    :param by_group: boolean -- whether to group params of the same name
-    :param max_print: int -- maximum number of traces to plot
+    :param dict samples_dict: samples from model.get_samples()
+    :param list/NoneType theta_names: list of string names for thetas, optional (None will use default names)
+    :param int start: where to start plotting traces (sample index)
+    :param int/NoneType end: where to end plotting traces (sample index)
+    :param int n_to_plot: how many samples to show
+    :param bool by_group: group params of the same name onto one axis?
+    :param int max_print: maximum number of traces to plot
+    :param bool save: save the plot?
+    :returns: matplotlib figure
     """
     # trim samples dict
     n_samples = samples_dict['lamUz'].shape[0]
@@ -136,7 +138,7 @@ def mcmc_trace(samples_dict,theta_names=None,start=0,end=None,n_to_plot=500,by_g
                 else: axs[axs_idx].set_ylabel(k)
                 axs_idx+=1
         if save: plt.savefig("mcmc_trace.png",dpi=300, bbox_inches='tight')
-        return(fig)
+        return fig
     else:
         lgds = []
         n_axes = len(samples_dict)-1 if 'theta_native' in samples_dict.keys() else len(samples_dict) # dont plot theta_native
@@ -156,18 +158,18 @@ def mcmc_trace(samples_dict,theta_names=None,start=0,end=None,n_to_plot=500,by_g
                 sns.lineplot(x=plot_idx,y=samples_dict[k][plot_idx,0], palette="tab10", linewidth=.75, ax = axs[i])
                 axs[i].set_ylabel(theta_names[0] if (i==0 and theta_names is not None) else k)
         if save: plt.savefig("mcmc_trace.png",dpi=300,bbox_extra_artists=lgds, bbox_inches='tight')
-        return(fig)
+        return fig
          
 def param_stats(samples_dict,theta_names=None,q1=0.05,q2=0.95,digits=4):
     """
     Compute statistics on the samples.
 
-    :param samples_dict: dictionary -- samples from model.get_samples()
-    :param theta_names: list -- names for thetas, optional
-    :param q1: float -- lower quantile in [0, 1]
-    :param q2: float -- upper quantile in [0, 1]
-    :param digits: int -- how many digits to show in output
-
+    :param dict samples_dict: samples from model.get_samples()
+    :param list/NoneType theta_names: list of string names for thetas, optional (None will use default names)
+    :param float q1: lower quantile in [0, 1]
+    :param float q2: upper quantile in [0, 1]
+    :param int digits: how many digits to show in output
+    :return: pandas DataFrame containing statistics
     """
     # theta_names : list
     # samples_dict : dictionary of samples
@@ -195,14 +197,15 @@ def param_stats(samples_dict,theta_names=None,q1=0.05,q2=0.95,digits=4):
             else: keys.append(k)
     stats = pd.DataFrame({'mean':mean,'sd':sd,'{} quantile'.format(q1):q1_list,\
                           '{} quantile'.format(q2):q2_list},index=keys)
-    return(stats)
+    return stats
 
 def rho_box_plots(model,labels=None):
     """
-    Show rho box plots. (Transformed betaU, lengthscale)
+    Show rho box plots. (Rho are the transformed betaU parameters, corresponding to GP lengthscales)
 
-    :param model: SepiaModel object
-    :param labels: list
+    :param sepia.SepiaModel model: SepiaModel object
+    :param list/NoneType labels: optional labels to use for box plot
+    :return: matplotlib figure
     """
     samples_dict = {p.name: p.mcmc_to_array(trim=1000) for p in model.params.mcmcList}
     p = model.num.p
@@ -218,16 +221,18 @@ def rho_box_plots(model,labels=None):
         axs[i].set_yticks(np.arange(0,1.2,.2))
         axs[i].set_ylabel(r'$\rho$')
         axs[i].set_title('PC {}'.format(i+1)) 
-    return(fig)
+    return fig
         
 def plot_acf(model,nlags,nburn=0,alpha=.05,save=False):
     """
-    Plot autocorrelation function for all parameters theta
+    Plot autocorrelation function for all parameters theta.
     
-    :param model: SepiaModel object
-    :param nlags: int -- how many lags to compute/plot
-    :param nburn: int -- how many samples to burn
-    :param alpha: float -- confidence level for acf significance line (0,1)
+    :param sepia.SepiaModel model: SepiaModel object
+    :param int nlags: how many lags to compute/plot
+    :param int nburn: how many samples to burn
+    :param float alpha: confidence level for acf significance line (0,1)
+    :param bool save: whether to save figure
+    :return: matplotlib figure
     """
     if alpha <= 0 or alpha >= 1:
         raise ValueError('alpha must be in (0,1)')
