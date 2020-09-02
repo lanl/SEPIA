@@ -29,6 +29,9 @@ class DataContainer(object):
         :param y_ind: optional y indices (needed if ell > 1) or list of 1D arrays for ragged observations
         """
         self.x = x
+        if isinstance(y, list):
+            y = [yel.squeeze() for yel in  y] # squeeze extra dims if provided
+            y_ind = [yel.squeeze() for yel in y_ind]  # squeeze extra dims if provided
         self.y = y
         # Parse mandatory inputs (x and y)
         if self.x.shape[0] != len(self.y):
