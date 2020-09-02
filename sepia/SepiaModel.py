@@ -13,23 +13,31 @@ import scipy.linalg
 
 class SepiaModel:
     """
-    Sepia model class contains data, SepiaParam objects, and precomputed elements for the likelihood.
+    SepiaModel class contains data, SepiaParam objects, and precomputed elements for the likelihood.
 
-    :var data: SepiaData object
-    :var num: ModelContainer for computed numerical elements for use in evaluating likelihood/posterior
-    :var params: SepiaParamList containing all SepiaParam objects for the model and mcmcList (references to params involved in MCMC)
-    :var verbose: boolean -- whether to print verbose output for this model
+    :var sepia.SepiaData data: instantiated `sepia.SepiaData` object
+    :var sepia.ModelContainer num: `sepia.ModelContainer` for computed numerical elements for use in evaluating likelihood/posterior
+    :var sepia.SepiaParamList params: `sepia.SepiaParamList` containing all `SepiaParam` objects for the model and `mcmcList` (references to params involved in MCMC)
+    :var bool verbose: print verbose output for this model?
     """
 
     def __init__(self, data, Sigy=None, lamVzGroup=None, LamSim=None):
         """
-        Sets up SepiaModel object based on SepiaData object.
+        Sets up `SepiaModel` object based on instantiated `SepiaData` object.
 
-        :param data: SepiaData object, required
-        :param Sigy: observation covariance matrix (default is identity)
-        :param lamVzGroup: groups for lamVz (otherwise single lamVz for all D basis functions)
-        :param LamSim: option to pass custom LamSim (warning: don't change unless know what you're doing)
-        :return: instantiated SepiaModel object
+        :param sepia.SepiaData data: instantiated `sepia.SepiaData` object with all transformations and basis creation done
+        :param numpy.ndarray/NoneType Sigy: optional observation covariance matrix (default is identity)
+        :param numpy.ndarray/list lamVzGroup: indicate groups for lamVz (otherwise single lamVz for all D basis functions)
+        :param numpy.ndarray LamSim: option to pass custom `LamSim` (warning: don't use this unless know what you're doing!)
+        :return: instantiated `sepia.SepiaModel` object
+        :raises ValueError: if `K_sim` and `K_obs` shapes are not conformal
+        :raises TypeError: if `lamVzGroup` is not the correct size or specification
+
+        .. note:: if `SepiaData` input transformations have not been done, a warning will be printed and default transformations
+                  will be done to `x`, `t`, and `y`. Similarly, a `K` basis will be created if you did not do that first.
+                  Since a `D` basis is not required, this is not created automatically, but a warning will be printed in case
+                  creating a model without a `D` basis was not intentional.
+
         """
     
         self.verbose = False
@@ -318,8 +326,8 @@ class SepiaModel:
         """
         Compute model log lik with current values of variables.
 
-        :param cvar: string -- name of variables changed since last call (controls recomputation of num components), or 'all'
-        :param cindex: int -- index of flattened cvar that has changed since last call (or None)
+        :param string cvar: name of variables changed since last call (controls recomputation of num components), or 'all'
+        :param int/NoneType cindex: index of flattened cvar that has changed since last call (or None to indicate all indices should be considered changed)
         :return: scalar -- log lik value
         """
         L = compute_log_lik(self, cvar, cindex)
@@ -329,8 +337,8 @@ class SepiaModel:
         """
         Compute model log posterior with current values of variables.
 
-        :param cvar: string -- name of variables changed since last call (controls recomputation of num components), or 'all'
-        :param cindex: int -- index of flattened cvar that has changed since last call (or None)
+        :param string cvar: name of variables changed since last call (controls recomputation of num components), or 'all'
+        :param int/NoneType cindex: index of flattened cvar that has changed since last call (or None to indicate all indices should be considered changed)
         :return: scalar -- log posterior value
         """
         ll = self.logLik(cvar, cindex)
@@ -341,7 +349,7 @@ class SepiaModel:
         """
         Print some information about the priors.
 
-        :param pnames: list -- list of parameter names to print information about; default is to print all.
+        :param list/NoneType pnames: list of parameter names to print information about; default is to print all.
         """
 
         if pnames is None:
@@ -359,7 +367,7 @@ class SepiaModel:
         """
         Print some information about the parameter values. (Shows initial values if called before MCMC)
 
-        :param pnames: list -- list of parameter names to print information about; default is to print all.
+        :param list/NoneType pnames: list of parameter names to print information about; default is to print all.
         """
 
         if pnames is None:
@@ -376,7 +384,7 @@ class SepiaModel:
         """
         Print some information about the MCMC setup.
 
-        :param pnames: list -- list of parameter names to print information about; default is to print all.
+        :param list/NoneType pnames: list of parameter names to print information about; default is to print all.
         """
 
         if pnames is None:
@@ -389,14 +397,15 @@ class SepiaModel:
 
     def do_mcmc(self, nsamp, prog=True, do_propMH=True, no_init=False, seed=None):
         """
-        Run MCMC sampling on initialized SepiaModel object.
+        Run MCMC sampling on instantiated `SepiaModel` object.
 
-        Note that calling again appends samples to existing samples, so you can run in chunks.
+        :param int nsamp: number of MCMC samples
+        :param bool prog: show progress bar?
+        :param bool do_propMH: use propMH sampling for variables with 'propMH' stepType?
+        :param bool no_init: skip initialization? (only use if model has already been sampled from)
 
-        :param nsamp: float -- number of MCMC samples
-        :param prog: bool -- whether to show progress bar
-        :param do_propMH: bool -- whether to use propMH sampling for variables with that step type
-        :param no_init: bool -- skip initialization (if model has already been sampled; need to initialize on first call)
+        .. note:: Calling multiple times on the same model appends samples to the existing samples.
+
         """
         if seed is not None:
             np.random.seed(seed)
@@ -404,22 +413,25 @@ class SepiaModel:
             do_propMH = False
         if not no_init:
             self.params.lp.set_val(self.logPost()) # Need to call once with cvar='all' (default) to initialize
-        #self.params.lp.mcmc.record(self.params.lp.val)
         for _ in tqdm(range(nsamp), desc='MCMC sampling', mininterval=0.5, disable=not(prog)):
             self.mcmc_step(do_propMH)
 
     def get_samples(self, nburn=0, sampleset=False, numsamples=False, flat=True, includelogpost=True, effectivesamples=False):
         """
         Extract MCMC samples into dictionary format. By default, all samples are returned, or samples can be
-        subset using nburn/sampleset/numsamples. Provide either sampleset or numsamples, or neither.
+        subset using in various ways using the optional input arguments.
 
-        :param nburn: int -- number of samples to discard at beginning of chain
-        :param sampleset: list -- indices of samples to include
-        :param numsamples: int -- return num_samples of samples, evenly spaced from first to last
-        :param flat: bool -- whether to flatten the resulting arrays (for parameters stored as matrices)
-        :param includelogpost: bool -- whether to also get samples of log posterior
+        :param int nburn: number of samples to discard at beginning of chain
+        :param list sampleset: list of indices of samples to include
+        :param int numsamples: number of samples to include, evenly spaced from first to last
+        :param bool flat: flatten the resulting arrays (for parameters stored as matrices)?
+        :param bool includelogpost: include logPost values?
+        :param bool effectivesamples: use effective sample size of thetas to subset samples?
         :return: dict -- array of samples for each parameter, keyed by parameter name
         :raises: TypeError if no samples exist or nburn inconsistent with number of draws
+
+        .. note:: If `theta` is in the model, will also add key `theta_native` with `theta` rescaled to original range.
+
         """
         if self.num.sim_only and effectivesamples:
             print('Emulator only - returning all samples')
@@ -450,7 +462,7 @@ class SepiaModel:
                 if p.name == 'theta': 
                     theta = p.mcmc_to_array(trim=nburn, flat=flat).T
             ess_max = 0
-            for i in range(theta.shape[0]):
+            for i in range(total_samples):
                 # Skip if categorical
                 if self.data.t_cat_ind[i] > 0:
                     continue
@@ -470,15 +482,17 @@ class SepiaModel:
             samples['theta_native'] = self.params.theta.mcmc_to_array(trim=nburn, sampleset=ss, flat=flat, untransform_theta=True)
         return samples
 
-    #TODO: does not handle hierModels/tiedThetaModels, passes a sim only univ test pretty well (lamWOs slightly different ss)
-    #TODO: set start value to maximum posterior instead of last sample?
     def tune_step_sizes(self, n_burn, n_levels, prog=True, diagnostics=False, update_vals=True):
-        """ Atuo-tune step size based on acceptance rate with YADAS approach.
+        """
+        Auto-tune step size based on acceptance rate with YADAS approach.
 
-        :param n_burn: int -- number of samples for each step size
-        :param n_levels: int -- number of levels for step size
-        :param prog: bool -- whether to show progress bar
-        :param diagnostics: bool -- whether to return some information on acceptance rates used inside step size tuning
+        :param int n_burn: number of samples to draw for each proposed step size
+        :param int n_levels: number of levels to propose for each step size
+        :param bool prog: show progress bar?
+        :param bool diagnostics: return some information on acceptance rates used inside step size tuning?
+
+        .. note:: Does not work for hierarchical or shared theta models.
+
         """
         print('Starting tune_step_sizes...')
         print('Default step sizes:')
@@ -780,28 +794,31 @@ class ModelContainer():
     """
     Internally used to contain numeric elements computed for the model/likelihood evaluations.
 
-    :var scalar_out: boolean -- is y a scalar or multivariate
-    :var sim_only: boolean -- is it simulation-only or is there obs data
-    :var x:
-    :var theta:
-    :var zt:
-    :var LamSim:
-    :var LamObs:
-    :var SigObs:
-    :var n:
-    :var m:
-    :var pu:
-    :var pv:
-    :var p:
-    :var q:
+    :var bool scalar_out: is y a scalar output?
+    :var bool sim_only: is it simulation-only?
+    :var numpy.ndarray x: unit hypercube inputs corresponding to observed data
+    :var numpy.ndarray theta:
+    :var numpy.ndarray zt: unite hypercube inputs corresponding to simulated data
+    :var numpy.ndarray LamSim:
+    :var numpy.ndarray LamObs:
+    :var numpy.ndarray SigObs:
+    :var int n: number of observed data observations
+    :var int m: number of simulation data observations
+    :var int pu: number of PC components
+    :var int pv: number of discrepancy basis components
+    :var int p: number of controllable inputs (known in principle for both sim and obs data)
+    :var int q: number of non-controllable inputs (known in principle only for sim data)
     :var lamVzGroup:
     :var lamVzGnum:
-    :var SigV:
-    :var SigU:
-    :var SigWl:
-    :var SigWi:
-    :var SigUW:
-    :var auto_stepsize:
+    :var numpy.ndarray SigV:
+    :var numpy.ndarray SigU:
+    :var numpy.ndarray SigWl:
+    :var numpy.ndarray SigWi:
+    :var numpy.ndarray SigUW:
+    :var bool auto_stepsize: was auto step size tuning done?
+
+    .. note:: Need to finish documenting, check that we got everything in num. TODO
+
     """
 
     def __init__(self):
