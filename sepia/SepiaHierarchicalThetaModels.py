@@ -1,38 +1,43 @@
 
 
 import numpy as np
-import statsmodels.api as sm
 from tqdm import tqdm
 import copy
-
-from sepia.SepiaParam import SepiaParam, SepiaParamList
-from sepia.SepiaLogLik import compute_log_lik
-from sepia.SepiaModel import SepiaModel
+from sepia.SepiaParam import SepiaParam
 
 
 class SepiaHierarchicalThetaModels:
     """
     Container for multiple models with hierarchical Normal model on selected thetas.
 
-    :var model_list: list of SepiaModel objects
-    :var hier_theta_inds: indices showing which thetas are hierarchically linked, size (n_hier_theta, n_models)
+    :var list model_list: list of instantiated `sepia.SepiaModel` objects
+    :var numpy.ndarray hier_theta_inds: indices showing which thetas are hierarchically linked, shape (n_hier_theta, n_models)
+    :var int n_hier: number of hierarchical groups
+    :var int n_models: number of models
+    :var numpy.ndarray to_update: 0/1 matrix indicating which variables need to be hierarchically updated
+    :var list hier_mu: list of `sepia.SepiaParam` objects for hierarchical mu parameters
+    :var list hier_lambda: list of `sepia.SepiaParam` objects for hierarchical lambda parameters
+    :var list hier_delta: list of `sepia.SepiaParam` objects for hierarchical delta (lockstep update) parameters
 
     """
 
-    def __init__(self, model_list=None, hier_theta_inds=None):
+    def __init__(self, model_list, hier_theta_inds):
         """
         Instantiate hierarchical model container.
 
-        :param model_list: list of instantiated SepiaModel objects
-        :param hier_theta_inds: nparray -- (n_hier_theta, n_models) where each row corresponds to one group of hierarchically
-                                modeled thetas, and each column gives the index of the theta within a particular model, with
-                                -1 used to indicate no theta from a particular model is part of the hierarchical group.
+        :param list model_list: list of instantiated `sepia.SepiaModel` objects
+        :param numpy.ndarray hier_theta_inds: indices showing which thetas are hierarchically linked, shape (n_hier_theta, n_models)
+        :raises TypeError: if number of models doesn't match `hier_theta_inds` or if user attempts to model categorical variable hierarchically.
+
+        .. note:: In `hier_theta_inds`, each row corresponds to one group of hierarchically modeled thetas, and each
+                  column gives the index of the theta within a particular model, with -1 used to indicate no theta
+                  from a particular model is part of the hierarchical group.
+                  Example: hier_theta_inds = np.array([(1, 1, 1), (2, -1, 4)) for 3 models, theta index 1 hierarchical across all models,
+                  theta indices 2/4 hierarchical across models 1 and 3 but no corresponding theta in model 2.
 
         """
         self.model_list = model_list            # List of instantiated SepiaModel objects
         self.hier_theta_inds = hier_theta_inds  # Matrix (n_hier_theta, n_models) indicating hier indices, -1 means not in a model
-        # Example: hier_theta_inds = np.array([(1, 1, 1), (2, -1, 4)) for 3 models, theta index 1 hierarchical across all models,
-        #          theta indices 2/4 hierarchical across models 1 and 3 but no corresponding theta in model 2.
         if not hier_theta_inds.shape[1] == len(model_list):
             raise TypeError('Number of models does not match provided hierarchical theta lists')
         # Check that categorical inds aren't done hierarchically
@@ -47,6 +52,7 @@ class SepiaHierarchicalThetaModels:
         # sets up bookkeeping to make mcmc loop simpler
         n_hier, n_models = self.hier_theta_inds.shape
         self.n_hier = n_hier
+        self.n_models = n_models
         # Get indices of models for which each parameter is in a hierarchical distn
         to_update = np.zeros_like(self.hier_theta_inds)
         for i in range(n_hier):
@@ -55,7 +61,7 @@ class SepiaHierarchicalThetaModels:
                 if ti_row[j] > -1:
                     to_update[i, j] = 1
         self.to_update = to_update
-        # Set up params/priors for hierarchical distns (TODO need to check defaults; need better UI to let user set up?)
+        # Set up params/priors for hierarchical distns
         hier_mu = []
         hier_lambda = []
         hier_delta = []
@@ -84,10 +90,11 @@ class SepiaHierarchicalThetaModels:
         """
         Does MCMC for hierarchical model.
 
-        :param nsamp: int -- how many MCMC samples
-        :param do_propMH: boolean -- whether to use propMH sampling for params with stepType propMH
-        :param prog: boolean -- whether to show progress bar for sampling
-        :param do_lockstep: boolean -- whether to do lockstep update
+        :param int nsamp: number of MCMC samples
+        :param bool do_propMH: use propMH sampling for params with stepType propMH?
+        :param bool prog: show progress bar for sampling?
+        :param bool do_lockstep: do lockstep updates?
+
         """
         # Initialize all models
         for model in self.model_list:
@@ -103,7 +110,6 @@ class SepiaHierarchicalThetaModels:
             ### Sampling hierarchical parameters
             for hi in range(self.n_hier):
                 theta_inds = self.hier_theta_inds[hi, :]
-                n_models = theta_inds.shape[0]
                 mu_param = self.hier_mu[hi]
                 lam_param = self.hier_lambda[hi]
                 self.mcmc_step_mulam(theta_inds, mu_param)
@@ -115,9 +121,9 @@ class SepiaHierarchicalThetaModels:
                     delta_cand = self.hier_delta[hi].mcmc.draw_candidate(arr_ind, False)
                     mu_cand = delta_cand + mu_param.val[0, 0].copy()
                     # check in bounds for mu; check in bounds for theta (TODO other constraints...)
-                    inb = mu_param.prior.is_in_bounds(mu_cand) # TODO See if this still works since mu is scalar
+                    inb = mu_param.prior.is_in_bounds(mu_cand)
                     if inb:
-                        for mi in range(n_models):
+                        for mi in range(self.n_models):
                             if theta_inds[mi] > -1:
                                 theta_param = self.model_list[mi].params.theta
                                 inb = inb and np.all(mu_cand > theta_param.prior.bounds[0]) and np.all(mu_cand < theta_param.prior.bounds[1])
@@ -131,7 +137,7 @@ class SepiaHierarchicalThetaModels:
                         old_prior = []
                         old_prior_params = []
                         old_lik = []
-                        for mi in range(n_models):
+                        for mi in range(self.n_models):
                             if theta_inds[mi] > -1:
                                 old_prior_params.append(copy.deepcopy(self.model_list[mi].params.theta.prior.params))
                                 old_lik.append(self.model_list[mi].logLik('theta'))
@@ -146,28 +152,25 @@ class SepiaHierarchicalThetaModels:
                         # Compute new prior/lik
                         new_prior = []
                         new_lik = []
-                        for mi in range(n_models):
+                        for mi in range(self.n_models):
                             if theta_inds[mi] > -1:
-                                #new_prior.append(self.model_list[mi].log_prior())
                                 new_lik.append(self.model_list[mi].logLik('theta'))
                         new_prior.append(self.hier_mu[hi].prior.compute_log_prior())
                         # Calculate acceptance
                         if np.log(np.random.uniform()) < (sum(new_prior) + sum(new_lik) - sum(old_prior) - sum(old_lik)):
                             # Accept: most of work is done, update each model's logpost and update recorded mcmc draw
-                            for mi in range(n_models):
+                            for mi in range(self.n_models):
                                 if theta_inds[mi] > -1:
-                                    # TODO: do we store loglik separately? (so don't need to do whole loglik again?)
-                                    self.model_list[mi].params.lp.val = self.model_list[mi].logPost('theta')
+                                    self.model_list[mi].params.lp.val = new_lik[mi] + new_prior[mi]
                                     # Have to overwrite already recorded sample for theta
                                     self.model_list[mi].params.theta.mcmc.draws[_][0, theta_inds[mi]] = self.model_list[mi].params.theta.val[0, theta_inds[mi]].copy()
                         else:
                             # Reject: need to put things back
                             mu_param.val = mu_param.refVal.copy()
-                            for mi in range(n_models):
+                            for mi in range(self.n_models):
                                 if theta_inds[mi] > -1:
                                     self.model_list[mi].params.theta.prior.params = old_prior_params[mi]
                                     self.model_list[mi].params.theta.val[0, theta_inds[mi]] = self.model_list[mi].params.theta.refVal[0, theta_inds[mi]].copy()
-
                 # Record hierarchical model draws
                 self.hier_mu[hi].mcmc.record()
                 self.hier_lambda[hi].mcmc.record()
@@ -179,7 +182,6 @@ class SepiaHierarchicalThetaModels:
                 model.params.lp.mcmc.draws[_] = lp_tmp
 
     def mcmc_step_mulam(self, theta_inds, hprm):
-        n_models = len(self.model_list)
         # draw cand
         arr_ind = np.unravel_index(0, hprm.val_shape, order='F')
         hprm_cand = hprm.mcmc.draw_candidate(arr_ind, True)
@@ -190,7 +192,7 @@ class SepiaHierarchicalThetaModels:
             # Store old/current log prior and prior params for thetas in case reject, put cand into theta priors
             old_prior = []
             old_prior_params = []
-            for mi in range(n_models):
+            for mi in range(self.n_models):
                 old_prior_params.append(copy.deepcopy(self.model_list[mi].params.theta.prior.params))
                 if theta_inds[mi] > -1:
                     old_prior.append(self.model_list[mi].log_prior())
@@ -204,21 +206,20 @@ class SepiaHierarchicalThetaModels:
             hprm.val[0, 0] = hprm_cand
             # Compute new priors
             new_prior = []
-            for mi in range(n_models):
+            for mi in range(self.n_models):
                 if theta_inds[mi] > -1:
                     new_prior.append(self.model_list[mi].log_prior())
             new_prior.append(hprm.prior.compute_log_prior())
             # Calculate acceptance
             if np.log(np.random.uniform()) < (np.sum(new_prior) - np.sum(old_prior) + np.log(hprm.mcmc.aCorr)):
                 # Accept: most of work is done, just update each model's logpost
-                for mi in range(n_models):
+                for mi in range(self.n_models):
                     if theta_inds[mi] > -1:
-                        # TODO: do we store loglik separately? (so don't need to do whole loglik again?)
                         self.model_list[mi].params.lp.val = self.model_list[mi].logPost('theta')
             else:
                 # Reject: need to put things back
                 hprm.val = hprm.refVal.copy()
-                for mi in range(n_models):
+                for mi in range(self.n_models):
                     self.model_list[mi].params.theta.prior.params = old_prior_params[mi]
 
 
