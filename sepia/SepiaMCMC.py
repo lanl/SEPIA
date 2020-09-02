@@ -6,20 +6,22 @@ class SepiaMCMC:
     """
     MCMC object to store step type, step parameters, draw candidates, accept/reject, and record draws.
 
-    :var stepType: string -- MCMC step type in 'Normal', 'PropMH', 'Uniform', 'BetaRho'
-    :var stepParam: ndarray -- step size params, or None if using 'recorder'
-    :var parent: SepiaParam object -- which parameter this MCMC object corresponds to
-    :var draws: list -- list of MCMC draws
-    :var aCorr: for MH correction
+    :var string stepType: MCMC step type in 'PropMH', 'Uniform', 'BetaRho', 'Recorder'
+    :var numpy.ndarray/NoneType stepParam: step size params with shape param.val_shape, or None if using 'Recorder'
+    :var sepia.SepiaParam parent: instantiated sepia.SepiaParam parameter object that this MCMC object corresponds to
+    :var list draws: list of MCMC draws (typically list of arrays, each of shape param.val_shape)
+    :var float aCorr: for MH correction
     """
 
-    def __init__(self, parent, stepType='Normal', stepParam=0.1):
+    def __init__(self, parent, stepType='Uniform', stepParam=0.1):
         """
         Initialize MCMC object.
 
-        :param parent: SepiaParam object that this MCMC belongs to
-        :param stepType: 'Normal', 'PropMH', 'Uniform', or 'BetaRho'
-        :param stepParam: nparray -- step size parameter for each element of matrix-valued parameter
+        :param sepia.SepiaParam parent: instantiated sepia.SepiaParam parameter object that this MCMC object corresponds to
+        :param string stepType: MCMC step type in 'PropMH', 'Uniform', 'BetaRho', 'Recorder'
+        :param numpy.ndarray/NoneType stepParam: step size params with shape param.val_shape, or None if using 'Recorder'
+
+        .. note:: Typically not directly instantiated, but created when `sepia.SepiaModel` object created.
         """
         self.stepType = stepType
         self.parent = parent
@@ -35,9 +37,10 @@ class SepiaMCMC:
         """
         Draw MCMC candidate for single variable/index.
 
-        :param arr_ind: array index for variable of interest within parent SepiaParam
-        :param do_propMH: flag to do propMH for variables where stepType = 'propMH'
+        :param numpy.ndarray arr_ind: array index for variable of interest within parent sepia.SepiaParam object values
+        :param bool do_propMH: do propMH for variables where stepType = 'propMH'?
         :return: scalar candidate value
+        :raises ValueError: if stepType is not one of the supported values
         """
         self.aCorr = 1
         if self.stepType == 'Uniform':
@@ -63,15 +66,15 @@ class SepiaMCMC:
             else:
                 cand = self.parent.val[arr_ind] + self.stepParam[arr_ind] * np.random.uniform(-0.5, 0.5)
         else:
-            raise Exception('Unknown stepType')
+            raise ValueError('Unknown stepType')
         return cand
 
     def reject(self, ind, model):
         """
         Reject candidate by restoring model to previous state.
 
-        :param ind: index of variable
-        :param model: model object containing variable
+        :param int ind: scalar (flattened) index of variable
+        :param sepia.sepiaModel model: sepia.SepiaModel object containing variable
         """
         # If reject, need to put back refVal into val
         arr_ind = np.unravel_index(ind, self.parent.val_shape, order='F')
@@ -86,12 +89,12 @@ class SepiaMCMC:
         # If accept, new value is already part of val so leave it alone
         pass
 
-    def record(self, x=False):
+    def record(self, x=None):
         """
         Record value into MCMC draws.
 
-        :param x: optionally, a value to record; otherwise, current parent.val is used.
+        :param numpy.ndarray/NoneType x: optionally, a value to record; otherwise, current parent.val is used.
         """
-        if x is False:
+        if x is None:
             x = self.parent.val.copy()
         self.draws.append(x)
