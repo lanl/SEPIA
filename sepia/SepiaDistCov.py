@@ -5,23 +5,25 @@ class SepiaDistCov(object):
     """
     Class for computing/storing distances and covariance matrix, typically not called directly by user but used in model.
 
-    :var type: int -- 1: self-distance for single input data, 2: cross-distance for two input data
-    :var n: int -- number of observations in data set 1
-    :var m: int -- number of observations in data set 2
-    :var ind: nparray -- indices into matrix upper triangle
-    :var sqdist: nparray -- squared distances for upper triangle
+    :var int type: 1: self-distance for single input data, 2: cross-distance for two input data
+    :var int n: number of observations in data set 1
+    :var intn m: number of observations in data set 2
+    :var numpy.ndarray ind: indices into matrix upper triangle
+    :var numpy.ndarray sqdist: squared distances for upper triangle
 
     """
 
     def __init__(self, data, data2=None, cat_ind=None):
         """
         Instantiate SepiaDistCov.
-
         If only one data set is given, the auto-distance is computed, else computes distance between data and data2.
 
-        :param data: nparray -- input data, shape (n_samples, _)
-        :param data2: nparray -- optional, second data set to compute distances with data
-        :param cat_ind: list, 1d array -- optional, cat_ind as passed to sepiadata
+        :param numpy.ndarray data: input data, shape (n_samples, <varies>)
+        :param numpy.ndarray/None data2: optional second data set to compute distances with data, shape (n_samples2, <varies>)
+        :param numpy.ndarray/list cat_ind: categorical indices of columns
+        :raises ValueError: if column shape of data and data2 differ
+
+        .. note:: Not typically instantiated directly but used in model calculations.
 
         """
         if data2 is None:
@@ -66,10 +68,10 @@ class SepiaDistCov(object):
         """
         Computes GP covariance matrix using precomputed distances.
 
-        :param beta: nparray -- GP lengthscale parameters
-        :param lamz: nparray -- GP marginal precision parameters
-        :param lams: scalar -- nugget precision
-        :param verbose: boolean -- whether to print extra information
+        :param numpy.ndarray beta: GP lengthscale parameters
+        :param numpy.ndarray lamz: GP marginal precision parameters
+        :param scalar/NoneType lams: nugget precision or None
+        :param bool verbose: print extra information?
         :return: computed covariance matrix
         """
         if verbose:
