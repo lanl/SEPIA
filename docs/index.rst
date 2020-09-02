@@ -21,8 +21,8 @@ Welcome to Sepia!
     Full source code on `GitHub`_.
 
     .. note:: Warning: Sepia is still in development. Basic functionality (model setup, likelihood evaluation, MCMC sampling,
-        multivariate calibration, predictions) is complete and has been tested. Some features are untested or still being
-        developed (visualization and diagnostics, sensitivity analysis).
+        multivariate calibration, visualization and diagnostics) is complete and has been tested.
+        Some features are not fully tested for all model cases or still being developed (predictions, sensitivity analysis).
 
         Users should pull the newest code frequently, particularly if you encounter errors. If you have installed using the
         instructions on GitHub, you should not need to reinstall after pulling new code.
@@ -35,12 +35,17 @@ Welcome to Sepia!
 
     First, pull down the source code from `GitHub`_.
     We recommend installing inside an Anaconda environment. The packages installed in the development environment
-    are listed in `environment.yml`. Use `conda env create -f environment.yml` to create the environment, then activate as
-    `source activate sepia` before installing sepia.
+    are listed in `environment.yml`. To create the environment, use::
 
-    Then use the following command to install sepia:
+        conda env create -f environment.yml
 
-    `pip install -e .[sepia]`
+    Activate the environment before installing sepia::
+
+        source activate sepia
+
+    Then use the following command to install sepia::
+
+        pip install -e .[sepia]
 
 .. topic:: Read first: general workflow
 

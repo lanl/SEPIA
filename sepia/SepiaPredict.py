@@ -9,32 +9,39 @@ class SepiaPrediction():
     """
     Base class inherited for predictions. Defines all parameters:
 
-    :param x_pred: (npred x p) matrix, x values for which to predict
-    :param samples: sample set, as provided by SepiaModel.get_samples; predict for each sample
-    :param model: the SepiaModel object
-    :param t_pred: (npred x q) matrix, optional; if present concatenate with x_pred for predictions, \
-    otherwise thetas will be taken from theta posterior samples provided. Required for emulator model.
-    :param addResidVar: add the posterior residual variability to the samples
-    :param storeRlz: make and store a process realizations for each x_pred / sample combination
-    :param storeMuSigma: store the mean and sigma for the GP posterior for each x_pred / sample combination
-    :param do_call: boolean -- whether to call wPred/uvPred upon initialization
+    :var sepia.SepiaModel model: SepiaModel instance
+    :var numpy.ndarray xpred: x values for which to predict, shape (npred, p) matrix, on original untransformed scale
+    :var numpy.ndarray/NoneType t_pred: t values for which to predict, shape (npred, q) matrix, optional for full model
+                                        (if not provided, `theta` values from posterior samples will be used) but required for emulator.
+    :var dict samples: from `SepiaModel.get_samples()`
+    :var bool addResidVar: add the posterior residual variability to the samples?
+    :var bool storeRlz: make and store a process realizations for each x_pred / sample combination?
+    :var bool storeMuSigma: store the mean and sigma for the GP posterior for each x_pred / sample combination?
+    :var bool do_call: call wPred/uvPred upon initialization?
+    :var numpy.ndarray/NoneType w: simulation predictions on PCA weight space, shape (#samples, #x_pred, pu)
+    :var numpy.ndarray/NoneType u: observation predictions on PCA weight space, shape (#samples, #x_pred, pu)
+    :var numpy.ndarray/NoneType v: observation predictions on D weight space, shape (#samples, #x_pred, pv)
+    :var numpy.ndarray/NoneType mu: posterior mean, shape (#samples, #x_pred)
+    :var numpy.ndarray/NoneType sigma: posterior sigma, shape (#samples, #x_pred, #x_pred)
 
     """
 
     def __init__(self, x_pred=None, samples=None, model=None, t_pred=None,
                  addResidVar=False, storeRlz=True, storeMuSigma=False, do_call=True):
         """
-        Instantiate SepiaPredict object (usually called by subclass init).
+        Instantiate SepiaPredict object (usually not called directly, but by subclass __init__).
 
-        :param x_pred: (npred x p) matrix, x values for which to predict
-        :param samples: sample set, as provided by SepiaModel.get_samples; predict for each sample
-        :param model: the SepiaModel object
-        :param t_pred: (npred x q) matrix, optional; if present concatenate with x_pred for predictions, \
-        otherwise thetas will be taken from theta posterior samples provided. Required for emulator model.
-        :param addResidVar: add the posterior residual variability to the samples
-        :param storeRlz: make and store a process realizations for each x_pred / sample combination
-        :param storeMuSigma: store the mean and sigma for the GP posterior for each x_pred / sample combination
-        :param do_call: boolean -- whether to call wPred/uvPred upon initialization
+        :param numpy.ndarray x_pred: x values for which to predict, shape (npred, p) matrix, on original untransformed scale
+        :param dict samples: from `SepiaModel.get_samples()`
+        :param sepia.SepiaModel model: the SepiaModel object
+        :param numpy.ndarray/NoneType t_pred: t values for which to predict, shape (npred, q) matrix, optional for full model
+                                        (if not provided, `theta` values from posterior samples will be used) but required for emulator.
+        :param bool addResidVar: add the posterior residual variability to the samples?
+        :param bool storeRlz: make and store a process realizations for each x_pred / sample combination?
+        :param bool storeMuSigma: store the mean and sigma for the GP posterior for each x_pred / sample combination?
+        :param bool do_call: call wPred/uvPred upon initialization?
+        :raises TypeError: if inputs are not expected types
+        :raises ValueError: if inputs are not expected shapes
 
         """
 
@@ -79,11 +86,9 @@ class SepiaPrediction():
 class SepiaEmulatorPrediction(SepiaPrediction):
     """
     Make predictions of the emulator ('eta') component of the model. This functions with an emulator-only model
-    or a full model, but predicts the posterior simulation estimates
+    or a full model, but predicts the posterior simulation estimates.
+    Predictions are performed on init and stored in the object for access methods.
 
-    :param all: init parameters are parsed by SepiaPrediction (inherited init)
-
-    Predictions are performed on init and stored in the object for access methods:
     """
 
     def __init__(self,*args,**kwrds):
@@ -94,17 +99,18 @@ class SepiaEmulatorPrediction(SepiaPrediction):
 
     def get_w(self):
         """
-        Returns predictions that were made on init
+        Returns predictions that were made on init in PCA weight space.
 
-        :return: predictions of w, (#samples x #x_pred x pu) tensor
+        :return: predictions of w, (#samples x #x_pred x pu) numpy.ndarray
         """
         return self.w
 
     def get_y(self, std=False):
         """
         Project w through the K basis to provide predictions of y on native (or standardized) scale.
-        (standardized refers to the mean=0 and sd=1 standardization process in model setup)
-        :param std: return standardized (True) or native (default, False) scaling of predictions
+        (standardized refers to the mean=0 and sd=1 standardization process in model setup).
+
+        :param bool std: return standardized (True) or native (default, False) scaling of predictions
         :return: predictions of y, (#samples x #x_pred x py) tensor
         """
         if std:
