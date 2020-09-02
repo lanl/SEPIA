@@ -37,46 +37,48 @@ def theta_pairs(samples_dict,design_names=None,native=False,lims=None,theta_ref=
     thin_idx = np.linspace(0,n_samp-1,np.min([n_samp-1, 1000]),dtype=int) # thin to at most 1000 samples
     theta_df = pd.DataFrame(theta[thin_idx,:],columns=design_names) # take only 1000 samples to dataframe
     theta_df.insert(0,'idx',theta_df.index,allow_duplicates = False)
+    
     if theta_df.shape[1]>2:
-        g = sns.PairGrid(theta_df.loc[:, theta_df.columns != 'idx'], diag_sharey=False)
-        g.map_upper(sns.scatterplot, palette = 'coolwarm', hue=theta_df['idx'], legend=False)
-        g.map_lower(sns.kdeplot, cmap="viridis", shade=True, shade_lowest=False)
-        g.map_diag(sns.distplot, hist=True)
+        g = sns.PairGrid(theta_df.loc[:, theta_df.columns != 'idx'], diag_sharey=False);
+        g.map_upper(sns.scatterplot, palette = 'coolwarm', hue=theta_df['idx'], legend=False);
+        g.map_lower(sns.kdeplot, cmap="viridis", shade=True, shade_lowest=False);
+        g.map_diag(sns.distplot, hist=True);
         if lims is not None:
             # Undo sharing of axes
             for i in range(n_theta):
-                [g.diag_axes[i].get_shared_x_axes().remove(axis) for axis in g.axes.ravel()]
+                [g.diag_axes[i].get_shared_x_axes().remove(axis) for axis in g.axes.ravel()];
                 for j in range(n_theta):
-                    [g.axes[i, j].get_shared_x_axes().remove(axis) for axis in g.axes.ravel()]
-                    [g.axes[i, j].get_shared_y_axes().remove(axis) for axis in g.axes.ravel()]
-                    [g.axes[i, j].get_shared_x_axes().remove(axis) for axis in g.diag_axes.ravel()]
-                    [g.axes[i, j].get_shared_y_axes().remove(axis) for axis in g.diag_axes.ravel()]
+                    [g.axes[i, j].get_shared_x_axes().remove(axis) for axis in g.axes.ravel()];
+                    [g.axes[i, j].get_shared_y_axes().remove(axis) for axis in g.axes.ravel()];
+                    [g.axes[i, j].get_shared_x_axes().remove(axis) for axis in g.diag_axes.ravel()];
+                    [g.axes[i, j].get_shared_y_axes().remove(axis) for axis in g.diag_axes.ravel()];
             # Set limits
             for i in range(n_theta):
                 for j in range(n_theta):
                     if i == j:
-                        g.diag_axes[i].set_xlim(xmin=lims[i][0], xmax=lims[i][1])
-                        g.axes[i, i].set_xlim(xmin=lims[i][0], xmax=lims[i][1])
+                        g.diag_axes[i].set_xlim(xmin=lims[i][0], xmax=lims[i][1]);
+                        g.axes[i, i].set_xlim(xmin=lims[i][0], xmax=lims[i][1]);
                     else:
-                        g.axes[i, j].set_xlim(xmin=lims[j][0], xmax=lims[j][1])
-                        g.axes[i, j].set_ylim(ymin=lims[i][0], ymax=lims[i][1])
+                        g.axes[i, j].set_xlim(xmin=lims[j][0], xmax=lims[j][1]);
+                        g.axes[i, j].set_ylim(ymin=lims[i][0], ymax=lims[i][1]);
                         
         if theta_ref is not None:
             for i in range(n_theta):
-                g.diag_axes[i].vlines(theta_ref[i],ymin=0,ymax=1,transform = g.diag_axes[i].get_xaxis_transform(),color='r')
+                g.diag_axes[i].vlines(theta_ref[i],ymin=0,ymax=1,transform = g.diag_axes[i].get_xaxis_transform(),color='r');
                 for j in range(n_theta):
                     if i>j: # Lower diag contour plots
-                        g.axes[i,j].scatter(theta_ref[j], theta_ref[i], marker='o', s=5, color="red")
+                        g.axes[i,j].scatter(theta_ref[j], theta_ref[i], marker='o', s=5, color="red");
         if save: 
             plt.tight_layout()
             plt.savefig("theta_pairs.png",dpi=300)
-        plt.show()
+        return(g)
     else:
-        sns.distplot(theta_df.loc[:, theta_df.columns != 'idx'],hist=True,axlabel=design_names[0])
+        fig,ax=plt.subplots()
+        sns.distplot(theta_df.loc[:, theta_df.columns != 'idx'],hist=True,axlabel=design_names[0],ax=ax)
         if save: 
             plt.tight_layout()
             plt.savefig("theta_pairs.png",dpi=300)
-        plt.show()
+        return(fig)
         
 def mcmc_trace(samples_dict,theta_names=None,start=0,end=None,n_to_plot=500,by_group=True,max_print=10,save=False):
     """
@@ -110,25 +112,31 @@ def mcmc_trace(samples_dict,theta_names=None,start=0,end=None,n_to_plot=500,by_g
         plot_idx = np.arange(start,end,1,dtype=int)
     
     if not by_group:
+        total_plots = 0
+        for i,k in enumerate(samples_dict.keys()):
+            if k == 'theta_native':
+                continue
+            total_plots += min(samples_dict[k].shape[1],max_print)
+        fig,axs = plt.subplots(total_plots,1,sharex=True,figsize=[10,1.5*total_plots])
+        fig.subplots_adjust(hspace=0)
+        axs_idx = 0
         for i, k in enumerate(samples_dict.keys()):
             if k == 'theta_native':
                 continue
-            n_row = min(samples_dict[k].shape[1],max_print)
-            fig, axs = plt.subplots(n_row,1,sharex=True,figsize=[10,1.5*n_row])
-            fig.subplots_adjust(hspace=0)
-            if n_row > 1:
-                for j in range(n_row):
-                    sns.lineplot(x=plot_idx,y=samples_dict[k][plot_idx,j], palette="tab10", linewidth=.75, ax = axs[j])
-                    if i == 0 and theta_names is not None: axs[j].set_ylabel(theta_names[j])
-                    else: axs[j].set_ylabel(k+'_'+str(j+1))
-                if save: plt.savefig("mcmc_trace.png",dpi=300,bbox_extra_artists=(lgd), bbox_inches='tight')
-                plt.show()
+            n_theta = min(samples_dict[k].shape[1],max_print)
+            if n_theta > 1:
+                for j in range(n_theta):
+                    sns.lineplot(x=plot_idx,y=samples_dict[k][plot_idx,j], palette="tab10", linewidth=.75, ax = axs[axs_idx])
+                    if k=='theta' and theta_names is not None: axs[axs_idx].set_ylabel(theta_names[j])
+                    else: axs[axs_idx].set_ylabel(k+'_'+str(j+1))
+                    axs_idx+=1
             else:
-                sns.lineplot(x=plot_idx,y=samples_dict[k][plot_idx,0], palette="tab10", linewidth=.75, ax = axs)
-                if i == 0 and theta_names is not None: axs.set_ylabel(theta_names[0])
-                else: axs.set_ylabel(k)
-                if save: plt.savefig("mcmc_trace.png",dpi=300,bbox_extra_artists=(lgd), bbox_inches='tight')
-                plt.show()
+                sns.lineplot(x=plot_idx,y=samples_dict[k][plot_idx,0], palette="tab10", linewidth=.75, ax = axs[axs_idx])
+                if k=='theta' and theta_names is not None: axs.set_ylabel(theta_names[0])
+                else: axs[axs_idx].set_ylabel(k)
+                axs_idx+=1
+        if save: plt.savefig("mcmc_trace.png",dpi=300, bbox_inches='tight')
+        return(fig)
     else:
         lgds = []
         n_axes = len(samples_dict)-1 if 'theta_native' in samples_dict.keys() else len(samples_dict) # dont plot theta_native
@@ -148,7 +156,7 @@ def mcmc_trace(samples_dict,theta_names=None,start=0,end=None,n_to_plot=500,by_g
                 sns.lineplot(x=plot_idx,y=samples_dict[k][plot_idx,0], palette="tab10", linewidth=.75, ax = axs[i])
                 axs[i].set_ylabel(theta_names[0] if (i==0 and theta_names is not None) else k)
         if save: plt.savefig("mcmc_trace.png",dpi=300,bbox_extra_artists=lgds, bbox_inches='tight')
-        plt.show()
+        return(fig)
          
 def param_stats(samples_dict,theta_names=None,q1=0.05,q2=0.95,digits=4):
     """
@@ -202,14 +210,15 @@ def rho_box_plots(model,labels=None):
     pu = model.num.pu
     bu = samples_dict['betaU']
     ru = np.exp(-bu / 4)
+    fig,axs = plt.subplots(nrows=pu,tight_layout=True,figsize=[5,3*pu])
     for i in range(pu):
         r = ru[:, ((p+q)*i):((p+q)*i)+(p+q)]
-        plt.boxplot(r)
-        if labels is not None: plt.xticks(np.linspace(1,len(labels),len(labels),dtype=int),labels)
-        plt.yticks(np.arange(0,1.2,.2))
-        plt.ylabel(r'$\rho$')
-        plt.title('PC {}'.format(i+1))
-        plt.show() 
+        axs[i].boxplot(r)
+        if labels is not None: axs[i].set_xticks(np.linspace(1,len(labels),len(labels),dtype=int),labels)
+        axs[i].set_yticks(np.arange(0,1.2,.2))
+        axs[i].set_ylabel(r'$\rho$')
+        axs[i].set_title('PC {}'.format(i+1)) 
+    return(fig)
         
 def plot_acf(model,nlags,nburn=0,alpha=.05,save=False):
     """
