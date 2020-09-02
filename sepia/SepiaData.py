@@ -385,13 +385,13 @@ class SepiaData(object):
                 if not D_obs.shape[1] == self.obs_data.y.shape[1]:
                     raise TypeError('D_obs basis shape incorrect; second dim should match ell_obs')
             self.obs_data.D = D_obs
-        elif type == 'constant':
+        elif D_type == 'constant':
             if self.ragged_obs:
                 self.obs_data.D = [np.ones((1, self.obs_data.y[i].shape[0])) for i in range(len(self.obs_data.y))]
             else:
                 self.obs_data.D = np.ones((1, self.obs_data.y.shape[1]))
             self.sim_data.D = np.ones((1, self.sim_data.y.shape[1]))
-        elif type == 'linear':
+        elif D_type == 'linear':
             self.sim_data.D = np.vstack([np.ones(self.sim_data.y.shape[1]), self.sim_data.y_ind])
             if self.ragged_obs:
                 self.obs_data.D = [np.vstack([np.ones(self.obs_data.y[i].shape[0]), self.obs_data.y_ind[i]]) for i in range(len(self.obs_data.y))]
