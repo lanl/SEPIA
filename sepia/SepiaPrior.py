@@ -6,25 +6,26 @@ class SepiaPrior:
     """
     Sepia prior class, containing prior distribution name, parameters, and bounds.
 
-    :var parent: SepiaParam -- which parameter this prior corresponds to
-    :var dist: string -- which prior distribution, in 'Normal', 'Gamma', 'Beta', 'Uniform'
-    :var params: list -- each element is a different parameter to the distribution (ie first is mean, second is SD), can be matrix valued
-    :var bounds: list -- bounds for each prior (can be np.inf)
+    :var sepia.SepiaParam parent: parameter that this prior corresponds to
+    :var string dist: which prior distribution, in ['Normal', 'Gamma', 'Beta', 'Uniform']
+    :var list params: each element is a different parameter to the distribution (ie first is mean, second is SD), can be matrix valued
+    :var list bounds: bounds for each prior (can be np.inf)
     """
 
     def __init__(self, parent, dist='Normal', params=None, bounds=None):
         """
         Instantiate SepiaPrior object.
 
-        :param parent: SepiaParam -- parent object
-        :param dist: string -- prior distribution name ('Normal', 'Gamma', 'Beta', 'Uniform')
-        :param params: list -- each element of list is a different parameter to the distribution, can be ndarray or scalar
-        :param bounds: list -- two-element list of bounds for prior, each element can be scalar or list to provide different bounds to each param
+        :param sepia.SepiaParam parent: parameter that this prior corresponds to
+        :param string dist: which prior distribution, in ['Normal', 'Gamma', 'Beta', 'Uniform']
+        :param list/NoneType params: each element is a different parameter to the distribution (ie first is mean, second is SD), can be matrix valued
+        :param list/NoneType bounds: bounds for each prior (can be np.inf)
+        :raises ValueError: if invalid dist type or non-conformal shapes
         """
         self.parent = parent
         self.dist = dist 
         if not (dist == 'Normal' or dist == 'Gamma' or dist == 'Beta' or dist == 'Uniform'):
-            raise Exception('Invalid dist type {dist} in sepPrior')
+            raise ValueError('Invalid dist type {dist} in sepPrior')
         # If params given, process into correct format; params input should always be a list, either of arrays or scalars,
         # and is transformed into a list of arrays that match param val_shape
         if isinstance(params, list):
@@ -32,7 +33,7 @@ class SepiaPrior:
                 if np.isscalar(params[i]):
                     params[i] = params[i] * np.ones(parent.val_shape)
                 elif params[i].shape != parent.val_shape:
-                    raise Exception('initial non-scalar prior param values does not match variable shape')
+                    raise ValueError('initial non-scalar prior param values does not match variable shape')
             self.params = params
         # Set default prior parameters if params not given
         else:
@@ -88,8 +89,8 @@ class SepiaPrior:
         """
         Check whether value is in bounds. By default, with no x, checks self.parent.val.
 
-        :param: x -- nparray value, with self.parent.val_shape; if none, defaults to self.parent.val
-        :return: bool -- True if all in bounds, False otherwise
+        :param numpy.ndarray/NoneType x: value with self.parent.val_shape; if None, defaults to self.parent.val
+        :return: True if all in bounds, False otherwise
         """
         if x is None:
             x = self.parent.val
