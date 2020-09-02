@@ -1,25 +1,20 @@
-"""
-Computing the Log Likelihood for a model.
 
-Handles an indicator of what variable was changed, so that 
-partial recomputation and updating of precomputed/saved
-components is done where possible.
-
-"""
 
 import numpy as np
 import scipy.linalg
 
 from sepia.SepiaDistCov import SepiaDistCov
 
+
 def compute_log_lik(g, cvar='all', cindex=None):
     """
-    Compute log likelihood. Returns value and stores in num.logLik of model object.
+    Compute log likelihood. Returns value and also stores in num.logLik of model object.
 
-    :param g: SepiaModel object
-    :param cvar: name of changed variable (to avoid recomputing things)
-    :param cindex: index (flattened) of changed variable (to avoid recomputing things)
+    :param sepia.SepiaModel g: instantiated `sepia.SepiaModel` object
+    :param string cvar: name of changed parameter (used to avoid recomputing things that won't have changed since last call), or 'all'
+    :param int/NoneType cindex: index (of flattened parameter array) of changed variable (to avoid recomputing things), or None to assume all indices changed
     :return: numeric log likelihood value
+    :raises ValueError: if invalid cvar parameter used
     """
 
     if g.verbose:
@@ -62,7 +57,8 @@ def compute_log_lik(g, cvar='all', cindex=None):
     elif cvar == 'lamWs': do_lamWs = True
     elif cvar == 'lamWOs': do_lamWOs = True
     elif cvar == 'lamOs': pass
-    else: print('Invalid computeLogLik input cvar')
+    else:
+        raise ValueError('Invalid computeLogLik input cvar')
 
     # These are both related to recalculating x dists, whether with theta or not
     if num.sim_only and cvar == 'all': # calculating everything
