@@ -62,6 +62,11 @@ Welcome to Sepia!
 
     James Gattiker, Natalie Klein, Earl Lawrence, & Grant Hutchings. lanl/SEPIA. Zenodo. https://doi.org/10.5281/zenodo.3979584
 
+.. topic:: How should one pronounce Sepia?
+
+    This is a topic of some debate. `This`_ video suggests "see-pee-uh".
+
+.. _This: https://www.youtube.com/watch?v=qUi1F254t6M
 
 Pages
 *****
