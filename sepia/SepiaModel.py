@@ -84,7 +84,11 @@ class SepiaModel:
         obs_data = data.obs_data
 
         # Infer p, q, n, m, pu, pv
-        m, p = sim_data.x.shape
+        if self.data.kron_design: # kronecker separable model
+            p=sum([zz.shape[1] for zz in sim_data.x])
+        else:
+            p = sim_data.x.shape[1]
+        m=sim_data.y.shape[0]
         if sim_data.t is not None:
             q = sim_data.t.shape[1]
         else:
@@ -135,11 +139,23 @@ class SepiaModel:
         else:
             data.x = np.array([], dtype=np.float).reshape((0, 1))
             self.num.x0Dist = SepiaDistCov(data.x)
-        if sim_data.t_trans is not None:
-            data.zt = np.concatenate([sim_data.x_trans, sim_data.t_trans], axis=1)
+        if self.data.kron_design:
+            data.ztSep=sim_data.x
+            tdes=sim_data.x[-1]
+            for ndes in reversed(sim_data.x[:-1]):
+                r1,r2=np.meshgrid(np.arange(ndes.shape[0]),np.arange(tdes.shape[0]))
+                tdes=np.hstack((ndes[r1.reshape(-1,order='F'),:],tdes[r2.reshape(-1,order='F'),:]))
+            data.zt=tdes
+            data.ztSepDist=[]
+            for ii in sim_data.x:
+                data.ztSepDist.append(SepiaDistCov(ii))  #,cat_ind=data.x_cat_ind) TODO?
+            self.num.ztDist = SepiaDistCov(data.zt) #, cat_ind=np.concatenate([data.x_cat_ind, data.t_cat_ind]))
         else:
-            data.zt = sim_data.x_trans
-        self.num.ztDist = SepiaDistCov(data.zt, cat_ind=np.concatenate([data.x_cat_ind, data.t_cat_ind]))
+            if sim_data.t_trans is not None:
+                data.zt = np.concatenate([sim_data.x_trans, sim_data.t_trans], axis=1)
+            else:
+                data.zt = sim_data.x_trans
+            self.num.ztDist = SepiaDistCov(data.zt, cat_ind=np.concatenate([data.x_cat_ind, data.t_cat_ind]))
 
         if not data.sim_only:
             # Check for lamVzGroups, validate
