@@ -159,11 +159,13 @@ class SepiaHierarchicalThetaModels:
                         # Calculate acceptance
                         if np.log(np.random.uniform()) < (sum(new_prior) + sum(new_lik) - sum(old_prior) - sum(old_lik)):
                             # Accept: most of work is done, update each model's logpost and update recorded mcmc draw
+                            i = 0
                             for mi in range(self.n_models):
                                 if theta_inds[mi] > -1:
-                                    self.model_list[mi].params.lp.val = new_lik[mi] + new_prior[mi]
+                                    self.model_list[mi].params.lp.val = new_lik[i] + new_prior[i]
                                     # Have to overwrite already recorded sample for theta
                                     self.model_list[mi].params.theta.mcmc.draws[_][0, theta_inds[mi]] = self.model_list[mi].params.theta.val[0, theta_inds[mi]].copy()
+                                i += 1
                         else:
                             # Reject: need to put things back
                             mu_param.val = mu_param.refVal.copy()
