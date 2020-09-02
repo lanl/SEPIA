@@ -1,32 +1,39 @@
 import numpy as np
 
+
 class DataContainer(object):
     """
-    DataContainer serves to contain all data structures for a single data source (simulation or observation).
+    DataContainer serves to contain all data structures for a single data source (either simulation or observation data).
 
-    This is constructed as part of SepiaData and generally won't be used directly by a user. Instance attributes:
+    :var numpy.ndarray/NoneType x: x values, controllable inputs/experimental variables, shape (n, p)
+    :var numpy.ndarray/NoneType y: y values, shape (n, ell)
+    :var numpy.ndarray/NoneType t: t values, non-controllable inputs, shape (n, q)
+    :var numpy.ndarray/NoneType y_ind: indices for multivariate y outputs, shape (ell, )
+    :var numpy.ndarray/list/NoneType K: PCA basis, shape (pu, ell), or list of K matrices for each observation for ragged observations
+    :var numpy.ndarray/list/NoneType D: discrepancy basis, shape (pv, ell), or list of D matrices for ragged observations
+    :var numpy.ndarray/float/NoneType orig_y_sd: standard deviation of original y values (may be scalar or array size ell)
+    :var numpy.ndarray/float/NoneType orig_y_mean: mean of original y values (may be scalar or array size ell)
+    :var numpy.ndarray/NoneType y_std: standardized y values, shape (n, ell)
+    :var numpy.ndarray/NoneType x_trans: x values translated to unit hypercube, shape (n, p)
+    :var numpy.ndarray/NoneType t_trans: t values translated to unit hypercube, shape (n, q)
+    :var numpy.ndarray/NoneType orig_t_min: minimum values (columnwise) of original t values
+    :var numpy.ndarray/NoneType orig_t_max: maximum values (columnwise) of original t values
+    :var numpy.ndarray/NoneType orig_x_min: minimum values (columnwise) of original x values
+    :var numpy.ndarray/NoneType orig_x_max: maximum values (columnwise) of original x values
 
-    :var x: nparray or None -- x values, controllable inputs/experimental variables (n, p)
-    :var y: nparray -- y values (n, ell)
-    :var t: nparray or None -- t values, non-controllable inputs (n, q)
-    :var y_ind: nparray or None -- indices for multivariate y outputs (ell, )
-    :var K: nparray or list -- (pu, ell) PCA basis, or list of K matrices for ragged observations
-    :var D: nparray or list or None -- (pv, ell) discrepancy basis, or list of D matrices for ragged observations
-    :var y_sd: nparray -- standard deviation of original y values (may be scalar or array size ell)
-    :var y_mean: nparray -- mean of original y values (may be salar or array size ell)
-    :var y_std: nparray -- standardized y values (n, ell)
-    :var x_trans: nparray -- x values translated to unit hypercube (n, p)
-    :var t_trans: nparray -- t values translated to unit hypercube (n, q)
     """
 
     def __init__(self, x, y, t=None, y_ind=None):
         """
-        Initializes DataContainer object.
+        Initialize DataContainer object.
 
-        :param x: GP inputs (controllable/experimental conditions, ie the ones known for both sim and obs), shape (n, p)
-        :param y: GP outputs, shape (n, ell) or list of 1D arrays for ragged observations
-        :param t: optional GP inputs (not controllable, ie the ones known only for sim), shape (n, q)
-        :param y_ind: optional y indices (needed if ell > 1) or list of 1D arrays for ragged observations
+        :param numpy.ndarray x: GP inputs (controllable/experimental conditions, would be known for both sim and obs), shape (n, p)
+        :param numpy.ndarray/list y: GP outputs, shape (n, ell), or list of 1D arrays for ragged observations
+        :param numpy.ndarray/NoneType t: optional GP inputs (not controllable, would be known only for sim), shape (n, q)
+        :param numpy.ndarray/list/NoneType y_ind: optional y indices (needed if ell > 1) or list of 1D arrays for ragged observations
+
+        .. note:: DataContainer objects are constructed when you instantiate SepiaData and generally won't be instantiated directly.
+
         """
         self.x = x
         if isinstance(y, list):
