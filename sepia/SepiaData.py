@@ -794,7 +794,7 @@ class SepiaData(object):
                     plt.xlabel('D %d wt' % (i+1))
                 plt.show()
 
-    def plot_data(self,which_x = [],x_min=None,x_max=None,y_min=None,y_max=None,n_neighbors=3,max_sims=50):
+    def plot_data(self,which_x=None,x_min=None,x_max=None,y_min=None,y_max=None,n_neighbors=3,max_sims=50):
         """
         Plots observed data and simulation runs on the same axis with n_neighbors nearest simulations
         in x-space colored
@@ -821,7 +821,7 @@ class SepiaData(object):
         # plot up to 4 input space points
         if n > 4:
             # if no which_x or given which_x is out of bounds
-            if not which_x or (which_x and not np.all(which_x)<n and not np.all(which_x>-1)):
+            if which_x is None or (which_x is not None and not np.all(which_x)<n and not np.all(which_x>-1)):
                 # choose 4 equally space input points to plot
                 which_x = np.linspace(0,n-1,4,dtype=int)
             x_plot = self.obs_data.x[which_x,:]
