@@ -56,8 +56,6 @@ class SepiaData(object):
             raise TypeError('At least one of x_sim or t_sim is required to set up model.')
         if x_sim is None:
             x_sim = 0.5 * np.ones((t_sim.shape[0], 1)) # sets up dummy x
-        if y_sim.shape[1] > 1 and y_ind_sim is None:
-            raise TypeError('Multivariate y requires y_ind to be specified.')
         self.sim_data = DataContainer(x=x_sim, y=y_sim, t=t_sim, y_ind=y_ind_sim)
         self.ragged_obs = False
         if y_obs is None:
