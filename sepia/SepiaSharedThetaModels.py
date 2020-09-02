@@ -1,19 +1,18 @@
 
 import numpy as np
-import statsmodels.api as sm
 from tqdm import tqdm
-
-from sepia.SepiaParam import SepiaParam, SepiaParamList
-from sepia.SepiaLogLik import compute_log_lik
-from sepia.SepiaModel import SepiaModel
 
 
 class SepiaSharedThetaModels:
     """
     Container for multiple models with sharing of selected thetas between models.
 
-    :var model_list: list of SepiaModel objects
-    :var shared_theta_inds: indices showing which thetas are shared across models, size (n_shared_theta, n_models)
+    :var list model_list: list of instantiated `sepia.SepiaModel` objects
+    :var numpy.ndarray shared_theta_inds: indices showing which thetas are shared across models, shape (n_hier_theta, n_models)
+    :var int n_hier: number of shared theta groups
+    :var int n_models: number of models
+    :var numpy.ndarray to_update: 0/1 matrix indicating which variables need to be shared
+    :var numpy.ndarray to_sample: 0/1 matrix indicating which variable should be sampled (then copied to others)
 
     """
 
@@ -21,16 +20,19 @@ class SepiaSharedThetaModels:
         """
         Instantiate shared theta model object.
 
-        :param model_list: list of instantiated SepiaModel objects
-        :param shared_theta_inds: nparray -- (n_shared_theta, n_models) where each row corresponds to one group of shared
-                                  thetas, and each column gives the index of the theta within a particular model, with
-                                 -1 used to indicate no theta from a particular model is part of the shared group.
+        :param list model_list: list of instantiated `sepia.SepiaModel` objects
+        :param numpy.ndarray shared_theta_inds: indices showing which thetas are shared, shape (n_shared_theta, n_models)
+        :raises TypeError: if number of models doesn't match `shared_theta_inds` shape or if variable types aren't the same (categorical vs continuous)
+
+        .. note:: In `shared_theta_inds`, each row corresponds to one group of shared thetas, and each
+                  column gives the index of the theta within a particular model, with -1 used to indicate no theta
+                  from a particular model is part of the shared group.
+                  Example: shared_theta_inds = np.array([(1, 1, 1), (2, -1, 4)) for 3 models, theta index 1 shared across all models,
+                  theta indices 2/4shared across models 1 and 3 but no corresponding theta in model 2.
 
         """
         self.model_list = model_list                # List of instantiated SepiaModel objects
-        self.shared_theta_inds = shared_theta_inds  # Matrix (n_shared_theta, n_models) indicating shared indices, -1 means not in a model
-        # Example: shared_theta_inds = np.array([(1, 1, 1), (2, -1, 4)) for 3 models, theta index 1 tied in all,
-        #          theta indices 2/4 tied in models 1 and 3 but no corresponding theta in model 2.
+        self.shared_theta_inds = shared_theta_inds  # Matrix (n_shared_theta, n_models)
         if not shared_theta_inds.shape[1] == len(model_list):
             raise TypeError('Number of models does not match provided shared theta lists')
         for st in shared_theta_inds:
@@ -42,6 +44,8 @@ class SepiaSharedThetaModels:
     def setup_shared_theta(self):
         # sets up bookkeeping to make mcmc loop simpler
         n_shared, n_models = self.shared_theta_inds.shape
+        self.n_shared = n_shared
+        self.n_models = n_models
         # Get index of first model containing each shared parameter to designate it as the "sampling model"
         to_sample = np.zeros_like(self.shared_theta_inds)
         for i in range(n_shared):
@@ -62,12 +66,12 @@ class SepiaSharedThetaModels:
 
     def do_mcmc(self, nsamp, do_propMH=True, prog=True):
         """
-        Does MCMC for shared theta model.
+        Do MCMC for shared theta model.
 
-        :param nsamp: int -- how many MCMC samples
-        :param do_propMH: boolean -- whether to use propMH sampling for params with stepType propMH
-        :param prog: boolean -- whether to show progress bar for sampling
-        :param do_lockstep: boolean -- whether to do lockstep update
+        :param int nsamp: number of MCMC samples
+        :param bool do_propMH: use propMH sampling for params with stepType propMH?
+        :param bool prog: show progress bar for sampling?
+
         """
         # Initialize all models
         for model in self.model_list:
@@ -141,7 +145,7 @@ class SepiaSharedThetaModels:
                                             om.params.theta.mcmc.reject(om_theta_ind, om)
                             # If not sampling this theta in this model, do nothing and continue to next param index
                             else:
-                                continue # TODO need to do anything else here? store lp?
+                                continue
                         # If not a shared theta, continue with usual sampling
                         else:
                             # Make reference copies in this model in case we reject
@@ -166,7 +170,7 @@ class SepiaSharedThetaModels:
                             else:
                                 # Reject sets val back to refVal that was stored at the top
                                 prm.mcmc.reject(ind, model)
-                    # Record parameter TODO check that thetas always get recorded, even for other models...
+                    # Record parameter
                     prm.mcmc.record()
                 # Record lp
                 model.params.lp.mcmc.record()
