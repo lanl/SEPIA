@@ -9,12 +9,12 @@ from scipy import stats
 
 sns.set(style="ticks")
 
-def theta_pairs(samples_dict,design_names=[],native=False,lims=None,theta_ref=None,save=False):
+def theta_pairs(samples_dict,design_names=None,native=False,lims=None,theta_ref=None,save=False):
     """
     Create pairs plot of sampled thetas.
 
     :param samples_dict: dictionary -- samples from model.get_samples()
-    :param design_names: list -- names for thetas, optional
+    :param design_names: list -- names for thetas, optional (None will use default names)
     :param native: boolean -- whether to put theta on native scale (note: you may want to pass lims in this case)
     :param lims: list of tuples -- optional, limits for each theta value for plotting; defaults to [0, 1] if native=False
     :param vlines: list -- optional, scalar values to place vlines on diagonal distplots
@@ -30,10 +30,11 @@ def theta_pairs(samples_dict,design_names=[],native=False,lims=None,theta_ref=No
     n_samp, n_theta = theta.shape
     if native is False and lims is None:
         lims = [(0, 1) for i in range(n_theta)]
-    if not design_names:
-        for i in range(theta.shape[1]):
-            design_names.append('theta_'+str(i+1))
-    thin_idx = np.linspace(0,theta.shape[0]-1,np.min([n_samp, 1000]),dtype=int) # thin to at most 1000 samples
+    if isinstance(design_names, list) and len(design_names) != n_theta:
+        raise ValueError('Design names wrong length')
+    if design_names is None:
+        design_names = ['theta_%d' % (i+1) for i in range(n_theta)]
+    thin_idx = np.linspace(0,n_samp-1,np.min([n_samp-1, 1000]),dtype=int) # thin to at most 1000 samples
     theta_df = pd.DataFrame(theta[thin_idx,:],columns=design_names) # take only 1000 samples to dataframe
     theta_df.insert(0,'idx',theta_df.index,allow_duplicates = False)
     if theta_df.shape[1]>2:
