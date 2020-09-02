@@ -382,7 +382,7 @@ def uvPred(pred, useAltW=False):
         lamWOs = samples['lamWOs'][ii:ii + 1, :]
         lamOs = samples['lamOs'][ii:ii + 1, :]
         
-        if theta_pred:
+        if theta_pred is not None:
             xpredt = np.concatenate((xpred, theta_pred), axis=1)
         else:
             xpredt = np.concatenate((xpred, np.tile(theta, (npred, 1))), axis=1)
