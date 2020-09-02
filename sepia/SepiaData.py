@@ -151,19 +151,19 @@ class SepiaData(object):
                 else:
                     res += 'pv NOT SET (transformed discrepancy dimension); call method create_D_basis\n'
         # Print info on categorical variables
-        if np.any(np.array(self.x_cat_ind) > 0):
-            if not self.kron_design:
+        if not self.kron_design:
+            if np.any(np.array(self.x_cat_ind) > 0):
                 res += 'Categorical x input variables:\n'
                 for i, ci in enumerate(self.x_cat_ind):
                     if ci > 0:
                         res += 'x index %d with %d categories\n' % (i, ci)
-            else:
-                pass #TODO OMG....
-        if np.any(np.array(self.t_cat_ind) > 0):
-            res += 'Categorical t input variables:\n'
-            for i, ci in enumerate(self.t_cat_ind):
-                if ci > 0:
-                    res += 't index %d with %d categories\n' % (i, ci)
+            if np.any(np.array(self.t_cat_ind) > 0):
+                res += 'Categorical t input variables:\n'
+                for i, ci in enumerate(self.t_cat_ind):
+                    if ci > 0:
+                        res += 't index %d with %d categories\n' % (i, ci)
+        else:
+            pass  # TODO OMG....
         return res
 
     def transform_xt(self, x_notrans=None, t_notrans=None, x=None, t=None):
