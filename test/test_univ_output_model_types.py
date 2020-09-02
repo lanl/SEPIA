@@ -11,11 +11,20 @@ from sepia.SepiaPredict import *
 
 np.random.seed(42)
 
-# Check that all model types can be set up and various functions can be run without errors - does not assess output values
+# Check that all model types can be set up and various functions can be run without errors.
+# Does not assess output values, more to ensure users won't run into errors for using a specific model type.
 
 def call_data_methods(data):
     data.transform_xt()
     data.standardize_y()
+    # Note: we are calling stuff that doesn't make sense for univ to make sure it doesn't break
+    data.create_K_basis(2)
+    data.create_D_basis('linear')
+    data.plot_K_basis()
+    data.plot_K_weights()
+    data.plot_u_w_pairs()
+    data.plot_K_residuals()
+    data.plot_data()
 
 def call_model_methods(model):
     model.log_prior()
@@ -26,6 +35,14 @@ def call_model_methods(model):
     model.print_mcmc_info()
     model.tune_step_sizes(10, 10)
     model.do_mcmc(50)
+
+def call_plot_functions(model):
+    samples = model.get_samples()
+    theta_pairs(samples)
+    mcmc_trace(samples)
+    param_stats(samples)
+    rho_box_plots(model)
+    plot_acf(model, 10)
 
 
 class TestUnivOutputModelTypes(unittest.TestCase):
@@ -40,11 +57,9 @@ class TestUnivOutputModelTypes(unittest.TestCase):
 
         model = SepiaModel(data)
         call_model_methods(model)
+        call_plot_functions(model)
 
         samples = model.get_samples()
-        mcmc_trace(samples)
-        param_stats(samples)
-
         pred = SepiaEmulatorPrediction(x_pred=x, samples=samples, model=model)
         pred.get_w()
         pred.get_y()
@@ -67,11 +82,9 @@ class TestUnivOutputModelTypes(unittest.TestCase):
 
         model = SepiaModel(data)
         call_model_methods(model)
+        call_plot_functions(model)
 
         samples = model.get_samples()
-        mcmc_trace(samples)
-        param_stats(samples)
-
         pred = SepiaEmulatorPrediction(x_pred=x, samples=samples, model=model)
         pred.get_w()
         pred.get_y()
@@ -93,11 +106,9 @@ class TestUnivOutputModelTypes(unittest.TestCase):
 
         model = SepiaModel(data)
         call_model_methods(model)
+        call_plot_functions(model)
 
         samples = model.get_samples()
-        mcmc_trace(samples)
-        param_stats(samples)
-
         pred = SepiaEmulatorPrediction(x_pred=0.5 * np.ones((m, 1)), t_pred=t, samples=samples, model=model)
         pred.get_w()
         pred.get_y()
@@ -119,11 +130,9 @@ class TestUnivOutputModelTypes(unittest.TestCase):
 
         model = SepiaModel(data)
         call_model_methods(model)
+        call_plot_functions(model)
 
         samples = model.get_samples()
-        mcmc_trace(samples)
-        param_stats(samples)
-
         pred = SepiaEmulatorPrediction(x_pred=0.5 * np.ones((m, 1)), t_pred=t, samples=samples, model=model)
         pred.get_w()
         pred.get_y()
@@ -145,11 +154,9 @@ class TestUnivOutputModelTypes(unittest.TestCase):
 
         model = SepiaModel(data)
         call_model_methods(model)
+        call_plot_functions(model)
 
         samples = model.get_samples()
-        mcmc_trace(samples)
-        param_stats(samples)
-
         pred = SepiaEmulatorPrediction(x_pred=x, t_pred=t, samples=samples, model=model)
         pred.get_w()
         pred.get_y()
@@ -173,11 +180,9 @@ class TestUnivOutputModelTypes(unittest.TestCase):
 
         model = SepiaModel(data)
         call_model_methods(model)
+        call_plot_functions(model)
 
         samples = model.get_samples()
-        mcmc_trace(samples)
-        param_stats(samples)
-
         pred = SepiaEmulatorPrediction(x_pred=x, t_pred=t, samples=samples, model=model)
         pred.get_w()
         pred.get_y()
@@ -200,11 +205,9 @@ class TestUnivOutputModelTypes(unittest.TestCase):
 
         model = SepiaModel(data)
         call_model_methods(model)
+        call_plot_functions(model)
 
         samples = model.get_samples()
-        mcmc_trace(samples)
-        param_stats(samples)
-
         pred = SepiaEmulatorPrediction(x_pred=0.5 * np.ones((m, 1)), t_pred=t, samples=samples, model=model)
         pred.get_w()
         pred.get_y()
@@ -234,11 +237,9 @@ class TestUnivOutputModelTypes(unittest.TestCase):
 
         model = SepiaModel(data)
         call_model_methods(model)
+        call_plot_functions(model)
 
         samples = model.get_samples()
-        mcmc_trace(samples)
-        param_stats(samples)
-
         pred = SepiaEmulatorPrediction(x_pred=0.5 * np.ones((m, 1)), t_pred=t, samples=samples, model=model)
         pred.get_w()
         pred.get_y()
@@ -269,11 +270,9 @@ class TestUnivOutputModelTypes(unittest.TestCase):
 
         model = SepiaModel(data)
         call_model_methods(model)
+        call_plot_functions(model)
 
         samples = model.get_samples()
-        mcmc_trace(samples)
-        param_stats(samples)
-
         pred = SepiaEmulatorPrediction(x_pred=x, t_pred=t, samples=samples, model=model)
         pred.get_w()
         pred.get_y()
@@ -306,11 +305,9 @@ class TestUnivOutputModelTypes(unittest.TestCase):
 
         model = SepiaModel(data)
         call_model_methods(model)
+        call_plot_functions(model)
 
         samples = model.get_samples()
-        mcmc_trace(samples)
-        param_stats(samples)
-
         pred = SepiaEmulatorPrediction(x_pred=x, t_pred=t, samples=samples, model=model)
         pred.get_w()
         pred.get_y()
