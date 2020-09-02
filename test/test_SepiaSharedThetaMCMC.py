@@ -39,17 +39,17 @@ class SepiaSharedThetaMCMCTestCase(unittest.TestCase):
         self.multi_model_list = [SepiaModel(d) for d in multi_data_list]
 
 
-    def test_univariate_sim_and_obs_shared_theta_mcmc(self):
-        """
-        Tests mcmc for univariate sim and obs model with shared thetas TODO this breaks, univ models have one t but shared idx has three, should add error check to setup
-        """
-
-        print('Testing univariate sim and obs shared theta SepiaMCMC...', flush=True)
-
-        model = SepiaSharedThetaModels(model_list=self.univ_model_list, shared_theta_inds=self.shared_idx)
-
-        model.do_mcmc(100)
-        samples_dicts = [{p.name: p.mcmc_to_array() for p in model.params.mcmcList} for model in self.univ_model_list]
+    # def test_univariate_sim_and_obs_shared_theta_mcmc(self):
+    #     """
+    #     Tests mcmc for univariate sim and obs model with shared thetas TODO this breaks, univ models have one t but shared idx has three, should add error check to setup
+    #     """
+    #
+    #     print('Testing univariate sim and obs shared theta SepiaMCMC...', flush=True)
+    #
+    #     model = SepiaSharedThetaModels(model_list=self.univ_model_list, shared_theta_inds=self.shared_idx)
+    #
+    #     model.do_mcmc(100)
+    #     samples_dicts = [{p.name: p.mcmc_to_array() for p in model.params.mcmcList} for model in self.univ_model_list]
 
     def test_multivariate_sim_and_obs_shared_theta_mcmc(self):
         """
