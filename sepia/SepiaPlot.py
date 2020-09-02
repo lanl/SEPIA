@@ -20,19 +20,20 @@ def theta_pairs(samples_dict,design_names=[],native=False,lims=None,theta_ref=No
     :param vlines: list -- optional, scalar values to place vlines on diagonal distplots
     """
     if 'theta' not in samples_dict.keys():
-        raise ValueError('No thetas to plot')
+        print('No thetas to plot')
+        return
         
     if native is False:
         theta = samples_dict['theta']
     else:
         theta = samples_dict['theta_native']
-    n_theta = theta.shape[1]
+    n_samp, n_theta = theta.shape
     if native is False and lims is None:
         lims = [(0, 1) for i in range(n_theta)]
     if not design_names:
         for i in range(theta.shape[1]):
             design_names.append('theta_'+str(i+1))
-    thin_idx = np.linspace(0,theta.shape[0]-1,1000,dtype=int) # thin to 1000 samples
+    thin_idx = np.linspace(0,theta.shape[0]-1,np.min([n_samp, 1000]),dtype=int) # thin to at most 1000 samples
     theta_df = pd.DataFrame(theta[thin_idx,:],columns=design_names) # take only 1000 samples to dataframe
     theta_df.insert(0,'idx',theta_df.index,allow_duplicates = False)
     if theta_df.shape[1]>2:
@@ -220,6 +221,9 @@ def plot_acf(model,nlags,nburn=0,alpha=.05,save=False):
     """
     if alpha <= 0 or alpha >= 1:
         raise ValueError('alpha must be in (0,1)')
+    if model.num.sim_only:
+        print('ACF needs thetas but this is a sim-only model.')
+        return
     # get theta chains
     for p in model.params.mcmcList:
         if p.name == 'theta': 
