@@ -636,6 +636,8 @@ class SepiaModel:
         # Usually called by SepiaPlot.plot_acf(), not user
         #
         # compute autocorrelation
+        return_dict = {}
+        
         nchains, nobs = chain.shape
         autocorrs = []
         for i in range(nchains):
@@ -644,13 +646,15 @@ class SepiaModel:
             autocorr = np.correlate(chain1,chain2,mode='full')
             autocorr = autocorr[autocorr.size//2:]
             autocorrs.append(autocorr[0:nlags+1])
+        return_dict['acf']=autocorr
         sigline = stats.norm.ppf(1 - alpha / 2.) / np.sqrt(nobs)
+        return_dict['sigline']=sigline
         # compute ESS and output to console
         if ESS:
             ess = []
             for i in range(nchains):
                 ess.append(self.ESS(chain[i,:]))
-        
+            return_dict['ess']=ess
         # plot
         if plot:
             fig, ax = plt.subplots()
@@ -676,10 +680,9 @@ class SepiaModel:
             text.append(ax.text(ax.get_xlim()[0],1.225,s='Effective Sample Size: {}'.format(ess),fontsize=16))
             text.append(ax.text(ax.get_xlim()[0],1.125,s='Number of Samples:    {}'.format([nobs]*nchains),fontsize=16))
             if save: plt.savefig('acf.png',dpi=300,bbox_extra_artists=text, bbox_inches='tight')
-            plt.show()
-        
-        if ESS: return {'acf': autocorr,'sigline': sigline,'ess': ess}
-        else: return {'acf': autocorr,'sigline': sigline}
+            return_dict['figure']=fig
+
+        return return_dict
     
     def ESS(self,x):
         #
