@@ -5,18 +5,19 @@ Helpful Code Snippets
 
 Unlike notebooks, these are not self-contained examples, but are meant to be a quick reference for specific tasks.
 These are not necessarily exhaustive examples; see full class documentation for all possible arguments and options.
+For a more full walkthrough, see :ref:`workflow`.
 
 :ref:`SepiaData inputs`
 
 :ref:`SepiaData operations`
 
-:ref:`Set up model`
+:ref:`Model setup`
 
 :ref:`Customize and run MCMC`
 
-:ref:`Extracting MCMC samples`
+:ref:`Extract MCMC samples`
 
-:ref:`Making predictions`
+:ref:`Make predictions`
 
 :ref:`Hierarchical or shared theta models`
 
@@ -121,13 +122,13 @@ If the outputs are multivariate, we want to set up a principal component (PC) ba
     data.create_K_basis(n_pc=0.99)  # Enough PCs for at least 99 pct variance explained
 
     # Discrepancy basis -- optional
-    data.create_D_basis(type='linear')  # Default linear discrepancy
-    data.create_D_basis(D=D)            # Pass in custom D basis
+    data.create_D_basis(D_type='linear')  # Default linear discrepancy
+    data.create_D_basis(D=D)              # Pass in custom D basis
 
 Plotting
 ^^^^^^^^
 
-Plot data and basis function diagnostics::
+Plot data and basis function diagnostics (some model types are not covered by these functions)::
 
     data.plot_data()        # Plot data
     data.plot_K_basis()     # Show K basis functions
@@ -143,7 +144,6 @@ Once the data structure is set up correctly, the inputs are in the unit hypercub
 and basis vectors are created (for multivariate output), we are ready to set up the Sepia model::
 
     model = SepiaModel(data)
-    print(model)
 
 The model parses the `SepiaData` structure to understand what kind of model is being set up and does a lot of
 precomputation of various quantities to prepare for likelihood evaluations.
@@ -185,7 +185,6 @@ Change prior distribution and prior parameters
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Currently, there are only four distributions supported for priors: Normal, Gamma, Beta, and Uniform.
-*Note*: this user interface will probably change to be more extendable and user-friendly.
 After instantiating the `SepiaModel`, we can modify priors as follows::
 
     prior_dist_name = 'Normal'
@@ -194,8 +193,6 @@ After instantiating the `SepiaModel`, we can modify priors as follows::
     prior_bounds = [0, 1]
     model.params.theta.prior = SepiaPrior(model.params.theta, dist=prior_dist_name, params=[prior_mu, prior_sd],
                                           bounds=prior_bounds)
-
-
 
 
 Change MCMC step sizes or step types
@@ -210,16 +207,16 @@ You can manually change MCMC step types or step sizes::
 Automatic MCMC step size tuning
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Automatic step size tuning based on YADAS::
+Automatic step size tuning based on `YADAS`_::
 
     model.tune_step_sizes(n_burn, n_levels)
+
+.. _YADAS: https://arxiv.org/abs/1103.5986
 
 MAP optimization for start values
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Numerical optimization of the log likelihood will reset start values to the best points found::
-
-    opt_prm = model.optim_logPost()
+Numerical optimization of the log likelihood will reset start values to the best points found (TODO: document).
 
 Run MCMC or add more samples
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -277,6 +274,7 @@ Several graphical diagnostics are available::
     rho_box_plots(model)      # Box plots of GP lengthscale parameters
     param_stats(samples)      # Summary statistics of parameters
 
+Each returns a `matplotlib` figure object that you can save using `plt.savefig()` or show using `plt.show()`.
 
 Making predictions
 ------------------
@@ -385,3 +383,5 @@ Then the model setup is::
 MCMC is done similarly to regular models::
 
     shared_model.do_mcmc()
+
+Step size tuning is not supported on shared or hierarchical theta models.
