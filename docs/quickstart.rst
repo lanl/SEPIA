@@ -188,10 +188,28 @@ Or you could save each array in the dictionary separately::
     import numpy as np
     np.save('mysamples_theta.npy', samples['theta'])
 
+Save and restore model state
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 We do not recommend pickling the `SepiaModel` object itself at this time as any changes to the class definitions
 or package namespace could lead to problems loading the saved model in the future.
 
-.. note:: TODO We are working on a solution to restore saved samples into a model and will document it here.
+Instead, we offer methods that save important information from the model in a simple dictionary format and restore
+this information into a new `SepiaModel` object. This does require you to create the new `SepiaModel` object using the same
+data as the original model, but is otherwise automatic::
+
+        # Set up original model and do stuff
+        model = SepiaModel(data)
+        model.tune_step_sizes(50, 10)
+        model.do_mcmc(100)
+
+        # Save model info
+        model.save_model_info(file_name='my_model_state')
+
+        # Set up new model using same data (or SepiaData object constructed from same original data)
+        new_model = SepiaModel(data)
+
+        # Restore model info into the new model
+        new_model.restore_model_info(file_name='my_model_state')
 
 Diagnostics
 ^^^^^^^^^^^

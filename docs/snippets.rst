@@ -230,8 +230,8 @@ To append more samples to the current samples, you can call it again::
     model.do_mcmc(500) # Now has 1000 total samples
 
 
-Saving MCMC chains periodically
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Saving MCMC chains or model info
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 We will build some functions to handle this more smoothly, but for now you could do something like::
 
@@ -241,10 +241,10 @@ We will build some functions to handle this more smoothly, but for now you could
         with open('samples%d.pkl' % chunk, 'wb') as f:
             pickle.dump(model.get_samples(numsamples=500), f)
 
+See also `SepiaModel.save_model_info()` and `SepiaModel.restore_model_info()`.
 
-
-Extracting MCMC samples
------------------------
+Extract MCMC samples
+--------------------
 
 To extract MCMC samples to a dictionary format::
 
@@ -276,8 +276,8 @@ Several graphical diagnostics are available::
 
 Each returns a `matplotlib` figure object that you can save using `plt.savefig()` or show using `plt.show()`.
 
-Making predictions
-------------------
+Make predictions
+----------------
 
 To make predictions, use the :ref:`sepiapredict` class.
 There are different types of predictions, and predictions can be made
