@@ -162,10 +162,10 @@ class SepiaHierarchicalThetaModels:
                             i = 0
                             for mi in range(self.n_models):
                                 if theta_inds[mi] > -1:
-                                    self.model_list[mi].params.lp.val = new_lik[i] + new_prior[i]
+                                    self.model_list[mi].params.lp.val = new_lik[i] + new_prior[0]
                                     # Have to overwrite already recorded sample for theta
                                     self.model_list[mi].params.theta.mcmc.draws[_][0, theta_inds[mi]] = self.model_list[mi].params.theta.val[0, theta_inds[mi]].copy()
-                                i += 1
+                                    i += 1
                         else:
                             # Reject: need to put things back
                             mu_param.val = mu_param.refVal.copy()
