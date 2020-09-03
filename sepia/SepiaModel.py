@@ -659,7 +659,7 @@ class SepiaModel:
         self.params.mcmcList = [self.params.theta, self.params.betaV, self.params.betaU, self.params.lamVz, self.params.lamUz,
                                     self.params.lamWs, self.params.lamWOs,  self.params.lamOs]
 
-    def acf(self,chain,nlags,plot=True, alpha=.05, ESS=True, save=False):
+    def acf(self,chain,nlags,plot=True, alpha=.05, ESS=True, save=None):
         #
         # Compute autocorrelation function of mcmc chain
         #
@@ -709,7 +709,6 @@ class SepiaModel:
             text = []
             text.append(ax.text(ax.get_xlim()[0],1.225,s='Effective Sample Size: {}'.format(ess),fontsize=16))
             text.append(ax.text(ax.get_xlim()[0],1.125,s='Number of Samples:    {}'.format([nobs]*nchains),fontsize=16))
-            if save: plt.savefig('acf.png',dpi=300,bbox_extra_artists=text, bbox_inches='tight')
             return_dict['figure']=fig
 
         return return_dict
