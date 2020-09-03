@@ -8,7 +8,7 @@ import numpy as np
 
 sns.set(style="ticks")
 
-def theta_pairs(samples_dict,design_names=None,native=False,lims=None,theta_ref=None,save=False):
+def theta_pairs(samples_dict,design_names=None,native=False,lims=None,theta_ref=None,save=None):
     """
     Create pairs plot of sampled thetas.
 
@@ -17,7 +17,7 @@ def theta_pairs(samples_dict,design_names=None,native=False,lims=None,theta_ref=
     :param bool native: put theta on native scale? (note: you likely want to pass lims in this case)
     :param list lims: list of tuples, limits for each theta value for plotting; defaults to [0, 1] if native=False
     :param list theta_ref: scalar reference values to plot as vlines on distplots and as red dots on bivariate plots
-    :param bool save: save the plot?
+    :param str save: file name to save plot
     :returns: matplotlib figure
     """
     if 'theta' not in samples_dict.keys():
@@ -68,19 +68,19 @@ def theta_pairs(samples_dict,design_names=None,native=False,lims=None,theta_ref=
                 for j in range(n_theta):
                     if i>j: # Lower diag contour plots
                         g.axes[i,j].scatter(theta_ref[j], theta_ref[i], marker='o', s=5, color="red");
-        if save: 
+        if save is not None: 
             plt.tight_layout()
-            plt.savefig("theta_pairs.png",dpi=300)
-        return g
+            plt.savefig(save,dpi=300,bbox_inches='tight')
+        return g.fig
     else:
         fig,ax=plt.subplots()
         sns.distplot(theta_df.loc[:, theta_df.columns != 'idx'],hist=True,axlabel=design_names[0],ax=ax)
-        if save: 
+        if save is not None: 
             plt.tight_layout()
-            plt.savefig("theta_pairs.png",dpi=300)
+            plt.savefig(save,dpi=300,bbox_inches='tight')
         return fig
         
-def mcmc_trace(samples_dict,theta_names=None,start=0,end=None,n_to_plot=500,by_group=True,max_print=10,save=False):
+def mcmc_trace(samples_dict,theta_names=None,start=0,end=None,n_to_plot=500,by_group=True,max_print=10,save=None):
     """
     Create trace plot of MCMC samples.
 
@@ -91,7 +91,7 @@ def mcmc_trace(samples_dict,theta_names=None,start=0,end=None,n_to_plot=500,by_g
     :param int n_to_plot: how many samples to show
     :param bool by_group: group params of the same name onto one axis?
     :param int max_print: maximum number of traces to plot
-    :param bool save: save the plot?
+    :param str save: file name to save plot
     :returns: matplotlib figure
     """
     # trim samples dict
@@ -137,7 +137,7 @@ def mcmc_trace(samples_dict,theta_names=None,start=0,end=None,n_to_plot=500,by_g
                 if k=='theta' and theta_names is not None: axs.set_ylabel(theta_names[0])
                 else: axs[axs_idx].set_ylabel(k)
                 axs_idx+=1
-        if save: plt.savefig("mcmc_trace.png",dpi=300, bbox_inches='tight')
+        if save is not None: plt.savefig(save,dpi=300, bbox_inches='tight')
         return fig
     else:
         lgds = []
@@ -157,7 +157,7 @@ def mcmc_trace(samples_dict,theta_names=None,start=0,end=None,n_to_plot=500,by_g
             else:
                 sns.lineplot(x=plot_idx,y=samples_dict[k][plot_idx,0], palette="tab10", linewidth=.75, ax = axs[i])
                 axs[i].set_ylabel(theta_names[0] if (i==0 and theta_names is not None) else k)
-        if save: plt.savefig("mcmc_trace.png",dpi=300,bbox_extra_artists=lgds, bbox_inches='tight')
+        if save is not None: plt.savefig(save,dpi=300,bbox_extra_artists=lgds, bbox_inches='tight')
         return fig
          
 def param_stats(samples_dict,theta_names=None,q1=0.05,q2=0.95,digits=4):
@@ -214,16 +214,16 @@ def rho_box_plots(model,labels=None):
     bu = samples_dict['betaU']
     ru = np.exp(-bu / 4)
     fig,axs = plt.subplots(nrows=pu,tight_layout=True,figsize=[5,3*pu],squeeze=False)
-    for i in range(pu):
+    for i,ax in enumerate(axs.flatten()):
         r = ru[:, ((p+q)*i):((p+q)*i)+(p+q)]
-        axs[i, 0].boxplot(r)
-        if labels is not None: axs[i].set_xticks(np.linspace(1,len(labels),len(labels),dtype=int),labels)
-        axs[i, 0].set_yticks(np.arange(0,1.2,.2))
-        axs[i, 0].set_ylabel(r'$\rho$')
-        axs[i, 0].set_title('PC {}'.format(i+1))
+        ax.boxplot(r)
+        if labels is not None: ax.set_xticklabels(labels)
+        ax.set_yticks(np.arange(0,1.2,.2))
+        ax.set_ylabel(r'$\rho$')
+        ax.set_title('PC {}'.format(i+1))
     return fig
         
-def plot_acf(model,nlags,nburn=0,alpha=.05,save=False):
+def plot_acf(model,nlags,nburn=0,alpha=.05,save=None):
     """
     Plot autocorrelation function for all parameters theta.
     
@@ -231,7 +231,7 @@ def plot_acf(model,nlags,nburn=0,alpha=.05,save=False):
     :param int nlags: how many lags to compute/plot
     :param int nburn: how many samples to burn
     :param float alpha: confidence level for acf significance line (0,1)
-    :param bool save: whether to save figure
+    :param str save: file name to save figure
     :return: matplotlib figure
     """
     if alpha <= 0 or alpha >= 1:
@@ -244,5 +244,7 @@ def plot_acf(model,nlags,nburn=0,alpha=.05,save=False):
         if p.name == 'theta': 
             chain = p.mcmc_to_array(trim=nburn, flat=True).T
     
-    acf = model.acf(chain,nlags,plot=True,save=save,alpha=alpha)
+    acf = model.acf(chain,nlags,plot=True,alpha=alpha)
+    fig = acf['figure']
+    fig.savefig(save,dpi=300,bbox_inches='tight')
     return acf

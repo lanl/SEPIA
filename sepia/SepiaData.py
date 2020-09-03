@@ -117,8 +117,8 @@ class SepiaData(object):
             else:
                 res += 'This is a Kronecker separable simulation design with components: \n'
                 for ii in range(len(self.sim_data.x)):
-                    res += '   x component 1 has m = %5d (simulated data design size) \n' % self.sim_data.x[ii].shape[0]
-                    res += '   x component 1 has p = %5d (number of inputs) \n' % self.sim_data.x[ii].shape[1]
+                    res += '   x component %d has m = %5d (simulated data design size) \n' % (ii,self.sim_data.x[ii].shape[0])
+                    res += '   x component %d has p = %5d (number of inputs) \n' % (ii,self.sim_data.x[ii].shape[1])
             if self.sim_data.t is not None:
                 res += 'q  = %5d (number of additional simulation inputs)\n' % self.sim_data.t.shape[1]
             if self.scalar_out:
@@ -208,25 +208,16 @@ class SepiaData(object):
                 x_notrans = list(set(x_notrans) | set([i for i in range(nx) if self.x_cat_ind[i] > 0]))
             orig_x_min[:, x_notrans] = 0
             orig_x_max[:, x_notrans] = 1
-            if np.any(np.isclose(orig_x_max - orig_x_min, 0)):
-                print('Warning: possible division by zero in orig_x_max - orig_x_min; skipping transform of x.')
-            else:
-                self.sim_data.x_trans = (self.sim_data.x - orig_x_min) / (orig_x_max - orig_x_min)
+            self.sim_data.x_trans = (self.sim_data.x - orig_x_min) / (orig_x_max - orig_x_min)
             self.sim_data.orig_x_min = orig_x_min
             self.sim_data.orig_x_max = orig_x_max
             if not self.sim_only:
                 self.obs_data.orig_x_min = orig_x_min
                 self.obs_data.orig_x_max = orig_x_max
-                if np.any(np.isclose(orig_x_max - orig_x_min, 0)):
-                    print('Warning: possible division by zero in orig_x_max - orig_x_min; skipping transform of x.')
-                else:
-                    self.obs_data.x_trans = (self.obs_data.x - orig_x_min) / (orig_x_max - orig_x_min)
+                self.obs_data.x_trans = (self.obs_data.x - orig_x_min) / (orig_x_max - orig_x_min)
         # If a new x was passed in, transform it
         if x is not None:
-            if np.any(np.isclose(self.sim_data.orig_x_max - self.sim_data.orig_x_min, 0)):
-                print('Warning: possible division by zero in orig_x_max - orig_x_min; skipping transform of x.')
-            else:
-                x_trans = (x - self.sim_data.orig_x_min) / (self.sim_data.orig_x_max - self.sim_data.orig_x_min)
+            x_trans = (x - self.sim_data.orig_x_min) / (self.sim_data.orig_x_max - self.sim_data.orig_x_min)
         # Transform t to unit hypercube
         if self.sim_data.t is not None:
             if t_notrans is True:
@@ -244,10 +235,7 @@ class SepiaData(object):
                     t_notrans = list(set(t_notrans) | set([i for i in range(nt) if self.t_cat_ind[i] > 0]))
                 orig_t_min[:, t_notrans] = 0
                 orig_t_max[:, t_notrans] = 1
-                if np.any(np.isclose(orig_t_max - orig_t_min, 0)):
-                    print('Warning: possible division by zero in orig_t_max - orig_t_min; skipping transform of t.')
-                else:
-                    self.sim_data.t_trans = (self.sim_data.t - orig_t_min) / (orig_t_max - orig_t_min)
+                self.sim_data.t_trans = (self.sim_data.t - orig_t_min) / (orig_t_max - orig_t_min)
                 self.sim_data.orig_t_min = orig_t_min
                 self.sim_data.orig_t_max = orig_t_max
                 if not self.sim_only:
@@ -255,10 +243,7 @@ class SepiaData(object):
                     self.obs_data.orig_t_max = orig_t_max
             # If a new t was passed in, transform it
             if t is not None:
-                if np.any(np.isclose(self.sim_data.orig_t_max - self.sim_data.orig_t_min, 0)):
-                    print('Warning: possible division by zero in orig_t_max - orig_t_min; skipping transform of t.')
-                else:
-                    t_trans = (t - self.sim_data.orig_t_min) / (self.sim_data.orig_t_max - self.sim_data.orig_t_min)
+                t_trans = (t - self.sim_data.orig_t_min) / (self.sim_data.orig_t_max - self.sim_data.orig_t_min)
         return x_trans, t_trans
 
     def standardize_y(self, center=True, scale='scalar'):
@@ -431,7 +416,7 @@ class SepiaData(object):
                     norm_scl = np.sqrt(np.max(np.dot(self.obs_data.D, self.obs_data.D.T)))
                     self.obs_data.D /= norm_scl
 
-    def plot_K_basis(self, max_plots=4):
+    def plot_K_basis(self, max_plots=4, obs=True):
         """
         Plots K basis elements for both sim and obs indices (if applicable). Only applies to multivariate-output models.
 
@@ -448,9 +433,9 @@ class SepiaData(object):
         pu = self.sim_data.K.shape[0]
         ncol = 5
         nrow = int(np.ceil((min(pu, max_plots) + 1) / ncol)) # add 1 for mean line
-        fig, axs = plt.subplots(nrow, ncol, figsize=(12, 2 * nrow))
-        fig.tight_layout()
-        for i, ax in enumerate(axs.flatten()):
+        fig_sim, axs_sim = plt.subplots(nrow, ncol, figsize=(12, 2 * nrow))
+        fig_sim.tight_layout()
+        for i, ax in enumerate(axs_sim.flatten()):
             if i == 0: # plot mean line
                 ax.plot(self.sim_data.y_ind, np.mean(self.sim_data.K,axis=0))
                 ax.set_title('sim mean')
@@ -462,9 +447,8 @@ class SepiaData(object):
                 ax.set_xlabel('sim y_ind')
             else:
                 ax.axis('off')
-        plt.show()
-        # If obs are present, plot obs basis
-        if not self.sim_only:
+        # If obs are present and requested, plot obs basis
+        if not self.sim_only and obs:
             if self.ragged_obs:
                 pu = np.array([k.shape[0] for k in self.obs_data.K])
                 if np.all(pu == pu[0]): pu = pu[0]
@@ -473,9 +457,9 @@ class SepiaData(object):
                 pu = self.obs_data.K.shape[0]
             ncol = 5
             nrow = int(np.ceil((min(pu,max_plots) + 1) / ncol)) # add 1 for mean line
-            fig, axs = plt.subplots(nrow,ncol,figsize=(12, 2 * nrow))
-            fig.tight_layout()
-            for i,ax in enumerate(axs.flatten()):
+            fig_obs, axs_obs = plt.subplots(nrow,ncol,figsize=(12, 2 * nrow))
+            fig_obs.tight_layout()
+            for i,ax in enumerate(axs_obs.flatten()):
                 if i == 0: # plot mean line
                     if self.ragged_obs: ax.plot(self.obs_data.y_ind[i],np.mean(self.obs_data.K[i],axis=0))
                     else: ax.plot(self.obs_data.y_ind, np.mean(self.obs_data.K,axis=0))
@@ -489,14 +473,15 @@ class SepiaData(object):
                     ax.set_xlabel('obs y_ind')
                 else:
                     ax.axis('off')
-            plt.show()
+            return(fig_sim,fig_obs)
+        else:
+            return fig_sim
 
-    def plot_K_weights(self, max_u_plot=5, plot_sep=False):
+    def plot_K_weights(self, max_u_plot=5):
         """
         Plots K basis weights for both sim and obs data (if applicable). Only applies to multivariate-output models.
 
         :param int max_u_plot: max number of u's for which to plot vertical line over histogram of w's
-        :param bool plot_sep: histogram w's and u's separately?
         """
         # Return early if scalar out or basis not set up
         if self.scalar_out:
@@ -511,8 +496,8 @@ class SepiaData(object):
         nrow = int(np.ceil(pu / ncol))
         w = np.dot(np.linalg.pinv(self.sim_data.K).T, self.sim_data.y_std.T).T
 
-        fig, axs = plt.subplots(nrow,ncol,figsize=(10,2*nrow))
-        fig.tight_layout()
+        fig_uw, axs_uw = plt.subplots(nrow,ncol,figsize=(10,2*nrow))
+        fig_uw.tight_layout()
 
         # Compute obs K weights if obs are present
         if not self.sim_only and self.obs_data.K is not None:
@@ -544,8 +529,8 @@ class SepiaData(object):
                     u = np.dot(np.linalg.inv(DKprod + DKridge), np.linalg.multi_dot([DK, Lamy, self.obs_data.y_std.T])).T
                             
                 nrow = int(np.ceil(pu / ncol))
-                if u.shape[1] == w.shape[1] and not plot_sep:
-                    for i,ax in enumerate(axs.flatten()):
+                if u.shape[1] == w.shape[1]:
+                    for i,ax in enumerate(axs_uw.flatten()):
                         if i < w.shape[1]:
                             limit = abs(max(max(w[:,i].min(), w[:,i].max(), key=abs),\
                                             max(u[:,i].min(), u[:,i].max(), key=abs), key=abs))
@@ -559,29 +544,10 @@ class SepiaData(object):
                             ax.legend(prop={'size': 6})
                         else:
                             ax.axis('off')
-                    plt.show()
+                    return fig
                             
                 else: # do u and w independently
-                    # w
-                    for i,ax in enumerate(axs.flatten()):
-                        if i < w.shape[1]:
-                            w_abs_max = max(w[:,i].min(), w[:,i].max(), key=abs)
-                            ax.set_xlim([-1.25*w_abs_max,1.25*w_abs_max])
-                            ax.set_xlabel('PC %d wt : w' % (i+1))
-                            ax.hist(w[:,i],density=True)
-                        else:
-                            ax.axis('off')
-                    plt.show()
-                    # u
-                    fig, axs = plt.subplots(nrow,ncol,figsize=(10,2*nrow))
-                    fig.tight_layout()
-                    for i,ax in enumerate(axs.flatten()):
-                        if i < u.shape[1]:
-                            ax.hist(u[:,i],density=True)
-                            ax.set_xlabel('PC %d wt : u' % (i+1))
-                        else:
-                            ax.axis('off')
-                    plt.show()
+                    raise ValueError('u.shape[1] != w.shape[1]')
                                 
             else: # D
                 if self.ragged_obs:
@@ -610,8 +576,8 @@ class SepiaData(object):
                     v = vu[:pv, :].T
                     u = vu[pv:, :].T
                             
-                if u.shape[1] == w.shape[1] and not plot_sep:
-                    for i,ax in enumerate(axs.flatten()):
+                if u.shape[1] == w.shape[1]:
+                    for i,ax in enumerate(axs_uw.flatten()):
                         if i < w.shape[1]:
                             limit = abs(max(max(w[:,i].min(), w[:,i].max(), key=abs),\
                                                   max(u[:,i].min(), u[:,i].max(), key=abs), key=abs))
@@ -624,43 +590,20 @@ class SepiaData(object):
                             ax.legend(prop={'size': 6})
                         else:
                             ax.axis('off')
-                    plt.show()
-
-                else: # do u and w independently
-                    # w
-                    for i,ax in enumerate(axs.flatten()):
-                        if i < w.shape[1]:
-                            w_abs_max = max(w[:,i].min(), w[:,i].max(), key=abs)
-                            ax.set_xlim([-1.1*w_abs_max,1.1*w_abs_max])
-                            ax.set_xlabel('PC %d wt : w' % (i+1))
-                            ax.hist(w[:,i],density=True)
-                        else:
-                            ax.axis('off')
-                    plt.show()
-                    # u
-                    pu = self.obs_data.K.shape[0]
-                    nrow = int(np.ceil(pu / ncol))
-                    fig, axs = plt.subplots(nrow,ncol,figsize=(10,2*nrow))
-                    fig.tight_layout()
-                    for i,ax in enumerate(axs.flatten()):
-                        if i < u.shape[1]:
-                            ax.hist(u[:,i],density=True)
-                            ax.set_xlabel('PC %d wt : u' % (i+1))
-                        else:
-                            ax.axis('off')
-                    plt.show()
+                else: 
+                    raise ValueError('u.shape[1] != w.shape[1]')
 
                 # V
                 nrow = int(np.ceil(pv / ncol))
-                fig, axs = plt.subplots(nrow,ncol,figsize=(10,2*nrow))
-                fig.tight_layout()
-                for i,ax in enumerate(axs.flatten()):
+                fig_v, axs_v = plt.subplots(nrow,ncol,figsize=(10,2*nrow))
+                fig_v.tight_layout()
+                for i,ax in enumerate(axs_v.flatten()):
                     if i < v.shape[1]:
                         ax.hist(v[:,i],density=True)
                         ax.set_xlabel('D %d wt : v' % (i+1))
                     else:
                         ax.axis('off')
-                plt.show()
+                return (fig_uw, fig_v)
 
     
     def plot_u_w_pairs(self, max_plots=5, save=False):
@@ -676,10 +619,7 @@ class SepiaData(object):
         if self.sim_data.K is None:
             print('K basis not set up, call create_K_basis() first.')
             return
-        print('Plotting up to',max_plots,'pairs. Change with parameter \'max_plots\'')
         pu = self.sim_data.K.shape[0]
-        ncol = 5
-        nrow = int(np.ceil(pu / ncol))
         w = np.dot(np.linalg.pinv(self.sim_data.K).T, self.sim_data.y_std.T).T
                 
         if not self.sim_only and self.obs_data.K is not None:
@@ -736,7 +676,9 @@ class SepiaData(object):
                     u = vu[pv:, :].T
 
                 # change u,w to match max_plots
-                if w.shape[1]>max_plots: w = w[:,0:max_plots]
+                if w.shape[1]>max_plots: 
+                    w = w[:,0:max_plots]
+                    print('Plotting up to',max_plots,'pairs. Change with parameter \'max_plots\'')
                 col_names = []
                 for i in range(w.shape[1]): col_names.append('w{}'.format(i+1))
                 w_df = pd.DataFrame(data=w,columns=col_names)
@@ -757,8 +699,8 @@ class SepiaData(object):
                             else:
                                 g.axes[i,j].scatter(u[:,j],u[:,i],c='darkorange',label='(u{},u{})'.format(j+1,i+1))
                                 g.axes[i,j].legend(facecolor='white')
-                if save: plt.savefig('u_w_pairs.png',dpi=300)
-                plt.show()
+                if save: plt.savefig(save,dpi=300)
+                return g.fig
 
     def plot_K_residuals(self):
         """
@@ -786,20 +728,21 @@ class SepiaData(object):
                 u = np.dot(np.linalg.inv(DKprod + DKridge), np.linalg.multi_dot([DK, Lamy, self.obs_data.y_std.T])).T
                 proj = np.dot(u, DK)
                 resid = self.obs_data.y_std - proj
-                plt.figure(1, figsize=(4, 6))
-                plt.subplot(311)
-                plt.plot(self.obs_data.y_ind, self.obs_data.y_std.squeeze().T)
-                plt.title('obs y_std')
-                plt.xlabel('obs y_ind')
-                plt.subplot(312)
-                plt.plot(self.obs_data.y_ind, proj.squeeze().T)
-                plt.title('obs projection reconstruction')
-                plt.xlabel('obs y_ind')
-                plt.subplot(313)
-                plt.plot(self.obs_data.y_ind, resid.squeeze().T, '-')
-                plt.title('obs projection residual')
-                plt.xlabel('obs y_ind')
-                plt.show()
+                
+                fig_noD, axs_noD = plt.subplots(1,3,figsize=(4,6))
+               
+                axs_noD[0].plot(self.obs_data.y_ind, self.obs_data.y_std.squeeze().T)
+                axs_noD[0].set_title('obs y_std')
+                axs_noD[0].set_xlabel('obs y_ind')
+                
+                axs_noD[1].plot(self.obs_data.y_ind, proj.squeeze().T)
+                axs_noD[1].set_title('obs projection reconstruction')
+                axs_noD[1].set_xlabel('obs y_ind')
+                
+                axs_noD[2].plot(self.obs_data.y_ind, resid.squeeze().T, '-')
+                axs_noD[2].set_title('obs projection residual')
+                axs_noD[2].set_xlabel('obs y_ind')
+                return fig_noD
             else:
                 pv = self.obs_data.D.shape[0]
                 DK = np.concatenate([self.obs_data.D, self.obs_data.K])  # (pu+pv, ell_obs)
@@ -810,23 +753,26 @@ class SepiaData(object):
                 v = vu[:pv, :].T
                 u = vu[pv:, :].T
                 ncol = 5
-                nrow = np.ceil(pu / ncol)
-                plt.figure(2, figsize=(8, 2 * nrow))
-                for i in range(pu):
-                    plt.subplot(nrow, ncol, i+1)
-                    plt.hist(u[:, i])
-                    plt.xlabel('PC %d wt' % (i+1))
-                plt.show()
-                ncol = 5
-                nrow = np.ceil(pv / ncol)
-                plt.figure(3, figsize=(8, 2 * nrow))
-                for i in range(pu):
-                    plt.subplot(nrow, ncol, i+1)
-                    plt.hist(v[:, i])
-                    plt.xlabel('D %d wt' % (i+1))
-                plt.show()
+                nrow = int(np.ceil(pu / ncol))
+                fig_u,axs_u = plt.subplots(nrow,ncol,figsize=(8, 2 * nrow))
+                for i, ax in enumerate(axs_u.flatten()):
+                    if i < pu:
+                        ax.hist(u[:, i])
+                        ax.set_xlabel('PC %d wt' % (i+1))
+                    else:
+                        ax.axis('off')
+                
+                nrow = int(np.ceil(pv / ncol))
+                fig_v,axs_v = plt.subplots(nrow,ncol,figsize=(8, 2 * nrow))
+                for i,ax in enumerate(axs_v.flatten()):
+                    if i < pv:
+                        ax.hist(v[:, i])
+                        ax.set_xlabel('D %d wt' % (i+1))
+                    else:
+                        ax.axis('off')
+                return (fig_u,fig_v)
 
-    def plot_data(self,which_x=None,x_min=None,x_max=None,y_min=None,y_max=None,n_neighbors=3,max_sims=50):
+    def plot_data(self,which_x=None,x_min=None,x_max=None,y_min=None,y_max=None,n_neighbors=3,max_sims=50,save=None):
         """
         Plots observed data and simulation runs on the same axis with n_neighbors nearest simulations
         in x-space. Only applies to multivariate-output models with both simulation and observed data.
@@ -935,7 +881,8 @@ class SepiaData(object):
             else:
                 axs[i].axis('off')
                 
-        plt.show()
+        if save is not None: fig.savefig(save,dpi=300,bbox_inches='tight')
+        return fig
 
 
 
