@@ -357,3 +357,47 @@ class SepiaPredictTestCase(unittest.TestCase):
 
         print('Done.')
 
+
+'''
+Gatt: I don't think this is a thing...
+
+    def test_predict_multi_sim_and_obs_noD(self):
+
+        print('starting test_mcmc_multi_sim_and_obs_noD', flush=True)
+
+        show_figs = True
+        seed = 42.
+        n_mcmc = 20
+        m = 200
+        n = 20
+        nt_sim = 75
+        nt_obs = 50
+        n_pc = 5 # must be smaller than nt
+        nx = 3
+        noise_sd = 0.1
+        n_pred=5
+        model, matlab_output = setup_multi_sim_and_obs_noD(m=m, n=n, nt_sim=nt_sim, nt_obs=nt_obs, noise_sd=noise_sd,
+                                                       nx=nx, n_pc=n_pc, seed=seed, n_lik=0, n_mcmc=n_mcmc)
+        mcmc_time_mat = matlab_output['mcmc_time']
+        mcmc_mat = matlab_output['mcmc']
+        mcmc_mat = {k: np.array(mcmc_mat[k]) for k in mcmc_mat.keys()}
+
+        # do python sampling
+        np.random.seed(int(seed))
+        t_start = time()
+        model.do_mcmc(n_mcmc)
+        t_end = time()
+
+        print('Python mcmc time %0.3g s' % (t_end - t_start), flush=True)
+        print('Matlab mcmc time %0.3g s' % mcmc_time_mat, flush=True)
+
+        samples_dict = {p.name: p.mcmc_to_array() for p in model.params.mcmcList}
+        samples_dict['logPost'] = np.array(model.params.lp.mcmc.draws).reshape((-1, 1))
+
+        self.assertTrue(set(samples_dict.keys()) == set(mcmc_mat.keys()))
+
+        psamps = model.get_samples(0, sampleset=[0, n_pred-1], flat=True)
+        pred = SepiaFullPrediction(x_pred=np.array([0.5]).reshape(1,1), samples=psamps,
+                                       model=model, storeMuSigma=True)
+        
+'''

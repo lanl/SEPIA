@@ -380,10 +380,14 @@ def uvPred(pred, useAltW=False):
         theta = samples['theta'][ii:ii + 1, :]
         betaU = samples['betaU'][ii, :]
         betaU = np.reshape(betaU, (p+q, pu), order='F')
-        betaV = samples['betaV'][ii, :]
-        betaV = np.reshape(betaV, (p, lamVzGnum), order='F')
+        if pv>0:
+            betaV = samples['betaV'][ii, :]
+            betaV = np.reshape(betaV, (p, lamVzGnum), order='F')
+            lamVz = samples['lamVz'][ii:ii + 1, :]
+            no_D=False
+        else:
+            no_D=True
         lamUz = samples['lamUz'][ii:ii + 1, :]
-        lamVz = samples['lamVz'][ii:ii + 1, :]
         lamWs = samples['lamWs'][ii:ii + 1, :]
         lamWOs = samples['lamWOs'][ii:ii + 1, :]
         lamOs = samples['lamOs'][ii:ii + 1, :]
@@ -392,7 +396,6 @@ def uvPred(pred, useAltW=False):
             xpredt = np.concatenate((xpred, theta_pred), axis=1)
         else:
             xpredt = np.concatenate((xpred, np.tile(theta, (npred, 1))), axis=1)
-
 
         xtheta=np.concatenate((data.x,np.tile(theta, (n, 1))),axis=1)
         xDist=SepiaDistCov(xtheta, cat_ind=np.concatenate([data.x_cat_ind, data.t_cat_ind]))
@@ -404,12 +407,13 @@ def uvPred(pred, useAltW=False):
         # SigData
         # Generate the part of the matrix related to the data
         # Four parts to compute: Sig_v, Sig_u, Sig_w, and the Sig_uw crossterm
-        vCov=[]
-        for jj in range(lamVzGnum):
-            vCov.append(x0Dist.compute_cov_mat(betaV[:, jj], lamVz[0,jj]))
-        SigV=np.zeros((n*pv,n*pv))
-        for jj in range(pv):
-            SigV[jj*n:(jj+1)*n,jj*n:(jj+1)*n]=vCov[lamVzGroup[jj]]
+        SigV = np.zeros((n * pv, n * pv)) # for no_D model, pv=0
+        if not no_D:
+            vCov=[]
+            for jj in range(lamVzGnum):
+                vCov.append(x0Dist.compute_cov_mat(betaV[:, jj], lamVz[0,jj]))
+            for jj in range(pv):
+                SigV[jj*n:(jj+1)*n,jj*n:(jj+1)*n]=vCov[lamVzGroup[jj]]
 
         SigU=np.zeros((n*pu,n*pu))
         for jj in range(pu):
@@ -422,7 +426,6 @@ def uvPred(pred, useAltW=False):
         np.fill_diagonal(SigW, SigW.diagonal() +
                          np.repeat(np.reciprocal(num.LamSim * lamWOs), m) + np.repeat(np.reciprocal(lamWs), m))
 
-
         SigUW=np.zeros((n*pu,m*pu))
         for jj in range(pu):
             SigUW[jj*n:(jj+1)*n,jj*m:(jj+1)*m]=xzDist.compute_cov_mat(betaU[:, jj], lamUz[0, jj])
@@ -430,8 +433,11 @@ def uvPred(pred, useAltW=False):
         if num.scalar_out:
             #SigData=[ SigU+SigV +SigObs/lamOs    SigUW; ...
             #          SigUW'                     SigW ];
-            SigUpV=SigU+SigV + num.SigObs * 1/lamOs
-            SigData=np.block([[SigUpV,SigUW],[SigUW.T,SigW]])
+            if not no_D:
+                SigUplusVpart=SigU+SigV + num.SigObs * 1/lamOs
+            else:
+                SigUplusVpart = SigU + num.SigObs * 1 / lamOs
+            SigData=np.block([[SigUplusVpart,SigUW],[SigUW.T,SigW]])
             # Calculate inverse of SigData directly using block stuff TODO use this?
             if useAltW:
                 SigWinv = scipy.linalg.inv(SigW)
@@ -443,8 +449,6 @@ def uvPred(pred, useAltW=False):
                 SigDatainv = np.concatenate(
                    (np.concatenate((DinvA, DinvB), axis=1),
                     np.concatenate((DinvB.T, DinvD), axis=1) ), axis=0)
-                # Gatt: np.block would be better, like:
-                # SigDatainv=np.block([[DinvA,DinvB],[DinvB.T,Dinv.D]])
         else:
             #SigData=[SigV                 0
             #        0                     [ SigU    SigUW; ...
@@ -465,8 +469,7 @@ def uvPred(pred, useAltW=False):
                 Dinv = np.concatenate(
                    (np.concatenate((DinvA, DinvB), axis=1),
                     np.concatenate((DinvB.T, DinvD), axis=1) ), axis=0)
-                # Gatt: aseemble with np.block as above
-            sddim=n*pv + (n+m)*pu
+            sddim=n*pv+(n+m)*pu
             SigData=np.zeros((sddim,sddim))
             SigData[:n*pv,:n*pv] = SigV
             SigData[n*pv:,n*pv:] = SigSubmat
@@ -481,11 +484,12 @@ def uvPred(pred, useAltW=False):
         # Generate the part of the matrix related to the predictors
         # Parts to compute: Sig_vpred, Sig_upred
         SigVp=np.zeros((npred*pv,npred*pv))
-        vpCov=[]
-        for jj in range(lamVzGnum):
-            vpCov.append(xpred0Dist.compute_cov_mat(betaV[:, jj], lamVz[0,jj]))
-        for jj in range(pv):
-            SigVp[jj*npred:(jj+1)*npred,jj*npred:(jj+1)*npred]=vpCov[lamVzGroup[jj]]
+        if not no_D:
+            vpCov=[]
+            for jj in range(lamVzGnum):
+                vpCov.append(xpred0Dist.compute_cov_mat(betaV[:, jj], lamVz[0,jj]))
+            for jj in range(pv):
+                SigVp[jj*npred:(jj+1)*npred,jj*npred:(jj+1)*npred]=vpCov[lamVzGroup[jj]]
 
         SigUp=np.zeros((npred*pu,npred*pu))
         for jj in range(pu):
@@ -502,11 +506,12 @@ def uvPred(pred, useAltW=False):
 
         # SigCross
         SigVVx=np.zeros((n*pv,npred*pv))
-        vvCov=[]
-        for jj in range(lamVzGnum):
-            vvCov.append(xxpred0Dist.compute_cov_mat(betaV[:, jj], lamVz[0,jj]))
-        for jj in range(pv):
-            SigVVx[jj*n:(jj+1)*n,jj*npred:(jj+1)*npred]=vvCov[lamVzGroup[jj]]
+        if not no_D:
+            vvCov=[]
+            for jj in range(lamVzGnum):
+                vvCov.append(xxpred0Dist.compute_cov_mat(betaV[:, jj], lamVz[0,jj]))
+            for jj in range(pv):
+                SigVVx[jj*n:(jj+1)*n,jj*npred:(jj+1)*npred]=vvCov[lamVzGroup[jj]]
 
         SigUUx=np.zeros((n*pu,npred*pu))
         for jj in range(pu):
@@ -551,7 +556,8 @@ def uvPred(pred, useAltW=False):
             #W_zeros[W == 0] = np.nan
             #plt.imshow(W_zeros, aspect='auto')
             #plt.show()
-            # So Wnew gets the zero blocks, W doesn't quite. Also can exploit the zero blocks for the multiplications below, I think.
+            # So Wnew gets the zero blocks, W doesn't quite.
+            #  Also can exploit the zero blocks for the multiplications below, I think.
             # TODO see how to use zeros below, check implementation of SigDatainv
             if num.scalar_out:
                 Myhat = W.T @ num.uw
