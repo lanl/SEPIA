@@ -324,6 +324,13 @@ class SepiaModel:
                     self.params.theta.prior.bounds[0][:, i] = -np.inf
                     self.params.theta.prior.bounds[1][:, i] = np.inf
 
+        # allocate lists for pre-computed components
+        self.num.SigWl = [None] * pu
+        self.num.SigWi = [None] * pu
+        if data.kron_design:
+            self.num.V = [None] * pu
+            self.num.Dki2 = [None] * pu
+
     def save_model_info(self, file_name=None, overwrite=False):
         """
         Saves some important model info needed to restore model state into new model.

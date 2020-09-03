@@ -245,6 +245,6 @@ def plot_acf(model,nlags,nburn=0,alpha=.05,save=None):
             chain = p.mcmc_to_array(trim=nburn, flat=True).T
     
     acf = model.acf(chain,nlags,plot=True,alpha=alpha)
-    fig = acf['figure']
-    fig.savefig(save,dpi=300,bbox_inches='tight')
+    if save is not None: 
+        acf['figure'].savefig(save,dpi=300,bbox_inches='tight')
     return acf
