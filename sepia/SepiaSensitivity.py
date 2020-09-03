@@ -80,6 +80,65 @@ def sensitivity(model, samples_dict=False, sampleset=False, ngrid=21, varlist=[]
         lamWs_sub = lamWs[:, ii]
         sa.append(component_sens(sim_xt[:, ii0], w[:, ii], betaU_sub, lamUz_sub, lamWs_sub, xe, ngrid, varlist, jelist, rg)) # TODO match sig
 
+    ymean=model.data.sim_data.orig_ymean; ysd=model.data.sim_data.orig_ysd;
+    if len(ysd)==1: ysd = np.tile(ysd,ymean.shape[0])
+    
+    ksmm=data.sim_data.K
+    lam = np.diag(np.matmul(ksmm.T,ksmm))
+    sme=np.zeros((npvec,nv))
+    ste=npzeros((npvec,nv))
+    for ii in range(npvec):
+        vt0=0
+        for jj in range(pu):
+            sme[ii,:]=sme[ii,:]+lam[jj]*sa[jj].sme[ii,:]*sa[jj].vt[ii]
+            ste[ii,:]=ste[ii,:]+lam[jj]*sa[jj].ste[ii,:]*sa[jj].vt[ii]
+            vt0=vt0+lam[jj]*sa[jj].vt[ii]
+        sme[ii,:]=sme[ii,:]/vt0
+        ste[ii,:]=ste[ii,:]/vt0
+        vt[ii]=vt0
+    
+    smePm=np.squeeze(np.mean(sme))
+    stePm=np.squeeze(np.mean(ste))
+    
+    if varlist:
+        sie=np.zeros((npvec,len(varlist)))
+        for ii in range(npvec):
+            for jj in range(pu):
+                sie[ii,:]=sie[ii,:]+lam[jj]*sa[jj].sie[ii,:]*sa[jj].vt[ii]
+            sie[ii,:]=sie[ii,:]/vt[ii]
+        siePm=np.squeeze(np.mean(sie))
+        
+    if jelist:
+        sje=np.zeros(npvec,len(jelist))
+        for ii in range(npvec):
+            for jj in range(pu):
+                sje[ii,:]=sje[ii,:]+lam[jj]*sa[jj].sje[ii,:]*sa[jj].vt[ii]
+            sje[ii,:]=sje[ii,:]/vt[ii]
+        sjePm=np.squeeze(np.mean(sje))
+        
+    # unscales
+    e0=np.zeros(ksmm.shape[0])
+    mef_m=np.zeros((pu, nv, ksmm.shape[0] ngrid))
+    mef_sd=np.zeros((pu, nv, ksmm.shape[0] ngrid))
+    
+    meanmat=nm.tile(ymean,ngrid)
+    ysdmat=np.tile(ysd,ngrid)
+    
+    for jj in range(pu):
+        e0=e0+ksmm[:,jj]*np.mean(sa[jj].e0)
+        for kk in range(nv):
+            mef_m[jj,kk,:,:]=kron(ksmm[:,jj],np.mean(sa[jj].mef_m[:,kk,:]).reshape(ngrid))*\
+                                                                                    ysdmat+meanmat
+            mef_sd[jj,kk,:,:]=np.sqrt(kron(ksmm[:,jj]**2,\
+                                           np.var(sa[jj].mef_m[:,kk,:]).reshape(ngrid))*\
+                                      kron(ksmm[:,jj]**2,np.mean(sa[jj].mef_v[:,kk,:]).\
+                                           reshape(ngrid)))*ysdmat
+    e0=e0*ysd+ymean
+    
+    a=mef_m.shape
+    for kk in range(nv) # stopping line 168 gsens.m
+                        
+                                  
     print('fin')
 
 class comp_sens_struct:
