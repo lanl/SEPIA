@@ -117,8 +117,8 @@ class SepiaData(object):
             else:
                 res += 'This is a Kronecker separable simulation design with components: \n'
                 for ii in range(len(self.sim_data.x)):
-                    res += '   x component 1 has m = %5d (simulated data design size) \n' % self.sim_data.x[ii].shape[0]
-                    res += '   x component 1 has p = %5d (number of inputs) \n' % self.sim_data.x[ii].shape[1]
+                    res += '   x component %d has m = %5d (simulated data design size) \n' % (ii,self.sim_data.x[ii].shape[0])
+                    res += '   x component %d has p = %5d (number of inputs) \n' % (ii,self.sim_data.x[ii].shape[1])
             if self.sim_data.t is not None:
                 res += 'q  = %5d (number of additional simulation inputs)\n' % self.sim_data.t.shape[1]
             if self.scalar_out:
