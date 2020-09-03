@@ -3,12 +3,22 @@
 General workflow guide
 ======================
 
+The general workflow in Sepia is summarized by:
+
+    1. Instantiate :ref:`sepiadata` object with all data relevant to the problem.
+    2. Use :ref:`sepiadata` methods to do data transformations/rescaling and create basis matrices for multivariate-output data.
+    3. Create :ref:`sepiamodel` object using instantiated :ref:`sepiadata` object.
+    4. Do MCMC to sample from the posterior distribution of the model parameters.
+    5. Analyze the results: summarize posterior distributions, make predictions from the model, or perform sensitivity analysis.
+
+The sections below give details on each step. We also include a section on more complex model types (hierarchical and shared theta models).
+
 Data setup
 ----------
 
 The first step is to set up a :ref:`sepiadata` object containing all of the data types that will be needed in the model.
-Specifics of the model (whether or not emulator-only, whether multivariate or univariate output, whether or not
-there are controllable/experimental condition inputs) are inferred from the data structure, so it is
+Specifics of the model (whether or not the model is emulator-only, whether there is multivariate or univariate output,
+whether or not there are controllable/experimental condition inputs) are inferred from the data structure, so it is
 important to get it set up correctly. The data structure also handles various transformations and sets up basis
 functions, so that users are not required to recreate these steps by hand. (That is, raw data can be passed in
 without doing any transformations, and we recommend this so that downstream methods can handle untransforming data.)
@@ -17,7 +27,7 @@ The basic constructor call looks like::
 
     data = SepiaData(<inputs>)
 
-Which inputs will be given depends on the problem setup. Possible inputs are described in the table:
+The inputs given depend on the type of model and problem setup. Possible inputs are described in the table:
 
 ====================  ================================================  =================
    Possible inputs     Description                                       Shape
@@ -34,8 +44,9 @@ t_cat_ind             List to indicate categorical t inputs.            length q
 ====================  ================================================  =================
 
 In the table, `n` is the number of simulation runs, `m` is the number of observed data instances, and `ell` are the
-multivariate output dimensions (if applicable). Note that for observed data, we also accept ragged observations,
-where `y_obs` and `y_ind_obs` are given as lists (length `m`) of arrays.
+multivariate output dimensions (if applicable). For observed data, we also accept ragged observations in which the
+indices for the multivariate outputs differ for each observation. In this case, `y_obs` and `y_ind_obs` are given as
+lists (length `m`) of 1D arrays.
 
 See :ref:`helpful-code-snippets` for examples of different types of data setup, including an example using `x_cat_ind`.
 
@@ -55,11 +66,11 @@ See :ref:`sepiadata` documentation for optional arguments, though the defaults s
 Basis setup
 ^^^^^^^^^^^
 
-For multivariate outputs, Sepia uses basis functions to reduce the problem dimensionality. Basis functions must be
-set up to represent the `y` values (done by principal components analysis, or PCA), and optionally, a second set of basis
+For multivariate outputs, Sepia uses basis functions to reduce the problem dimensionality. Basis function matrices must be
+set up to represent the `y` values (done by principal components analysis, or PCA). Optionally, a second set of basis
 functions may be set up to represent model discrepancy (systematic difference between simulation and observation data).
 
-These are set up as follows::
+Basis matrices may be set up as follows::
 
     # PC basis
     data.create_K_basis(n_pc=5)     # With 5 PCs
@@ -67,10 +78,10 @@ These are set up as follows::
     data.create_K_basis(K=K)        # Pass in custom K basis
 
     # Discrepancy basis -- optional
-    data.create_D_basis(type='linear')  # Default linear discrepancy
-    data.create_D_basis(D=D)            # Pass in custom D basis
+    data.create_D_basis(D_type='linear')  # Set up linear discrepancy
+    data.create_D_basis(D=D)              # Pass in custom D basis
 
-Internally, the projections onto the PCA `K` basis are referred to as `w` (simulations) and `u` (observed), while the
+Internally, the projections onto the PCA `K` basis are referred to as `w` (simulation data) and `u` (observed data), while the
 projections of the observed data onto the discrepancy `D` basis are referred to as `v`.
 
 Checking your setup
@@ -82,11 +93,11 @@ To check that your data structure is set up correctly::
 
 Also, use plotting methods in the :ref:`sepiadata` class to visualize the data (see class documentation for options)::
 
-    data.plot_data()        # Plot data
-    data.plot_K_basis()     # Show K basis functions
-    data.plot_K_weights()   # Show histograms of projections of data onto K basis functions
-    data.plot_u_w_pairs()   # Show pairs plots of projections of data onto K basis functions
-    data.plot_K_residuals() # Show residuals after projection onto K basis
+    data.plot_data()        # Plot data - only for multivariate-output models with both simulation and observed outputs
+    data.plot_K_basis()     # Show K basis functions - only for multivariate-output models
+    data.plot_K_weights()   # Show histograms of projections of data onto K basis functions - only for multivariate-output models
+    data.plot_u_w_pairs()   # Show pairs plots of projections of data onto K basis functions - only for multivariate-output models
+    data.plot_K_residuals() # Show residuals after projection onto K basis - only for multivariate-output models
 
 Model setup
 -----------
@@ -140,12 +151,9 @@ Step size tuning will also reset the start values based on the samples collected
 hopefully start the sampling in a higher-posterior region than the default start values.
 
 If desired, you can also try to optimize the log posterior to get point estimates of the parameters which could be
-even better start values::
+even better start values.
 
-    opt_prm = model.optim_logPost()
-
-This method returns the optimized parameters and also sets the start values within the model object to these values.
-Note that the values are found by numerical optimization and are not guaranteed to be the actual MAP values.
+.. note:: TODO need to update the documentation for this
 
 Sampling
 ^^^^^^^^
@@ -164,55 +172,64 @@ To extract samples into a friendly dictionary format (see :ref:`sepiamodel` docu
     samples = model.get_samples(effectivesamples=True)  # Returns only a set of "effective samples" determined by effective sample size
     samples = model.get_samples(numsamples=100)         # Returns 100 evenly-spaced samples
 
-Notice that the samples dictionary has both `theta` (in [0, 1]) and `theta_native` (untransformed to original scale).
+When the model contains `theta`, the samples dictionary will contain both `theta` (in [0, 1])
+and `theta_native` (untransformed to original scale), in addition to all other model parameters.
 
 Saving samples
 ^^^^^^^^^^^^^^
 
-To save a samples dictionary, you could pickle the dictionary itself::
+To save a samples dictionary, you can pickle the samples dictionary::
 
     with open('mysamples.pkl', 'wb') as f:
         pickle.dump(samples, f)
 
-Or if you want to avoid pickles, you could save each array::
+Or you could save each array in the dictionary separately::
 
     import numpy as np
     np.save('mysamples_theta.npy', samples['theta'])
 
-Note that you can also pickle the entire `SepiaModel` object, but this could run into compatibility issues in the future
-if the class definition or package namespace changes, so use this with caution. To archive your results, it may be safer
-to save the samples dictionary itself.
+We do not recommend pickling the `SepiaModel` object itself at this time as any changes to the class definitions
+or package namespace could lead to problems loading the saved model in the future.
+
+.. note:: TODO We are working on a solution to restore saved samples into a model and will document it here.
 
 Diagnostics
 ^^^^^^^^^^^
 
 After sampling, various diagnostics can be helpful for assessing whether the sampling was successful.
 Most of the diagnostics are visual and are contained in the :ref:`sepiaplot` module.
+The plotting functions return a `matplotlib` figure handle, but an optional `save` argument can provide a filename
+to directly save the figure.
 
+Trace plots of the MCMC samples are shown using::
+
+    fig = mcmc_trace(samples)
+    plt.show()
+
+Summary statistics of the samples::
+
+    ps = param_stats(samples) # returns pandas DataFrame
+    print(ps)
+
+Box plots of the GP lengthscale parameters::
+
+    fig = rho_box_plots(model)
+    plt.show()
+
+The remaining plot functions only apply to models with `theta` variables (i.e., they do not produce output for emulator-only models).
 The autocorrelation function (ACF) of the `theta` variables shows how correlated the MCMC samples are across the chain.
 High correlation values for a large number of lags indicate that the chain is moving slowly through the space,
 and that the effective sample size (ESS) could be much smaller than the actual number of samples. That is, if the
 samples are highly correlated up to, say, ten lags, then adding ten more samples is not adding much new information about the parameter.
 Plot the ACF and get a printout of the effective sample size using::
 
-    plot_acf(model, nlags=30)
+    fig = plot_acf(model, nlags=30)
+    plt.show()
 
-Some of the diagnostic methods take a samples dictionary as an argument, which you can extract from the model::
+A pairs plot of the `theta` values is shown using::
 
-    samples = model.get_samples()
-
-Then you can investigate trace plots and pairs plots of the `theta` variables::
-
-    mcmc_trace(samples)
-    theta_pairs(samples)
-
-Summary statistics of the samples::
-
-    param_stats(samples)
-
-Box plots of the GP lengthscale parameters::
-
-    rho_box_plots(model)
+    fig = theta_pairs(samples)
+    plt.show()
 
 
 Predictions
@@ -220,7 +237,7 @@ Predictions
 
 Aside from learning about the posterior distributions of the parameters, users may also be interested in making
 predictions from the model. There are several types of predictions that can be made, depending on the type of model
-and the goals of the user. All are handled by the :ref:`sepiapredict` class and make use of the MCMC samples in the model.
+and the goals of the user. All are handled by the :ref:`sepiapredict` class and make use of the MCMC samples from the model.
 
 Emulator predictions
 ^^^^^^^^^^^^^^^^^^^^
@@ -232,10 +249,12 @@ predictions can be interpreted as predictions of what the simulator would output
 The first step is to set up the prediction object, which requires supplying some subset of the MCMC samples as well as
 both controllable and other simulation inputs where predictions are desired::
 
-    # Provide input settings to predict at
+    # Provide input settings for which to get predictions
     x_pred = np.linspace(0,1,9).reshape((9,1))
     t_pred = np.tile(np.array([1,0,1]).reshape(1,3),(9,1))
+    # Extract a samples dictionary for which to get predictions
     pred_samples = model.get_samples(numsamples=10)
+    # Set up prediction object
     pred = SepiaEmulatorPrediction(x_pred=x_pred, samples=pred_samples, model=model, t_pred=t_pred)
 
 Note that by default, residual variance (from the nugget term) is not added; use argument `addResidVar=True` to add this.
@@ -243,7 +262,7 @@ Argument `storeMuSigma=True` will store the process mean and variance for each s
 
 Once the prediction object is created, various types of predictions can be extracted. The first is to get predictions
 of the `w` values (the weights for the PCA basis, used as a representation of the simulation outputs internally
-in the model, but not necessarily as interpretable as the other types of predictions)::
+in the model)::
 
     w_pred = pred.get_w()
 
@@ -292,7 +311,7 @@ Full predictions
 
 Full model predictions are slightly more complicated than emulator predictions because there are different options,
 including whether we want multivariate predictions at the simulation or observed indices and whether we want to include
-discrepancy.
+discrepancy (if applicable).
 
 Set up the predictor instance::
 
@@ -301,7 +320,7 @@ Set up the predictor instance::
     pred_samples = model.get_samples(numsamples=10)
     pred = SepiaFullPrediction(x_pred=x_pred, samples=pred_samples, model=model, t_pred=t_pred)
 
-To extract predictions of the PCA projections `v` and discrepancy projections `v`::
+To extract predictions of the PCA projections `u` and discrepancy projections `v`::
 
     upred, vpred = pred.get_u_v()
 
@@ -321,37 +340,42 @@ To extract full model predictions (including discrepancy)::
 
 Note this function has the same optional arguments as `get_ysim`.
 
-To extract just the discrepancy::
+To extract just the predicted discrepancy::
 
     d_pred = pred.get_discrepancy()
 
-Once again, same optional arguments as `get_ysim`.
+Once again, this has the same optional arguments as `get_ysim`.
 
 The posterior mean vector and sigma matrix of the process for each sample are obtained by::
 
     mu_pred, sigma_pred = pred.get_mu_sigma()
 
 
+Sensitivity analysis
+--------------------
+Coming soon (TODO)
+
+
 Hierarchical or shared theta models
 -----------------------------------
 
 Shared theta models are collections of models for which some of the thetas should be shared between the models.
-This means the shared thetas will be sampled only once during MCMC for all the models, and that the likelihood
+This means the shared thetas will be sampled only once during MCMC across all the models, but that the likelihood
 evaluation will take into account the likelihood from all the models.
 
-Hierarchical theta models are collections of models for which some of the thetas should be linked by a hierarchical
-Normal model. In contrast to a shared theta model, this means that the thetas will differ between models, but when
+Hierarchical theta models are collections of models for which some of the thetas are linked by a Normal hierarchical
+model. In contrast to a shared theta model, this means that the thetas will differ between models, but when
 being sampled during MCMC, they will be linked by a hierarchical specification, which typically induces "shrinkage" so
-that the thetas tend to be more similar to each other than if they were modeled as independent across models.
+that the thetas tend to be more similar to each other than they would be if they were modeled as independent across models.
 
-The syntax for both cases is similar. First, set up each model, then put them in a list::
+The syntax for both cases is similar. First, we set up each model, then put them in a list::
 
     m1 = SepiaModel(d1)
     m2 = SepiaModel(d2)
     m3 = SepiaModel(d3)
     model_list = [m1, m2, m3]
 
-Then we need to specify which thetas are shared or modeled hierarchically. The way to do this is with a numpy array
+Then, we need to specify which thetas are shared or modeled hierarchically. The way to do this is with a numpy array
 of size `(j, n_models)` where each row represents one of the shared/hierarchical theta variables,
 and each column gives the index of the shared/hierarchical theta in the respective model. For instance::
 
@@ -370,3 +394,6 @@ Then the model setup is::
 MCMC is done similarly to regular models::
 
     shared_model.do_mcmc()
+
+At this time, step size tuning is not implemented for shared or hierarchical models, but a reasonable approximation
+might be to run step size tuning on each model separately before creating the shared/hierarchical model object.

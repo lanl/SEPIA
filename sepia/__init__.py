@@ -8,7 +8,7 @@ from .SepiaModel import SepiaModel
 from .SepiaParam import SepiaParam
 from .SepiaPlot import *
 from .SepiaPrior import SepiaPrior
-from .SepiaPredict import SepiaPrediction, SepiaFullPrediction, SepiaEmulatorPrediction
+from .SepiaPredict import SepiaPrediction, SepiaFullPrediction, SepiaEmulatorPrediction, SepiaXvalEmulatorPrediction
 from .SepiaSharedThetaModels import SepiaSharedThetaModels
 from .SepiaHierarchicalThetaModels import SepiaHierarchicalThetaModels
 
