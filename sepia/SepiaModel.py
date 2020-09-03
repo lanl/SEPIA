@@ -146,9 +146,9 @@ class SepiaModel:
                 r1,r2=np.meshgrid(np.arange(ndes.shape[0]),np.arange(tdes.shape[0]))
                 tdes=np.hstack((ndes[r1.reshape(-1,order='F'),:],tdes[r2.reshape(-1,order='F'),:]))
             data.zt=tdes
-            data.ztSepDist=[]
+            self.num.ztSepDist=[]
             for ii in sim_data.x:
-                data.ztSepDist.append(SepiaDistCov(ii))  #,cat_ind=data.x_cat_ind) TODO?
+                self.num.ztSepDist.append(SepiaDistCov(ii))  #,cat_ind=data.x_cat_ind) TODO?
             self.num.ztDist = SepiaDistCov(data.zt) #, cat_ind=np.concatenate([data.x_cat_ind, data.t_cat_ind]))
         else:
             if sim_data.t_trans is not None:
@@ -850,6 +850,7 @@ class ModelContainer():
         self.lamVzGnum = 1
         #self.x0Dist = self.xzDist = self.xthetaDist = self.ztDist = None  # distances for covariance
         self.SigV = self.SigU = self.SigWl = self.SigWi = self.SigUW = None
+        self.V = self.Dki2 = None # this will be used if kron_design
         self.auto_stepsize = False
 
     def ref_copy(self, pname):
@@ -864,6 +865,8 @@ class ModelContainer():
         elif pname == 'betaU':
             ref['xDist'] = np.copy(self.xDist.sqdist)
             ref['SigWl'] = None if self.SigWl is None else self.SigWl.copy()
+            ref['V'] = None if self.V is None else self.V.copy()
+            ref['Dki2'] = None if self.Dki2 is None else self.Dki2.copy()
             ref['SigWi'] = None if self.SigWi is None else self.SigWi.copy()
             ref['SigU'] = None if self.SigU is None else self.SigU.copy()
             ref['SigUW'] = None if self.SigUW is None else self.SigUW.copy()
@@ -871,15 +874,21 @@ class ModelContainer():
             ref['SigU'] = None if self.SigU is None else self.SigU.copy()
             ref['SigUW'] = None if self.SigUW is None else self.SigUW.copy()
             ref['SigWl'] = None if self.SigWl is None else self.SigWl.copy()
+            ref['V'] = None if self.V is None else self.V.copy()
+            ref['Dki2'] = None if self.Dki2 is None else self.Dki2.copy()
             ref['SigWi'] = None if self.SigWi is None else self.SigWi.copy()
         elif pname == 'lamWs':
             ref['SigU'] = None if self.SigU is None else self.SigU.copy()
             ref['SigWl'] = None if self.SigWl is None else self.SigWl.copy()
+            ref['V'] = None if self.V is None else self.V.copy()
+            ref['Dki2'] = None if self.Dki2 is None else self.Dki2.copy()
             ref['SigWi'] = None if self.SigWi is None else self.SigWi.copy()
         elif pname in ['betaV', 'lamVz']:
             ref['SigV'] = None if self.SigV is None else self.SigV.copy()
         elif pname == 'lamWOs':
             ref['SigWl'] = None if self.SigWl is None else self.SigWl.copy()
+            ref['V'] = None if self.V is None else self.V.copy()
+            ref['Dki2'] = None if self.Dki2 is None else self.Dki2.copy()
             ref['SigWi'] = None if self.SigWi is None else self.SigWi.copy()
         return ref
 
