@@ -213,14 +213,14 @@ def rho_box_plots(model,labels=None):
     pu = model.num.pu
     bu = samples_dict['betaU']
     ru = np.exp(-bu / 4)
-    fig,axs = plt.subplots(nrows=pu,tight_layout=True,figsize=[5,3*pu])
+    fig,axs = plt.subplots(nrows=pu,tight_layout=True,figsize=[5,3*pu],squeeze=False)
     for i in range(pu):
         r = ru[:, ((p+q)*i):((p+q)*i)+(p+q)]
-        axs[i].boxplot(r)
+        axs[i, 0].boxplot(r)
         if labels is not None: axs[i].set_xticks(np.linspace(1,len(labels),len(labels),dtype=int),labels)
-        axs[i].set_yticks(np.arange(0,1.2,.2))
-        axs[i].set_ylabel(r'$\rho$')
-        axs[i].set_title('PC {}'.format(i+1)) 
+        axs[i, 0].set_yticks(np.arange(0,1.2,.2))
+        axs[i, 0].set_ylabel(r'$\rho$')
+        axs[i, 0].set_title('PC {}'.format(i+1))
     return fig
         
 def plot_acf(model,nlags,nburn=0,alpha=.05,save=False):
