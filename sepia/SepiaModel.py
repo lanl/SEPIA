@@ -9,6 +9,8 @@ from tqdm import tqdm
 import matplotlib.pyplot as plt
 from scipy import stats
 import scipy.linalg
+import os
+import pickle
 
 
 class SepiaModel:
@@ -321,6 +323,67 @@ class SepiaModel:
                     self.params.theta.prior.params[1][:, i] = np.inf
                     self.params.theta.prior.bounds[0][:, i] = -np.inf
                     self.params.theta.prior.bounds[1][:, i] = np.inf
+
+    def save_model_info(self, file_name=None, overwrite=False):
+        """
+        Saves some important model info needed to restore model state into new model.
+
+        :param string/NoneType file_name: optional file name for saving model (with no extension); if None, uses default name.
+        :param bool overwrite: okay to overwrite existing file? If False, and file_name exists, raises exception.
+        :raises FileExistsError: if file_name already exists and overwrite=False
+        """
+        if file_name is None:
+            file_name = 'saved_model_info'
+        samples = self.get_samples(flat=False)
+        param_info = {}
+        for p in self.params:
+            k = p.name
+            if k != 'logPost':
+                info = {}
+                info['fixed'] = p.fixed
+                info['prior_bounds'] = p.prior.bounds
+                info['prior_dist'] = p.prior.dist
+                info['prior_params'] = p.prior.params
+                info['mcmc_stepParam'] = p.mcmc.stepParam
+                info['mcmc_stepType'] = p.mcmc.stepType
+                param_info[k] = info
+        save_dict = {'samples': samples, 'param_info':param_info}
+        if os.path.exists(file_name) and overwrite is False:
+            raise FileExistsError('File %s already exists; specify unique name or use overwrite=True to overwrite.' % file_name)
+        with open('%s.pkl' % file_name, 'wb') as f:
+            pickle.dump(save_dict, f)
+        print('Model saved to %s.pkl' % file_name)
+
+    def restore_model_info(self, file_name=None):
+        """
+        Restores model state from model info in file.
+
+        :param string/NoneType file_name: file name for model info (with no extension); if None, uses default name.
+        """
+        if file_name is None:
+            file_name = 'saved_model_info'
+        with open('%s.pkl' % file_name, 'rb') as f:
+            save_dict = pickle.load(f)
+        samples = save_dict['samples']
+        param_info = save_dict['param_info']
+        # put param info back
+        for p in self.params:
+            k = p.name
+            if k != 'logPost':
+                info = param_info[k]
+                p.fixed = info['fixed']
+                p.prior.bounds = info['prior_bounds']
+                p.prior.dist = info['prior_dist']
+                p.prior.params = info['prior_params']
+                p.mcmc.stepParam = info['mcmc_stepParam']
+                p.mcmc.stepType = info['mcmc_stepType']
+        # Put samples and current values back
+        for p in self.params:
+            p.val = np.take(samples[p.name], -1, axis=0)
+            draws = [s for s in samples[p.name]]
+            p.mcmc.draws = draws
+        # Call logLik to re-instantiate num info
+        self.logLik()
 
     def log_prior(self):
         """
