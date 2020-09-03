@@ -6,15 +6,31 @@ import sys
 
 class SepiaOptim():
     """
-    SepiaOptim class contains optimization routines
+    Optimization routines for optimizing the model posterior with respect to the model parameters.
+    Implements two graident-free optimizers: Nelder-Mead simplex and particle swarm.
+
+    :var sepia.SepiaModel model: instantiated SepiaModel
+    :var list idx_to_transform: indices of parameters to transform for optimization
+
     """
-    def __init__(self, model=None):
-        if model is None:
-            raise TypeError('model is required to set up optimizer.')    
+
+    def __init__(self, model):
+        """
+        Initialize optimizer object.
+
+        :param sepia.SepiaModel model: instantiated SepiaModel object
+
+        """
         self.model = model
         self.idx_to_transform = []
     
     def set_model_params(self,p):
+        """
+        Set optimized parameters into model object.
+
+        :param numpy.ndarray p: array of parameters as returned by nelder_mead or particle_swarm
+
+        """
         i=0
         for prm in self.model.params.mcmcList:
             if prm.name == 'logPost': continue
@@ -24,6 +40,12 @@ class SepiaOptim():
                 i+=1
     
     def get_model_params(self):
+        """
+        Get model parameters into array form used for optimization.
+
+        :return: numpy.ndarray of flattened/concatenated parameters in a form amenable to optimization
+        """
+        # Gets model parameters into array used for optimizer internally
         params = []
         i=0
         for prm in self.model.params.mcmcList:
@@ -36,16 +58,12 @@ class SepiaOptim():
         return np.array(params)
     
     def log_transform(self,x):
-        """
-        1-1 log transformation, linear on [0,1]
-        """
+        # 1-1 log transformation, linear on [0,1]
         if x >= 1: return np.log(x)
         else: return x-1
     
     def inv_log_transform(self,x):
-        """
-        inverse of log_transform
-        """
+        # inverse of log_transform
         exp_idx = x>=0
         add_idx = x<0
         x[exp_idx]=np.exp(x[exp_idx])
@@ -53,9 +71,7 @@ class SepiaOptim():
         return x
     
     def check_params_valid(self,x):
-        """
-        Check that proposed parameter values lie within required bounds
-        """
+        # Check that proposed parameter values lie within required bounds
         valid=True
         i = 0
         for prm in self.model.params.mcmcList:
@@ -69,11 +85,9 @@ class SepiaOptim():
         return valid
     
     def optim_logPost(self,x):
-        """
-        Wrapper for the optimization of logPost. Not called by users.
-        Checks that parameter values are in bounds, then updates model parameters
-        and returns the new logPost value.
-        """
+        #Wrapper for the optimization of logPost. Not called by users.
+        #Checks that parameter values are in bounds, then updates model parameters
+        #and returns the new logPost value.
         x_cpy = deepcopy(x)
         x_cpy[self.idx_to_transform] = self.inv_log_transform(x_cpy[self.idx_to_transform])
         if self.check_params_valid(x_cpy):
@@ -89,7 +103,6 @@ class SepiaOptim():
             # this seems strange but we can't use np.inf as it causes problems with convergence criteria
             # we also dont want to return the same value twice in a row, as it may trigger convergence
             # so we want a value as large as possible, but also with a random fluctuation
-            
 
         return -1*self.model.logPost()
     
@@ -97,11 +110,20 @@ class SepiaOptim():
                              maxiter=1000,swarmsize=10,obj_tol=1e-8,step_tol=1e-8,
                             log_transform=None,verbose=True):
         """        
-        Compute model log posterior with current values of variables.
+        Optimize model log posterior using particle swarm optimization.
 
-        :param cvar: string -- name of variables changed since last call (controls recomputation of num components), or 'all'
-        :param cindex: int -- index of flattened cvar that has changed since last call (or None)
-        :return: scalar -- log posterior value
+        :param float w_max:
+        :param float w_min:
+        :param float c1:
+        :param float c2:
+        :param int maxiter: maximum iterations
+        :param int swarmsize: swarm size for PSO optimization
+        :param float obj_tol:
+        :param float step_tol:
+        :param list/NoneType log_transform: list of names of variables for which to apply log transform
+        :param bool verbose: print optimization info
+        :return: tuple containing: x_opt (optimal parameter values), f_opt (function value at optimum),
+                                   f_hist (function value history), it, fnc_calls, p_native
         """
         # don't want verbose model for optimizer but want to change back after
         was_verbose = False
@@ -152,6 +174,17 @@ class SepiaOptim():
 
     def nelder_mead(self,maxiter=1000,step_tol=.0001,obj_tol=.0001,\
                     log_transform=None,verbose=True,start='default'):
+        """
+        Optimize model log posterior using Nelder-Mead simplex algorithm.
+
+        :param int maxiter: maximum iterations
+        :param float obj_tol:
+        :param float step_tol:
+        :param list/NoneType log_transform: list of names of variables for which to apply log transform
+        :param bool verbose: print optimization info
+        :param string start:
+        :return: tuple containing: x_opt (optimal parameter values), lp_hist (log posterior history), p_native
+        """
     
         # don't want verbose model for optimizer but want to change back after
         was_verbose = False
@@ -233,7 +266,9 @@ class SepiaOptim():
         self.verbose=was_verbose
         return x_opt,lp_hist,p_native
     
-###################### PARTICLE SWARM OPTIMIZATION ALGORITHM ##########################    
+###################### PARTICLE SWARM OPTIMIZATION ALGORITHM ##########################
+# Based on pso.py from https://github.com/tisimst/pyswarm.
+
 from functools import partial
 import numpy as np
 from tqdm import tqdm
