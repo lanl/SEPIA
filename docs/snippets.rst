@@ -216,7 +216,16 @@ Automatic step size tuning based on `YADAS`_::
 MAP optimization for start values
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Numerical optimization of the log likelihood will reset start values to the best points found (TODO: document).
+Numerical optimization of the log likelihood will reset start values to the best points found.
+:ref:`sepiaoptim` implements two gradient-free optimizers::
+
+    optimizer = SepiaOptim(model)
+    nm_opt_result = optimizer.nelder_mead(log_transform=['betaU','betaV','lamVz','lamWs','lamWOs','lamOs'])
+    nm_opt_param = nm_opt_result[2]          # Optimized params, untransformed
+    optimizer.set_model_params(nm_opt_param) # Sets into model parameter values
+    pso_opt_result = optimizer.particle_swarm(log_transform=['betaU','betaV','lamVz','lamWs','lamWOs','lamOs'])
+    pso_opt_param = pso_opt_result[5]
+    optimizer.set_model_params(pso_opt_param)
 
 Run MCMC or add more samples
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
