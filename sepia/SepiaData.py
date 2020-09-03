@@ -208,16 +208,25 @@ class SepiaData(object):
                 x_notrans = list(set(x_notrans) | set([i for i in range(nx) if self.x_cat_ind[i] > 0]))
             orig_x_min[:, x_notrans] = 0
             orig_x_max[:, x_notrans] = 1
-            self.sim_data.x_trans = (self.sim_data.x - orig_x_min) / (orig_x_max - orig_x_min)
+            if np.any(np.isclose(orig_x_max - orig_x_min, 0)):
+                print('Warning: possible division by zero in orig_x_max - orig_x_min; skipping transform of x.')
+            else:
+                self.sim_data.x_trans = (self.sim_data.x - orig_x_min) / (orig_x_max - orig_x_min)
             self.sim_data.orig_x_min = orig_x_min
             self.sim_data.orig_x_max = orig_x_max
             if not self.sim_only:
                 self.obs_data.orig_x_min = orig_x_min
                 self.obs_data.orig_x_max = orig_x_max
-                self.obs_data.x_trans = (self.obs_data.x - orig_x_min) / (orig_x_max - orig_x_min)
+                if np.any(np.isclose(orig_x_max - orig_x_min, 0)):
+                    print('Warning: possible division by zero in orig_x_max - orig_x_min; skipping transform of x.')
+                else:
+                    self.obs_data.x_trans = (self.obs_data.x - orig_x_min) / (orig_x_max - orig_x_min)
         # If a new x was passed in, transform it
         if x is not None:
-            x_trans = (x - self.sim_data.orig_x_min) / (self.sim_data.orig_x_max - self.sim_data.orig_x_min)
+            if np.any(np.isclose(self.sim_data.orig_x_max - self.sim_data.orig_x_min, 0)):
+                print('Warning: possible division by zero in orig_x_max - orig_x_min; skipping transform of x.')
+            else:
+                x_trans = (x - self.sim_data.orig_x_min) / (self.sim_data.orig_x_max - self.sim_data.orig_x_min)
         # Transform t to unit hypercube
         if self.sim_data.t is not None:
             if t_notrans is True:
@@ -235,7 +244,10 @@ class SepiaData(object):
                     t_notrans = list(set(t_notrans) | set([i for i in range(nt) if self.t_cat_ind[i] > 0]))
                 orig_t_min[:, t_notrans] = 0
                 orig_t_max[:, t_notrans] = 1
-                self.sim_data.t_trans = (self.sim_data.t - orig_t_min) / (orig_t_max - orig_t_min)
+                if np.any(np.isclose(orig_t_max - orig_t_min, 0)):
+                    print('Warning: possible division by zero in orig_t_max - orig_t_min; skipping transform of t.')
+                else:
+                    self.sim_data.t_trans = (self.sim_data.t - orig_t_min) / (orig_t_max - orig_t_min)
                 self.sim_data.orig_t_min = orig_t_min
                 self.sim_data.orig_t_max = orig_t_max
                 if not self.sim_only:
@@ -243,7 +255,10 @@ class SepiaData(object):
                     self.obs_data.orig_t_max = orig_t_max
             # If a new t was passed in, transform it
             if t is not None:
-                t_trans = (t - self.sim_data.orig_t_min) / (self.sim_data.orig_t_max - self.sim_data.orig_t_min)
+                if np.any(np.isclose(self.sim_data.orig_t_max - self.sim_data.orig_t_min, 0)):
+                    print('Warning: possible division by zero in orig_t_max - orig_t_min; skipping transform of t.')
+                else:
+                    t_trans = (t - self.sim_data.orig_t_min) / (self.sim_data.orig_t_max - self.sim_data.orig_t_min)
         return x_trans, t_trans
 
     def standardize_y(self, center=True, scale='scalar'):
