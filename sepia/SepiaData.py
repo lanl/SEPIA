@@ -416,7 +416,7 @@ class SepiaData(object):
                     norm_scl = np.sqrt(np.max(np.dot(self.obs_data.D, self.obs_data.D.T)))
                     self.obs_data.D /= norm_scl
 
-    def plot_K_basis(self, max_plots=4):
+    def plot_K_basis(self, max_plots=4, obs=True):
         """
         Plots K basis elements for both sim and obs indices (if applicable). Only applies to multivariate-output models.
 
@@ -433,9 +433,9 @@ class SepiaData(object):
         pu = self.sim_data.K.shape[0]
         ncol = 5
         nrow = int(np.ceil((min(pu, max_plots) + 1) / ncol)) # add 1 for mean line
-        fig, axs = plt.subplots(nrow, ncol, figsize=(12, 2 * nrow))
-        fig.tight_layout()
-        for i, ax in enumerate(axs.flatten()):
+        fig_sim, axs_sim = plt.subplots(nrow, ncol, figsize=(12, 2 * nrow))
+        fig_sim.tight_layout()
+        for i, ax in enumerate(axs_sim.flatten()):
             if i == 0: # plot mean line
                 ax.plot(self.sim_data.y_ind, np.mean(self.sim_data.K,axis=0))
                 ax.set_title('sim mean')
@@ -447,9 +447,8 @@ class SepiaData(object):
                 ax.set_xlabel('sim y_ind')
             else:
                 ax.axis('off')
-        plt.show()
-        # If obs are present, plot obs basis
-        if not self.sim_only:
+        # If obs are present and requested, plot obs basis
+        if not self.sim_only and obs:
             if self.ragged_obs:
                 pu = np.array([k.shape[0] for k in self.obs_data.K])
                 if np.all(pu == pu[0]): pu = pu[0]
@@ -458,9 +457,9 @@ class SepiaData(object):
                 pu = self.obs_data.K.shape[0]
             ncol = 5
             nrow = int(np.ceil((min(pu,max_plots) + 1) / ncol)) # add 1 for mean line
-            fig, axs = plt.subplots(nrow,ncol,figsize=(12, 2 * nrow))
-            fig.tight_layout()
-            for i,ax in enumerate(axs.flatten()):
+            fig_obs, axs_obs = plt.subplots(nrow,ncol,figsize=(12, 2 * nrow))
+            fig_obs.tight_layout()
+            for i,ax in enumerate(axs_obs.flatten()):
                 if i == 0: # plot mean line
                     if self.ragged_obs: ax.plot(self.obs_data.y_ind[i],np.mean(self.obs_data.K[i],axis=0))
                     else: ax.plot(self.obs_data.y_ind, np.mean(self.obs_data.K,axis=0))
@@ -474,14 +473,15 @@ class SepiaData(object):
                     ax.set_xlabel('obs y_ind')
                 else:
                     ax.axis('off')
-            plt.show()
+            return(fig_sim,fig_obs)
+        else:
+            return fig_sim
 
-    def plot_K_weights(self, max_u_plot=5, plot_sep=False):
+    def plot_K_weights(self, max_u_plot=5):
         """
         Plots K basis weights for both sim and obs data (if applicable). Only applies to multivariate-output models.
 
         :param int max_u_plot: max number of u's for which to plot vertical line over histogram of w's
-        :param bool plot_sep: histogram w's and u's separately?
         """
         # Return early if scalar out or basis not set up
         if self.scalar_out:
@@ -496,8 +496,8 @@ class SepiaData(object):
         nrow = int(np.ceil(pu / ncol))
         w = np.dot(np.linalg.pinv(self.sim_data.K).T, self.sim_data.y_std.T).T
 
-        fig, axs = plt.subplots(nrow,ncol,figsize=(10,2*nrow))
-        fig.tight_layout()
+        fig_uw, axs_uw = plt.subplots(nrow,ncol,figsize=(10,2*nrow))
+        fig_uw.tight_layout()
 
         # Compute obs K weights if obs are present
         if not self.sim_only and self.obs_data.K is not None:
@@ -529,8 +529,8 @@ class SepiaData(object):
                     u = np.dot(np.linalg.inv(DKprod + DKridge), np.linalg.multi_dot([DK, Lamy, self.obs_data.y_std.T])).T
                             
                 nrow = int(np.ceil(pu / ncol))
-                if u.shape[1] == w.shape[1] and not plot_sep:
-                    for i,ax in enumerate(axs.flatten()):
+                if u.shape[1] == w.shape[1]:
+                    for i,ax in enumerate(axs_uw.flatten()):
                         if i < w.shape[1]:
                             limit = abs(max(max(w[:,i].min(), w[:,i].max(), key=abs),\
                                             max(u[:,i].min(), u[:,i].max(), key=abs), key=abs))
@@ -544,29 +544,10 @@ class SepiaData(object):
                             ax.legend(prop={'size': 6})
                         else:
                             ax.axis('off')
-                    plt.show()
+                    return fig
                             
                 else: # do u and w independently
-                    # w
-                    for i,ax in enumerate(axs.flatten()):
-                        if i < w.shape[1]:
-                            w_abs_max = max(w[:,i].min(), w[:,i].max(), key=abs)
-                            ax.set_xlim([-1.25*w_abs_max,1.25*w_abs_max])
-                            ax.set_xlabel('PC %d wt : w' % (i+1))
-                            ax.hist(w[:,i],density=True)
-                        else:
-                            ax.axis('off')
-                    plt.show()
-                    # u
-                    fig, axs = plt.subplots(nrow,ncol,figsize=(10,2*nrow))
-                    fig.tight_layout()
-                    for i,ax in enumerate(axs.flatten()):
-                        if i < u.shape[1]:
-                            ax.hist(u[:,i],density=True)
-                            ax.set_xlabel('PC %d wt : u' % (i+1))
-                        else:
-                            ax.axis('off')
-                    plt.show()
+                    raise ValueError('u.shape[1] != w.shape[1]')
                                 
             else: # D
                 if self.ragged_obs:
@@ -595,8 +576,8 @@ class SepiaData(object):
                     v = vu[:pv, :].T
                     u = vu[pv:, :].T
                             
-                if u.shape[1] == w.shape[1] and not plot_sep:
-                    for i,ax in enumerate(axs.flatten()):
+                if u.shape[1] == w.shape[1]:
+                    for i,ax in enumerate(axs_uw.flatten()):
                         if i < w.shape[1]:
                             limit = abs(max(max(w[:,i].min(), w[:,i].max(), key=abs),\
                                                   max(u[:,i].min(), u[:,i].max(), key=abs), key=abs))
@@ -609,43 +590,20 @@ class SepiaData(object):
                             ax.legend(prop={'size': 6})
                         else:
                             ax.axis('off')
-                    plt.show()
-
-                else: # do u and w independently
-                    # w
-                    for i,ax in enumerate(axs.flatten()):
-                        if i < w.shape[1]:
-                            w_abs_max = max(w[:,i].min(), w[:,i].max(), key=abs)
-                            ax.set_xlim([-1.1*w_abs_max,1.1*w_abs_max])
-                            ax.set_xlabel('PC %d wt : w' % (i+1))
-                            ax.hist(w[:,i],density=True)
-                        else:
-                            ax.axis('off')
-                    plt.show()
-                    # u
-                    pu = self.obs_data.K.shape[0]
-                    nrow = int(np.ceil(pu / ncol))
-                    fig, axs = plt.subplots(nrow,ncol,figsize=(10,2*nrow))
-                    fig.tight_layout()
-                    for i,ax in enumerate(axs.flatten()):
-                        if i < u.shape[1]:
-                            ax.hist(u[:,i],density=True)
-                            ax.set_xlabel('PC %d wt : u' % (i+1))
-                        else:
-                            ax.axis('off')
-                    plt.show()
+                else: 
+                    raise ValueError('u.shape[1] != w.shape[1]')
 
                 # V
                 nrow = int(np.ceil(pv / ncol))
-                fig, axs = plt.subplots(nrow,ncol,figsize=(10,2*nrow))
-                fig.tight_layout()
-                for i,ax in enumerate(axs.flatten()):
+                fig_v, axs_v = plt.subplots(nrow,ncol,figsize=(10,2*nrow))
+                fig_v.tight_layout()
+                for i,ax in enumerate(axs_v.flatten()):
                     if i < v.shape[1]:
                         ax.hist(v[:,i],density=True)
                         ax.set_xlabel('D %d wt : v' % (i+1))
                     else:
                         ax.axis('off')
-                plt.show()
+                return (fig_uw, fig_v)
 
     
     def plot_u_w_pairs(self, max_plots=5, save=False):
@@ -661,10 +619,7 @@ class SepiaData(object):
         if self.sim_data.K is None:
             print('K basis not set up, call create_K_basis() first.')
             return
-        print('Plotting up to',max_plots,'pairs. Change with parameter \'max_plots\'')
         pu = self.sim_data.K.shape[0]
-        ncol = 5
-        nrow = int(np.ceil(pu / ncol))
         w = np.dot(np.linalg.pinv(self.sim_data.K).T, self.sim_data.y_std.T).T
                 
         if not self.sim_only and self.obs_data.K is not None:
@@ -721,7 +676,9 @@ class SepiaData(object):
                     u = vu[pv:, :].T
 
                 # change u,w to match max_plots
-                if w.shape[1]>max_plots: w = w[:,0:max_plots]
+                if w.shape[1]>max_plots: 
+                    w = w[:,0:max_plots]
+                    print('Plotting up to',max_plots,'pairs. Change with parameter \'max_plots\'')
                 col_names = []
                 for i in range(w.shape[1]): col_names.append('w{}'.format(i+1))
                 w_df = pd.DataFrame(data=w,columns=col_names)
@@ -742,8 +699,8 @@ class SepiaData(object):
                             else:
                                 g.axes[i,j].scatter(u[:,j],u[:,i],c='darkorange',label='(u{},u{})'.format(j+1,i+1))
                                 g.axes[i,j].legend(facecolor='white')
-                if save: plt.savefig('u_w_pairs.png',dpi=300)
-                plt.show()
+                if save: plt.savefig(save,dpi=300)
+                return g.fig
 
     def plot_K_residuals(self):
         """

@@ -71,7 +71,7 @@ def theta_pairs(samples_dict,design_names=None,native=False,lims=None,theta_ref=
         if save: 
             plt.tight_layout()
             plt.savefig("theta_pairs.png",dpi=300)
-        return g
+        return g.fig
     else:
         fig,ax=plt.subplots()
         sns.distplot(theta_df.loc[:, theta_df.columns != 'idx'],hist=True,axlabel=design_names[0],ax=ax)
