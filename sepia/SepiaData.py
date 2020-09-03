@@ -772,7 +772,7 @@ class SepiaData(object):
                         ax.axis('off')
                 return (fig_u,fig_v)
 
-    def plot_data(self,which_x=None,x_min=None,x_max=None,y_min=None,y_max=None,n_neighbors=3,max_sims=50):
+    def plot_data(self,which_x=None,x_min=None,x_max=None,y_min=None,y_max=None,n_neighbors=3,max_sims=50,save=None):
         """
         Plots observed data and simulation runs on the same axis with n_neighbors nearest simulations
         in x-space. Only applies to multivariate-output models with both simulation and observed data.
@@ -881,6 +881,7 @@ class SepiaData(object):
             else:
                 axs[i].axis('off')
                 
+        if save is not None: fig.savefig(save,dpi=300,bbox_inches='tight')
         return fig
 
 
