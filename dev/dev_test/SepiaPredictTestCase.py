@@ -357,10 +357,6 @@ class SepiaPredictTestCase(unittest.TestCase):
 
         print('Done.')
 
-
-'''
-Gatt: I don't think this is a thing...
-
     def test_predict_multi_sim_and_obs_noD(self):
 
         print('starting test_mcmc_multi_sim_and_obs_noD', flush=True)
@@ -400,4 +396,3 @@ Gatt: I don't think this is a thing...
         pred = SepiaFullPrediction(x_pred=np.array([0.5]).reshape(1,1), samples=psamps,
                                        model=model, storeMuSigma=True)
         
-'''
