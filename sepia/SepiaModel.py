@@ -322,6 +322,13 @@ class SepiaModel:
                     self.params.theta.prior.bounds[0][:, i] = -np.inf
                     self.params.theta.prior.bounds[1][:, i] = np.inf
 
+        # allocate lists for pre-computed components
+        self.num.SigWl = [None] * pu
+        self.num.SigWi = [None] * pu
+        if data.kron_design:
+            self.num.V = [None] * pu
+            self.num.Dki2 = [None] * pu
+
     def log_prior(self):
         """
         Evaluates log prior.

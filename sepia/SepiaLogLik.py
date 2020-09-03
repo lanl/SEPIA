@@ -34,16 +34,47 @@ def compute_log_lik(g, cvar='all', cindex=None):
         p1 = scipy.linalg.cho_solve((chCov, True), w)
         L = -logDet - 0.5 * np.sum(p1 * w)
         return L
-    
+
+        # calculate the equivalent quadratic form of kron separable data
+    def sepQuadFormCalc(V,zp):
+        # calculate right side of the kronecker quadratic form solve
+        dlen,mlen=zp.shape
+        zpo=np.empty((dlen,mlen))
+        for jj in range(mlen):
+            zt=zp[:,jj]
+            for ii in range(len(V)-1,-1,-1):
+                Vsize=V[ii].shape[1]
+                zt=np.linalg.solve(V[ii],zt.reshape((Vsize,int(dlen/Vsize)),order='F') ).T
+            zpo[:,jj]=zt.reshape(-1,order='F')
+        return zpo
+
+    def doLogLikSep(Sigma, nugget, data):
+        # eigen decomposition of the blocks
+        V=[None]*len(Sigma)
+        D=[None]*len(Sigma)
+        for ii in range(len(Sigma)):
+            D[ii], V[ii] = np.linalg.eig(Sigma[ii])
+            #V[ii]=np.flip(V[ii]) # these are needed for detailed numerical comparison to gpmsa
+            #D[ii]=np.flip(D[ii]) #
+        # determinant from eigenvalues
+        dkron=D[-1]
+        for ii in range(len(D)-2,-1,-1):
+            dkron=np.kron(D[ii],dkron)
+        logDet=np.sum(np.log(dkron+nugget))
+
+        #Log Likelihood
+        zp=sepQuadFormCalc(V,data)
+        Dki2=1/np.sqrt(dkron + nugget)
+        zp2=zp * Dki2.T
+        L=-0.5*logDet-0.5*(zp2.T @ zp2)   # here it is ...
+
+        return L,V,Dki2
+
     num=g.num  # the model numerical components
     #extract some frequently accessed immuts
     n=num.n; m=num.m; p=num.p; q=num.q
     pu=num.pu; pv=num.pv
     pv=pv # temp to get the unused var lint to stop
-
-    # first time checks - allocate etc. 
-    if num.SigWl is None: num.SigWl = [None]*pu
-    if num.SigWi is None: num.SigWi = [None]*pu
 
     # The precomputation steps
     do_theta = do_betaV = do_lamVz = do_betaU = do_lamUz = do_lamWs = do_lamWOs = False
@@ -68,6 +99,13 @@ def compute_log_lik(g, cvar='all', cindex=None):
         xt_tmp = np.concatenate((g.data.x, np.tile(g.params.theta.val, (n, 1))), axis=1)
         num.xDist = SepiaDistCov(xt_tmp, cat_ind=np.concatenate([g.data.x_cat_ind, g.data.t_cat_ind]))
         num.xzDist = SepiaDistCov(xt_tmp, g.data.zt, cat_ind=np.concatenate([g.data.x_cat_ind, g.data.t_cat_ind])) # the connection to theta variables
+
+    # check if we're in a kron separable data definition
+    if hasattr(g.data,'ztSep'):
+        ztSep=g.data.ztSep
+        ztSepDist=g.num.ztSepDist
+    else:
+        ztSep=False
 
     # % Four parts to compute: Sig_v, Sig_u, Sig_w, and the Sig_uw crossterm
 
@@ -97,30 +135,29 @@ def compute_log_lik(g, cvar='all', cindex=None):
         lamWs_val = g.params.lamWs.val
         w = num.w
         for jj in jinds:
-        #if isempty(data.ztSep)
-            cg = ztDistCov(betaU_val[:, jj], lamUz_val[0, jj])
-            np.fill_diagonal(cg, cg.diagonal() + 1/(LamSim[jj] * lamWOs_val) + 1/lamWs_val[0, jj])
-            # calculate the SigW likelihood for each block
-            num.SigWl[jj] = doLogLik(cg, w[jj*m:(jj+1)*m, 0])
-            # calculate the SigW inverse for each block 
-            if n > 0:  # only needed for a calibration model
-                if g.verbose:
-                    print('In computeLogLik: shape of cg ', cg.shape)
-                num.SigWi[jj] = np.linalg.inv(cg)
-        #else
-        #    % there is a separable design, so compute these as kron'ed blocks
-        #    segVarStart=1;
-        #    for ii=1:length(data.ztSep)
-        #        segVars=segVarStart:(segVarStart + model.ztSepDist{ii}.p-1);
-        #        segVarStart=segVarStart+ model.ztSepDist{ii}.p;
-        #        if (ii==1)  % ensure that lamUz is only counted once
-        #        cg{ii}=gCovMat(model.ztSepDist{ii},betaU(segVars,jj),lamUz(jj));
-        #        else
-        #        cg{ii}=gCovMat(model.ztSepDist{ii},betaU(segVars,jj),1);
-        #    cgNugget=1/(model.LamSim(jj)*lamWOs) + 1/lamWs(jj);
-        #    [model.SigWl(jj), model.V(jj).mats, model.Dki2(jj).vec]= ...
-        #        doLogLikSep(cg,cgNugget,model.w((jj-1)*m+1:jj*m)); 
-  
+            if ztSep==False:  # not kronecker dataset
+                cg = ztDistCov(betaU_val[:, jj], lamUz_val[0, jj])
+                np.fill_diagonal(cg, cg.diagonal() + 1/(LamSim[jj] * lamWOs_val) + 1/lamWs_val[0, jj])
+                # calculate the SigW likelihood for each block
+                num.SigWl[jj] = doLogLik(cg, w[jj*m:(jj+1)*m, 0])
+                # calculate the SigW inverse for each block
+                if n > 0:  # only needed for a calibration model
+                    if g.verbose:
+                        print('In computeLogLik: shape of cg ', cg.shape)
+                    num.SigWi[jj] = np.linalg.inv(cg)
+            else: # kronecker dataset, compute as kron'd blocks
+                segVarStart=0
+                cg=[]
+                for ii in range(len(ztSep)):
+                    segVarInds=np.arange(segVarStart,segVarStart + ztSepDist[ii].p)
+                    segVarStart=segVarStart+ ztSepDist[ii].p
+                    if ii==0:  # ensure that lamUz is only counted once
+                       cg.append(ztSepDist[ii].compute_cov_mat(betaU_val[segVarInds,jj],lamUz_val[0,jj]))
+                    else:
+                       cg.append(ztSepDist[ii].compute_cov_mat(betaU_val[segVarInds,jj],1))
+                cgNugget=1/(LamSim[jj]*lamWOs_val) + 1/lamWs_val[0,jj]
+                num.SigWl[jj], num.V[jj], num.Dki2[jj] = \
+                    doLogLikSep(cg,cgNugget,w[jj*m:(jj+1)*m, 0:1])
   
     # The computation is decomposed into the likelihood of W,
     #  and the likelihood of VU|W. 
@@ -149,20 +186,18 @@ def compute_log_lik(g, cvar='all', cindex=None):
         SigUgW = [None]*pu
         SigWi = num.SigWi
         for ii in range(pu):
-            #if isempty(data.ztSep):
-            W_tmp = SigUW[ii] @ SigWi[ii]
-            W[ii] = W_tmp
-            SigUgW[ii] = SigU[ii] - W_tmp @ SigUW[ii].T
-            #else
-            #    % computation for a kron/separable design
-            #    zp=zeros(m,n);
-            #    for jj=1:n
-            #        zp(:,jj)=sepQuadFormCalc(model.V(ii).mats,SigUW(ii).mat(jj,:)');
-            #    end
-            #    %zp2=zp .* model.Dki2(ii).vec;
-            #    zp2=bsxfun(@times,zp,model.Dki2(ii).vec);
-            #    SigUgW(ii).mat=SigU(ii).mat - zp2'*zp2;
-            #    W(ii).mat=zp2';
+            if ztSep==False:
+                W_tmp = SigUW[ii] @ SigWi[ii]
+                W[ii] = W_tmp
+                SigUgW[ii] = SigU[ii] - W_tmp @ SigUW[ii].T
+            else:
+                # computation for a kron/separable design
+                zp=np.zeros( (m,n) )
+                for jj in range(n):
+                    zp[:,jj]=sepQuadFormCalc(num.V[ii],SigUW[ii][jj,:].T)
+                zp2=zp * num.Dki2[ii]
+                SigUgW[ii]=SigU[ii] - zp2.T @ zp2
+                W[ii].mat=zp2.T
         
         if (do_betaV or do_lamVz) and pv > 0:
             SigV = []
@@ -181,18 +216,15 @@ def compute_log_lik(g, cvar='all', cindex=None):
         #                        + model.SigObs/lamOs;
         SigVUgW = num.SigObs/g.params.lamOs.val
         for ii in range(pv):
-            # originally in gpmsa: used symetric indices of blkRange=(ii-1)*n+1:ii*n
             SigVUgW[ii*n:(ii+1)*n, ii*n:(ii+1)*n] = \
                 SigVUgW[ii*n:(ii+1)*n, ii*n:(ii+1)*n] + SigV[num.lamVzGroup[ii]]
 
         if num.scalar_out:
             for ii in range(pu):
-                # gpmsa: blkRange=(ii-1)*n+1:ii*n;
                 SigVUgW[ii*n:(ii+1)*n, ii*n:(ii+1)*n] = \
                     SigVUgW[ii*n:(ii+1)*n, ii*n:(ii+1)*n] + SigUgW[ii]
         else:
             for ii in range(pu):
-                # gpmsa: blkRange=n*pv+((ii-1)*n+1:ii*n);
                 SigVUgW[n*pv+ii*n:n*pv+(ii+1)*n, n*pv+ii*n:n*pv+(ii+1)*n] = \
                     SigVUgW[n*pv+ii*n:n*pv+(ii+1)*n, n*pv+ii*n:n*pv+(ii+1)*n] + SigUgW[ii]
 
@@ -200,16 +232,13 @@ def compute_log_lik(g, cvar='all', cindex=None):
         MuVUgW = np.zeros((n*pu, 1))
         w = num.w
         for ii in range(pu):
-            # gpmsa: blkRange1=(ii-1)*n+1:ii*n;
-            # gpmsa: blkRange2=(ii-1)*m+1:ii*m;
-            #if isempty(data.ztSep)
-            # gpmsa: MuVUgW(blkRange1)=W(ii).mat*model.w(blkRange2);
-            MuVUgW[ii*n:(ii+1)*n, 0] = W[ii] @ w[ii*m:(ii+1)*m, 0]
-            #else
-            #    % computation for a kron/separable design
-            #    zp=sepQuadFormCalc(model.V(ii).mats,model.w(blkRange2));
-            #    zp2=zp .* model.Dki2(ii).vec;
-            #    MuVUgW(blkRange1)=W(ii).mat*zp2;
+            if ztSep==False:
+                MuVUgW[ii*n:(ii+1)*n, 0] = W[ii] @ w[ii*m:(ii+1)*m, 0]
+            else:
+                # computation for a kron/separable design
+                zp=sepQuadFormCalc(num.V[ii], w[ii*m:(ii+1)*m, 0])
+                zp2=zp * num.Dki2(ii).vec
+                MuVUgW[ii*n:(ii+1)*n, 0]=W[ii] @ zp2
 
         # for scalar output:  MuDiff=   [u] - [MuVUgW]
         # otherwise:          MuDiff= [v;u] - [0;MuVUgW] 
