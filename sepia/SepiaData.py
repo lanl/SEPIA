@@ -544,7 +544,7 @@ class SepiaData(object):
                             ax.legend(prop={'size': 6})
                         else:
                             ax.axis('off')
-                    return fig
+                    return fig_uw
                             
                 else: # do u and w independently
                     raise ValueError('u.shape[1] != w.shape[1]')
@@ -675,32 +675,32 @@ class SepiaData(object):
                     v = vu[:pv, :].T
                     u = vu[pv:, :].T
 
-                # change u,w to match max_plots
-                if w.shape[1]>max_plots: 
-                    w = w[:,0:max_plots]
-                    print('Plotting up to',max_plots,'pairs. Change with parameter \'max_plots\'')
-                col_names = []
-                for i in range(w.shape[1]): col_names.append('w{}'.format(i+1))
-                w_df = pd.DataFrame(data=w,columns=col_names)
-                if u.shape[1]>max_plots: u = u[:,0:max_plots]
+            # change u,w to match max_plots
+            if w.shape[1]>max_plots: 
+                w = w[:,0:max_plots]
+                print('Plotting up to',max_plots,'pairs. Change with parameter \'max_plots\'')
+            col_names = []
+            for i in range(w.shape[1]): col_names.append('w{}'.format(i+1))
+            w_df = pd.DataFrame(data=w,columns=col_names)
+            if u.shape[1]>max_plots: u = u[:,0:max_plots]
 
-                lims = max(np.maximum(np.max(np.abs(w),axis=0),np.max(np.abs(u),axis=0))*1.1)
-                with sns.plotting_context("notebook", font_scale=1):
-                    g = sns.PairGrid(w_df)
-                    g.map_diag(sns.distplot)
-                    g.map_offdiag(sns.scatterplot)
-                    for i in range(g.axes.shape[1]): # rows
-                        for j in range(g.axes.shape[0]): # columns
-                            g.axes[i,j].set_xlim(-lims,lims); g.axes[i,j].set_ylim(-lims,lims)
-                            if i == j:
-                                for k in range(u.shape[0]):
-                                    g.axes[i,i].axvline(u[k,i],color='darkorange',label='u{}'.format(i+1) if k==0 else "_")
-                                g.axes[i,i].legend(facecolor='white')
-                            else:
-                                g.axes[i,j].scatter(u[:,j],u[:,i],c='darkorange',label='(u{},u{})'.format(j+1,i+1))
-                                g.axes[i,j].legend(facecolor='white')
-                if save: plt.savefig(save,dpi=300)
-                return g.fig
+            lims = max(np.maximum(np.max(np.abs(w),axis=0),np.max(np.abs(u),axis=0))*1.1)
+            with sns.plotting_context("notebook", font_scale=1):
+                g = sns.PairGrid(w_df)
+                g.map_diag(sns.distplot)
+                g.map_offdiag(sns.scatterplot)
+                for i in range(g.axes.shape[1]): # rows
+                    for j in range(g.axes.shape[0]): # columns
+                        g.axes[i,j].set_xlim(-lims,lims); g.axes[i,j].set_ylim(-lims,lims)
+                        if i == j:
+                            for k in range(u.shape[0]):
+                                g.axes[i,i].axvline(u[k,i],color='darkorange',label='u{}'.format(i+1) if k==0 else "_")
+                            g.axes[i,i].legend(facecolor='white')
+                        else:
+                            g.axes[i,j].scatter(u[:,j],u[:,i],c='darkorange',label='(u{},u{})'.format(j+1,i+1))
+                            g.axes[i,j].legend(facecolor='white')
+            if save: plt.savefig(save,dpi=300)
+            return g.fig
 
     def plot_K_residuals(self):
         """
