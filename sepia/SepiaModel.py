@@ -367,6 +367,7 @@ class SepiaModel:
 
         :param string/NoneType file_name: file name for model info (with no extension); if None, uses default name.
         """
+        print('WARNING: make sure this model was instantiated with the same input data as the model corresonding to this saved model info.')
         if file_name is None:
             file_name = 'saved_model_info'
         with open('%s.pkl' % file_name, 'rb') as f:
