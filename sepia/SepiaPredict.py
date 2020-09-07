@@ -236,27 +236,32 @@ class SepiaFullPrediction(SepiaPrediction):
         :return: predictions of native ysim, (#samples x #x_pred x py_sim(or py_obs))
         """
         if std:
-            if as_obs:
-                if self.model.data.ragged_obs:
-                    K = self.model.data.obs_data.K[obs_ref]
-                else:
-                    K = self.model.data.obs_data.K
-                return np.tensordot(self.u,K,axes=[[2],[0]])
+            if self.model.num.scalar_out:
+                return self.u
             else:
-                return np.tensordot(self.u,self.model.data.sim_data.K,axes=[[2],[0]])
-        else:  
-            if as_obs:
-                if self.model.data.ragged_obs:
-                    K = self.model.data.obs_data.K[obs_ref]
+                if as_obs:
+                        if self.model.data.ragged_obs:
+                            K = self.model.data.obs_data.K[obs_ref]
+                        else:
+                            K = self.model.data.obs_data.K
+                        return np.tensordot(self.u,K,axes=[[2],[0]])
                 else:
-                    K = self.model.data.obs_data.K
-                ysd_inpredshape, ymean_inpredshape = self.calc_obs_standardizations_inpredshape(obs_ref=obs_ref)
-                return np.tensordot(self.u,K,axes=[[2],[0]])*ysd_inpredshape+ymean_inpredshape
+                    return np.tensordot(self.u,self.model.data.sim_data.K,axes=[[2],[0]])
+        else:
+            if self.model.num.scalar_out:
+                return self.u*self.model.data.sim_data.orig_y_sd + self.model.data.sim_data.orig_y_mean
             else:
-                ysd_inpredshape, ymean_inpredshape = self.calc_sim_standardizations_inpredshape()
-                return np.tensordot(self.u,self.model.data.sim_data.K,axes=[[2],[0]])*ysd_inpredshape+ymean_inpredshape
-       
-    
+                if as_obs:
+                    if self.model.data.ragged_obs:
+                        K = self.model.data.obs_data.K[obs_ref]
+                    else:
+                        K = self.model.data.obs_data.K
+                    ysd_inpredshape, ymean_inpredshape = self.calc_obs_standardizations_inpredshape(obs_ref=obs_ref)
+                    return np.tensordot(self.u,K,axes=[[2],[0]])*ysd_inpredshape+ymean_inpredshape
+                else:
+                    ysd_inpredshape, ymean_inpredshape = self.calc_sim_standardizations_inpredshape()
+                    return np.tensordot(self.u,self.model.data.sim_data.K,axes=[[2],[0]])*ysd_inpredshape+ymean_inpredshape
+
     def get_discrepancy(self, as_obs=False, std=False, obs_ref=0):
         """
         return Dsim*v to provide predictions of discrepancy on the native scale at sim locations.
@@ -268,6 +273,10 @@ class SepiaFullPrediction(SepiaPrediction):
          to use for transformation parameters; default index 0
         :return: predictions of native discrepancy, (#samples x #x_pred x py_sim(or py_obs))
         """
+
+        if self.model.num.pv==0:  # no-discrepancy model
+            raise TypeError('discrepancy requested from a no-discrepancy model')
+
         if std:
             if as_obs:
                 if self.model.data.ragged_obs:
@@ -299,7 +308,12 @@ class SepiaFullPrediction(SepiaPrediction):
          to use for transformation parameters; default index 0
         :return: predictions of native y (Emulator+Discrepancy), (#samples x #x_pred x py_sim(or py_obs))
         """
-        return self.get_ysim(as_obs=as_obs,std=std,obs_ref=obs_ref)+self.get_discrepancy(as_obs=as_obs,std=std,obs_ref=obs_ref)
+
+        if self.model.num.pv==0: #means it's a no-discrepancy model
+            return self.get_ysim(as_obs=as_obs, std=std, obs_ref=obs_ref)
+        else:
+            return self.get_ysim(as_obs=as_obs,std=std,obs_ref=obs_ref) + \
+                   self.get_discrepancy(as_obs=as_obs,std=std,obs_ref=obs_ref)
 
     def get_mu_sigma(self):
         """
@@ -522,12 +536,17 @@ def uvPred(pred, useAltW=False):
             SigWUx[jj*m:(jj+1)*m,jj*npred:(jj+1)*npred]=zxpredDist.compute_cov_mat(betaU[:, jj], lamUz[0, jj])
 
         if num.scalar_out:
-            #SigCross=[SigVVx                 SigUUx; ...
-            #          zeros(m*pu,npred*pv)   SigWUx];
-            SigCross=np.zeros( ( n*pv+m*pu, npred*(pv+pu) )  )
-            SigCross[:n*pv,:npred*pv]=SigVVx
-            SigCross[n*pv:,:npred*pv]=SigUUx
-            SigCross[n*pv:,npred*pv:]=SigWUx
+            if not no_D:
+                #SigCross=[SigVVx                 SigUUx; ...
+                #          zeros(m*pu,npred*pv)   SigWUx];
+                SigCross=np.zeros( ( n*pv+m*pu, npred*(pv+pu) )  )
+                SigCross[:n*pv,:npred*pv]=SigVVx
+                SigCross[n*pv:,:npred*pv]=SigUUx
+                SigCross[n*pv:,npred*pv:]=SigWUx
+            else: # no Discrepancy model
+                # SigCross=[SigUUx;
+                #           SigWUx]
+                SigCross=np.vstack((SigUUx,SigWUx))
         else:
             #SigCross=[SigVVx                 zeros(n*pv,npred*pu); ...
             #          zeros(n*pu,npred*pv)   SigUUx; ...
