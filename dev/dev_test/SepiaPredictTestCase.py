@@ -395,4 +395,4 @@ class SepiaPredictTestCase(unittest.TestCase):
         psamps = model.get_samples(0, sampleset=[0, n_pred-1], flat=True)
         pred = SepiaFullPrediction(x_pred=np.array([0.5]).reshape(1,1), samples=psamps,
                                        model=model, storeMuSigma=True)
-        
+        pass
