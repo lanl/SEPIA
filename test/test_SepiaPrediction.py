@@ -90,7 +90,6 @@ class SepiaPredictionTestCase(unittest.TestCase):
         cvpred.get_w()
         cvpred.get_y()
 
-        # TODO fails to initialize
         pred = SepiaFullPrediction(x_pred=model.data.sim_data.x, t_pred=model.data.sim_data.t,
                                        samples=samples, model=model)
         pred.get_u_v()
