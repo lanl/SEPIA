@@ -107,8 +107,10 @@ class SepiaModel:
             else:
                 ell_obs = obs_data.y.shape[1]
             n = obs_data.x.shape[0]
-            if data.scalar_out or obs_data.D is None:
+            if obs_data.D is None:
                 pv = 0
+            elif data.scalar_out:
+                pv = 1
             else:
                 if data.ragged_obs:
                     pv = obs_data.D[0].shape[0]
