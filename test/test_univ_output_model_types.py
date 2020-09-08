@@ -34,7 +34,7 @@ def call_model_methods(model):
     model.print_value_info()
     model.print_mcmc_info()
     model.tune_step_sizes(10, 10)
-    model.do_mcmc(50)
+    model.do_mcmc(100)
 
 def call_plot_functions(model):
     samples = model.get_samples()
@@ -60,16 +60,17 @@ class TestUnivOutputModelTypes(unittest.TestCase):
         call_plot_functions(model)
 
         samples = model.get_samples()
-        pred = SepiaEmulatorPrediction(x_pred=x, samples=samples, model=model)
+        pred = SepiaEmulatorPrediction(x_pred=x, samples=samples, model=model, addResidVar=True, storeMuSigma=True)
         pred.get_w()
         pred.get_y()
+        pred.get_y(std=True)
         pred.get_mu_sigma()
 
-        # TODO fails with x only
-        # xpred = SepiaXvalEmulatorPrediction(samples=samples, model=model)
-        # xpred.get_w()
-        # xpred.get_y()
-        # xpred.get_mu_sigma()
+        xpred = SepiaXvalEmulatorPrediction(samples=samples, model=model, addResidVar=True, storeMuSigma=True)
+        xpred.get_w()
+        xpred.get_y()
+        xpred.get_y(std=True)
+        xpred.get_mu_sigma()
 
     def test_sim_only_x_only_cat(self):
         m = 20
@@ -85,16 +86,17 @@ class TestUnivOutputModelTypes(unittest.TestCase):
         call_plot_functions(model)
 
         samples = model.get_samples()
-        pred = SepiaEmulatorPrediction(x_pred=x, samples=samples, model=model)
+        pred = SepiaEmulatorPrediction(x_pred=x, samples=samples, model=model, addResidVar=True, storeMuSigma=True)
         pred.get_w()
         pred.get_y()
+        pred.get_y(std=True)
         pred.get_mu_sigma()
 
-        # TODO fails with x only
-        #xpred = SepiaXvalEmulatorPrediction(model=model)
-        #xpred.get_w()
-        #xpred.get_y()
-        #xpred.get_mu_sigma()
+        xpred = SepiaXvalEmulatorPrediction(samples=samples, model=model, addResidVar=True, storeMuSigma=True)
+        xpred.get_w()
+        xpred.get_y()
+        xpred.get_y(std=True)
+        xpred.get_mu_sigma()
 
     def test_sim_only_t_only(self):
         m = 20
@@ -109,14 +111,16 @@ class TestUnivOutputModelTypes(unittest.TestCase):
         call_plot_functions(model)
 
         samples = model.get_samples()
-        pred = SepiaEmulatorPrediction(x_pred=0.5 * np.ones((m, 1)), t_pred=t, samples=samples, model=model)
+        pred = SepiaEmulatorPrediction(x_pred=0.5 * np.ones((m, 1)), t_pred=t, samples=samples, model=model, addResidVar=True, storeMuSigma=True)
         pred.get_w()
         pred.get_y()
+        pred.get_y(std=True)
         pred.get_mu_sigma()
 
-        xpred = SepiaXvalEmulatorPrediction(samples=samples, model=model)
+        xpred = SepiaXvalEmulatorPrediction(samples=samples, model=model, addResidVar=True, storeMuSigma=True)
         xpred.get_w()
         xpred.get_y()
+        xpred.get_y(std=True)
         xpred.get_mu_sigma()
 
     def test_sim_only_t_only_cat(self):
@@ -133,14 +137,16 @@ class TestUnivOutputModelTypes(unittest.TestCase):
         call_plot_functions(model)
 
         samples = model.get_samples()
-        pred = SepiaEmulatorPrediction(x_pred=0.5 * np.ones((m, 1)), t_pred=t, samples=samples, model=model)
+        pred = SepiaEmulatorPrediction(x_pred=0.5 * np.ones((m, 1)), t_pred=t, samples=samples, model=model, addResidVar=True, storeMuSigma=True)
         pred.get_w()
         pred.get_y()
+        pred.get_y(std=True)
         pred.get_mu_sigma()
 
-        xpred = SepiaXvalEmulatorPrediction(samples=samples, model=model)
+        xpred = SepiaXvalEmulatorPrediction(samples=samples, model=model, addResidVar=True, storeMuSigma=True)
         xpred.get_w()
         xpred.get_y()
+        xpred.get_y(std=True)
         xpred.get_mu_sigma()
 
     def test_sim_only_x_and_t(self):
@@ -157,14 +163,16 @@ class TestUnivOutputModelTypes(unittest.TestCase):
         call_plot_functions(model)
 
         samples = model.get_samples()
-        pred = SepiaEmulatorPrediction(x_pred=x, t_pred=t, samples=samples, model=model)
+        pred = SepiaEmulatorPrediction(x_pred=x, t_pred=t, samples=samples, model=model, addResidVar=True, storeMuSigma=True)
         pred.get_w()
         pred.get_y()
+        pred.get_y(std=True)
         pred.get_mu_sigma()
 
-        xpred = SepiaXvalEmulatorPrediction(samples=samples, model=model)
+        xpred = SepiaXvalEmulatorPrediction(samples=samples, model=model, addResidVar=True, storeMuSigma=True)
         xpred.get_w()
         xpred.get_y()
+        xpred.get_y(std=True)
         xpred.get_mu_sigma()
 
     def test_sim_only_x_and_t_cat(self):
@@ -183,14 +191,16 @@ class TestUnivOutputModelTypes(unittest.TestCase):
         call_plot_functions(model)
 
         samples = model.get_samples()
-        pred = SepiaEmulatorPrediction(x_pred=x, t_pred=t, samples=samples, model=model)
+        pred = SepiaEmulatorPrediction(x_pred=x, t_pred=t, samples=samples, model=model, addResidVar=True, storeMuSigma=True)
         pred.get_w()
         pred.get_y()
+        pred.get_y(std=True)
         pred.get_mu_sigma()
 
-        xpred = SepiaXvalEmulatorPrediction(samples=samples, model=model)
+        xpred = SepiaXvalEmulatorPrediction(samples=samples, model=model, addResidVar=True, storeMuSigma=True)
         xpred.get_w()
         xpred.get_y()
+        xpred.get_y(std=True)
         xpred.get_mu_sigma()
 
     def test_sim_and_obs_t_only(self):
@@ -208,21 +218,27 @@ class TestUnivOutputModelTypes(unittest.TestCase):
         call_plot_functions(model)
 
         samples = model.get_samples()
-        pred = SepiaEmulatorPrediction(x_pred=0.5 * np.ones((m, 1)), t_pred=t, samples=samples, model=model)
+        pred = SepiaEmulatorPrediction(x_pred=0.5 * np.ones((m, 1)), t_pred=t, samples=samples, model=model, addResidVar=True, storeMuSigma=True)
         pred.get_w()
         pred.get_y()
+        pred.get_y(std=True)
         pred.get_mu_sigma()
 
-        xpred = SepiaXvalEmulatorPrediction(samples=samples, model=model)
+        xpred = SepiaXvalEmulatorPrediction(samples=samples, model=model, addResidVar=True, storeMuSigma=True)
         xpred.get_w()
         xpred.get_y()
+        xpred.get_y(std=True)
         xpred.get_mu_sigma()
 
-        # TODO fails because no betaV/lamVz
-        #pred = SepiaFullPrediction(x_pred=0.5 * np.ones((m, 1)), t_pred=t, samples=samples, model=model)
-        #pred.get_u_v()
-        #pred.get_ysim()
-        #pred.get_yobs()
+        pred = SepiaFullPrediction(x_pred=0.5 * np.ones((m, 1)), t_pred=t, samples=samples, model=model, addResidVar=True, storeMuSigma=True)
+        pred.get_u_v()
+        pred.get_mu_sigma()
+        pred.get_ysim()
+        pred.get_ysim(as_obs=True)
+        pred.get_ysim(as_obs=True, std=True)
+        pred.get_yobs()
+        pred.get_yobs(as_obs=True)
+        pred.get_yobs(as_obs=True, std=True)
 
     def test_sim_and_obs_t_only_cat(self):
         m = 20
@@ -240,21 +256,27 @@ class TestUnivOutputModelTypes(unittest.TestCase):
         call_plot_functions(model)
 
         samples = model.get_samples()
-        pred = SepiaEmulatorPrediction(x_pred=0.5 * np.ones((m, 1)), t_pred=t, samples=samples, model=model)
+        pred = SepiaEmulatorPrediction(x_pred=0.5 * np.ones((m, 1)), t_pred=t, samples=samples, model=model, addResidVar=True, storeMuSigma=True)
         pred.get_w()
         pred.get_y()
+        pred.get_y(std=True)
         pred.get_mu_sigma()
 
-        xpred = SepiaXvalEmulatorPrediction(samples=samples, model=model)
+        xpred = SepiaXvalEmulatorPrediction(samples=samples, model=model, addResidVar=True, storeMuSigma=True)
         xpred.get_w()
         xpred.get_y()
+        xpred.get_y(std=True)
         xpred.get_mu_sigma()
 
-        # TODO fails because no betaV/lamVz
-        #pred = SepiaFullPrediction(x_pred=0.5 * np.ones((m, 1)), t_pred=t, samples=samples, model=model)
-        #pred.get_u_v()
-        #pred.get_ysim()
-        #pred.get_yobs()
+        pred = SepiaFullPrediction(x_pred=0.5 * np.ones((m, 1)), t_pred=t, samples=samples, model=model, addResidVar=True, storeMuSigma=True)
+        pred.get_u_v()
+        pred.get_mu_sigma()
+        pred.get_ysim()
+        pred.get_ysim(as_obs=True)
+        pred.get_ysim(as_obs=True, std=True)
+        pred.get_yobs()
+        pred.get_yobs(as_obs=True)
+        pred.get_yobs(as_obs=True, std=True)
 
     def test_sim_and_obs_x_and_t(self):
         m = 20
@@ -273,21 +295,27 @@ class TestUnivOutputModelTypes(unittest.TestCase):
         call_plot_functions(model)
 
         samples = model.get_samples()
-        pred = SepiaEmulatorPrediction(x_pred=x, t_pred=t, samples=samples, model=model)
+        pred = SepiaEmulatorPrediction(x_pred=x, t_pred=t, samples=samples, model=model, addResidVar=True, storeMuSigma=True)
         pred.get_w()
         pred.get_y()
+        pred.get_y(std=True)
         pred.get_mu_sigma()
 
-        xpred = SepiaXvalEmulatorPrediction(samples=samples, model=model)
+        xpred = SepiaXvalEmulatorPrediction(samples=samples, model=model, addResidVar=True, storeMuSigma=True)
         xpred.get_w()
         xpred.get_y()
+        xpred.get_y(std=True)
         xpred.get_mu_sigma()
 
-        # TODO fails because no betaV/lamVz
-        #pred = SepiaFullPrediction(x_pred=0.5 * np.ones((m, 1)), t_pred=t, samples=samples, model=model)
-        #pred.get_u_v()
-        #pred.get_ysim()
-        #pred.get_yobs()
+        pred = SepiaFullPrediction(x_pred=x, t_pred=t, samples=samples, model=model, addResidVar=True, storeMuSigma=True)
+        pred.get_u_v()
+        pred.get_mu_sigma()
+        pred.get_ysim()
+        pred.get_ysim(as_obs=True)
+        pred.get_ysim(as_obs=True, std=True)
+        pred.get_yobs()
+        pred.get_yobs(as_obs=True)
+        pred.get_yobs(as_obs=True, std=True)
 
     def test_sim_and_obs_x_and_t_cat(self):
         m = 20
@@ -308,19 +336,25 @@ class TestUnivOutputModelTypes(unittest.TestCase):
         call_plot_functions(model)
 
         samples = model.get_samples()
-        pred = SepiaEmulatorPrediction(x_pred=x, t_pred=t, samples=samples, model=model)
+        pred = SepiaEmulatorPrediction(x_pred=x, t_pred=t, samples=samples, model=model, addResidVar=True, storeMuSigma=True)
         pred.get_w()
         pred.get_y()
+        pred.get_y(std=True)
         pred.get_mu_sigma()
 
-        xpred = SepiaXvalEmulatorPrediction(samples=samples, model=model)
+        xpred = SepiaXvalEmulatorPrediction(samples=samples, model=model, addResidVar=True, storeMuSigma=True)
         xpred.get_w()
         xpred.get_y()
+        xpred.get_y(std=True)
         xpred.get_mu_sigma()
 
-        # TODO fails because no betaV/lamVz
-        #pred = SepiaFullPrediction(x_pred=0.5 * np.ones((m, 1)), t_pred=t, samples=samples, model=model)
-        #pred.get_u_v()
-        #pred.get_ysim()
-        #pred.get_yobs()
+        pred = SepiaFullPrediction(x_pred=x, t_pred=t, samples=samples, model=model, addResidVar=True, storeMuSigma=True)
+        pred.get_u_v()
+        pred.get_mu_sigma()
+        pred.get_ysim()
+        pred.get_ysim(as_obs=True)
+        pred.get_ysim(as_obs=True, std=True)
+        pred.get_yobs()
+        pred.get_yobs(as_obs=True)
+        pred.get_yobs(as_obs=True, std=True)
 
