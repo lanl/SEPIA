@@ -7,7 +7,7 @@ from sepia.SepiaDistCov import SepiaDistCov
 
 class SepiaPrediction():
     """
-    Base class inherited for predictions. Defines all parameters:
+    Base class inherited for predictions. Contains:
 
     :var sepia.SepiaModel model: SepiaModel instance
     :var numpy.ndarray xpred: x values for which to predict, shape (npred, p) matrix, on original untransformed scale
@@ -28,22 +28,22 @@ class SepiaPrediction():
 
     def __init__(self, x_pred=None, samples=None, model=None, t_pred=None,
                  addResidVar=False, storeRlz=True, storeMuSigma=False, do_call=True):
-        """
-        Instantiate SepiaPredict object (usually not called directly, but by subclass __init__).
-
-        :param numpy.ndarray x_pred: x values for which to predict, shape (npred, p) matrix, on original untransformed scale
-        :param dict samples: from `SepiaModel.get_samples()`
-        :param sepia.SepiaModel model: the SepiaModel object
-        :param numpy.ndarray/NoneType t_pred: t values for which to predict, shape (npred, q) matrix, optional for full model
-                                        (if not provided, `theta` values from posterior samples will be used) but required for emulator.
-        :param bool addResidVar: add the posterior residual variability to the samples?
-        :param bool storeRlz: make and store a process realizations for each x_pred / sample combination?
-        :param bool storeMuSigma: store the mean and sigma for the GP posterior for each x_pred / sample combination?
-        :param bool do_call: call wPred/uvPred upon initialization?
-        :raises TypeError: if inputs are not expected types
-        :raises ValueError: if inputs are not expected shapes
-
-        """
+        # """
+        # Instantiate SepiaPredict object (usually not called directly, but by subclass __init__).
+        #
+        # :param numpy.ndarray x_pred: x values for which to predict, shape (npred, p) matrix, on original untransformed scale
+        # :param dict samples: from `SepiaModel.get_samples()`
+        # :param sepia.SepiaModel model: the SepiaModel object
+        # :param numpy.ndarray/NoneType t_pred: t values for which to predict, shape (npred, q) matrix, optional for full model
+        #                                 (if not provided, `theta` values from posterior samples will be used) but required for emulator.
+        # :param bool addResidVar: add the posterior residual variability to the samples?
+        # :param bool storeRlz: make and store a process realizations for each x_pred / sample combination?
+        # :param bool storeMuSigma: store the mean and sigma for the GP posterior for each x_pred / sample combination?
+        # :param bool do_call: call wPred/uvPred upon initialization?
+        # :raises TypeError: if inputs are not expected types
+        # :raises ValueError: if inputs are not expected shapes
+        #
+        # """
 
         # make a list or scalar into an ndarray
         if not isinstance(x_pred,np.ndarray) or len(x_pred.shape)!=2:
@@ -92,6 +92,21 @@ class SepiaEmulatorPrediction(SepiaPrediction):
     """
 
     def __init__(self,*args,**kwrds):
+        """
+        Instantiate SepiaEmulatorPrediction object.
+
+        :param numpy.ndarray x_pred: x values for which to predict, shape (npred, p) matrix, on original untransformed scale
+        :param dict samples: from `SepiaModel.get_samples()`
+        :param sepia.SepiaModel model: the SepiaModel object
+        :param numpy.ndarray t_pred: t values for which to predict, shape (npred, q) matrix, required.
+        :param bool addResidVar: add the posterior residual variability to the samples?
+        :param bool storeRlz: make and store a process realizations for each x_pred / sample combination?
+        :param bool storeMuSigma: store the mean and sigma for the GP posterior for each x_pred / sample combination?
+        :param bool do_call: call wPred upon initialization?
+        :raises TypeError: if inputs are not expected types
+        :raises ValueError: if inputs are not expected shapes
+
+        """
         super(SepiaEmulatorPrediction,self).__init__(*args,**kwrds)
         # prediction is samples x prediction points (xpreds) x pu (basis)
         if self.do_call:
@@ -157,11 +172,19 @@ class SepiaXvalEmulatorPrediction(SepiaEmulatorPrediction):
 
     def __init__(self, leave_out_inds=None, model=None, *args, **kwrds):
         """
-        Initialize cross-validation emulator predictor.
+        Instantiate SepiaXvalEmulatorPrediction object.
 
-        :param leave_out_inds: optional, list of lists of indices to leave out in each fold; defaults to leave-one-out
-        :param model: SepiaModel object
-        :param *args, **kwrds: other arguments to SepiaPrediction parent class
+        :param list/NoneType leave_out_inds: optional, list of lists of indices to leave out in each fold; defaults to leave-one-out
+        :param numpy.ndarray x_pred: x values for which to predict, shape (npred, p) matrix, on original untransformed scale
+        :param dict samples: from `SepiaModel.get_samples()`
+        :param sepia.SepiaModel model: the SepiaModel object
+        :param numpy.ndarray t_pred: t values for which to predict, shape (npred, q) matrix, required.
+        :param bool addResidVar: add the posterior residual variability to the samples?
+        :param bool storeRlz: make and store a process realizations for each x_pred / sample combination?
+        :param bool storeMuSigma: store the mean and sigma for the GP posterior for each x_pred / sample combination?
+        :param bool do_call: call wPred upon initialization?
+        :raises TypeError: if inputs are not expected types
+        :raises ValueError: if inputs are not expected shapes
 
         """
         import copy
@@ -212,12 +235,23 @@ class SepiaXvalEmulatorPrediction(SepiaEmulatorPrediction):
 class SepiaFullPrediction(SepiaPrediction):
     """
     Make predictions of the full model: both emulator ('eta') and discrepancy ('delta') == (u,v)
-
-    :param all: init parameters are parsed by SepiaPrediction (inherited init)
-
-    Predictions are performed on init and stored in the object for access by methods:
+    Predictions are performed on init and stored in the object for access by methods.
     """
     def __init__(self,*args,**kwrds):
+        """
+        Instantiate SepiaFullPrediction object.
+
+        :param numpy.ndarray x_pred: x values for which to predict, shape (npred, p) matrix, on original untransformed scale
+        :param dict samples: from `SepiaModel.get_samples()`
+        :param sepia.SepiaModel model: the SepiaModel object
+        :param numpy.ndarray t_pred: t values for which to predict, shape (npred, q) matrix, optional (can take from theta samples).
+        :param bool addResidVar: add the posterior residual variability to the samples?
+        :param bool storeRlz: make and store a process realizations for each x_pred / sample combination?
+        :param bool storeMuSigma: store the mean and sigma for the GP posterior for each x_pred / sample combination?
+        :raises TypeError: if inputs are not expected types
+        :raises ValueError: if inputs are not expected shapes
+
+        """
         super(SepiaFullPrediction,self).__init__(*args,**kwrds)
         # prediction is samples x prediction points x pu or pv (basis)
         uvPred(self)
@@ -235,9 +269,9 @@ class SepiaFullPrediction(SepiaPrediction):
         Project u through the K basis to provide predictions of ysim on the native scale.
         (native refers to not the mean=0 and sd=1 standardization process in model setup)
 
-        :param as_obs: provide ysim predictions at obs locations (defaults to sim locations)
-        :param std: provide ysim predictions on standardized scale (defaults to native scale)
-        :param obs_ref: if this is a ragged_obs problem, selects the reference observation index
+        :param bool as_obs: provide ysim predictions at obs locations (defaults to sim locations)
+        :param bool std: provide ysim predictions on standardized scale (defaults to native scale)
+        :param int obs_ref: if this is a ragged_obs problem, selects the reference observation index
          to use for transformation parameters; default index 0
         :return: predictions of native ysim, (#samples x #x_pred x py_sim(or py_obs))
         """
@@ -273,9 +307,9 @@ class SepiaFullPrediction(SepiaPrediction):
         return Dsim*v to provide predictions of discrepancy on the native scale at sim locations.
         (native refers to not the sd=1 standardization process in model setup)
         
-        :param as_obs: provide discrepancy predictions at obs locations (defaults to sim locations)
-        :param std: provide discrepancy predictions on standardized scale (defaults to native scale)
-        :param obs_ref: if this is a ragged_obs problem, selects the reference observation index
+        :param bool as_obs: provide discrepancy predictions at obs locations (defaults to sim locations)
+        :param bool std: provide discrepancy predictions on standardized scale (defaults to native scale)
+        :param int obs_ref: if this is a ragged_obs problem, selects the reference observation index
          to use for transformation parameters; default index 0
         :return: predictions of native discrepancy, (#samples x #x_pred x py_sim(or py_obs))
         """
@@ -291,7 +325,7 @@ class SepiaFullPrediction(SepiaPrediction):
                     D = self.model.data.obs_data.D
                 return np.tensordot(self.v,D,axes=[[2],[0]]) 
             else:
-                return np.tensordot(self.v,self.model.data.sim_data.D.T,axes=[[2],[0]])
+                return np.tensordot(self.v,self.model.data.sim_data.D,axes=[[2],[0]]) # D was D.T, but removed to get rid of error
         else:
             ysd_inpredshape,_ = self.calc_obs_standardizations_inpredshape(obs_ref=obs_ref)
             if as_obs:  
@@ -308,9 +342,9 @@ class SepiaFullPrediction(SepiaPrediction):
         return y=Ksim*u+Dsim*v to provide predictions of y on the native scale at sim locations.
         (native refers to not the mean=0 and sd=1 standardization process in model setup)
 
-        :param as_obs: provide discrepancy predictions at obs locations (defaults to sim locations)
-        :param std: provide discrepancy predictions on standardized scale (defaults to native scale)
-        :param obs_ref: if this is a ragged_obs problem, selects the reference observation index
+        :param bool as_obs: provide discrepancy predictions at obs locations (defaults to sim locations)
+        :param bool std: provide discrepancy predictions on standardized scale (defaults to native scale)
+        :param int obs_ref: if this is a ragged_obs problem, selects the reference observation index
          to use for transformation parameters; default index 0
         :return: predictions of native y (Emulator+Discrepancy), (#samples x #x_pred x py_sim(or py_obs))
         """
