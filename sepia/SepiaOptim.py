@@ -110,20 +110,20 @@ class SepiaOptim():
                              maxiter=1000,swarmsize=10,obj_tol=1e-8,step_tol=1e-8,
                             log_transform=None,verbose=True):
         """        
-        Optimize model log posterior using particle swarm optimization.
+        Optimize model log posterior using particle swarm optimization. Intertial weight parameter w, decreases linearly from w_max to w_min by iteration number.
 
-        :param float w_max:
-        :param float w_min:
-        :param float c1:
-        :param float c2:
+        :param float w_max: maximum inertial weight parameter
+        :param float w_min: minimum intertial weight parameter
+        :param float c1: personal parameter (how much particles are drawn to personal best)
+        :param float c2: global parameter (how much particles are drawn to global best)
         :param int maxiter: maximum iterations
         :param int swarmsize: swarm size for PSO optimization
-        :param float obj_tol:
-        :param float step_tol:
+        :param float obj_tol: convergence tolerance - objective function value 
+        :param float step_tol: convergence tolerance - particle position 
         :param list/NoneType log_transform: list of names of variables for which to apply log transform
         :param bool verbose: print optimization info
         :return: tuple containing: x_opt (optimal parameter values), f_opt (function value at optimum),
-                                   f_hist (function value history), it, fnc_calls, p_native
+                                   f_hist (function value history), it (iterations to convergence), fnc_calls (objective function calls to convergence), p_native (optimal parameter values, undo log transform)
         """
         # don't want verbose model for optimizer but want to change back after
         was_verbose = False
@@ -178,11 +178,11 @@ class SepiaOptim():
         Optimize model log posterior using Nelder-Mead simplex algorithm.
 
         :param int maxiter: maximum iterations
-        :param float obj_tol:
-        :param float step_tol:
+        :param float obj_tol: convergence tolerance - objective function value
+        :param float step_tol: convergence tolerance - simplex position 
         :param list/NoneType log_transform: list of names of variables for which to apply log transform
         :param bool verbose: print optimization info
-        :param string start:
+        :param string start: how to choose start location (default: current model parameter values, random: random value in parameter space)
         :return: tuple containing: x_opt (optimal parameter values), lp_hist (log posterior history), p_native
         """
     
@@ -353,12 +353,14 @@ def pso(func, lb, ub, ieqcons=[], f_ieqcons=None, args=(), kwargs={},
     =======
     g : array
         The swarm's best known position (optimal design)
-    f : scalar
+    fg : scalar
         The objective value at ``g``
-    p : array
-        The best known position per particle
-    pf: arrray
-        The objective values at each position in p
+    fg_hist : array
+        list of objective function value by iteration
+    it : scalar
+        number of iterations to convergence
+    fnc_calls: scalar
+        number of objective function calls to convergence
    
     """
    
