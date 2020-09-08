@@ -183,9 +183,15 @@ class SepiaXvalEmulatorPrediction(SepiaEmulatorPrediction):
             sub_model.data.zt = sub_model.data.zt[fit_inds, :]
             sub_model.num.m = len(fit_inds)
             sub_model.num.ztDist = SepiaDistCov(sub_model.data.zt, cat_ind=np.concatenate([sub_model.data.x_cat_ind, sub_model.data.t_cat_ind]))
-            # Subset x/t to predict inds TODO check if both x and t exist first
-            self.xpred = sub_model.data.sim_data.x_trans[li, :]
-            self.t_pred = sub_model.data.sim_data.t_trans[li, :]
+            # Subset x/t to predict inds (check if None)
+            if sub_model.data.sim_data.x_trans is None:
+                self.xpred = np.array([[0.5]])
+            else:
+                self.xpred = sub_model.data.sim_data.x_trans[li, :]
+            if sub_model.data.sim_data.t_trans is None:
+                self.t_pred = np.array([[]])
+            else:
+                self.t_pred = sub_model.data.sim_data.t_trans[li, :]
             # Subset w's -- need to index for each pu
             w_inds = np.zeros(m)
             w_inds[fit_inds] = 1
@@ -295,7 +301,7 @@ class SepiaFullPrediction(SepiaPrediction):
                     D = self.model.data.obs_data.D
                 return np.tensordot(self.v,D,axes=[[2],[0]])*ysd_inpredshape
             else:
-                return np.tensordot(self.v,self.model.data.sim_data.D.T,axes=[[2],[0]])*ysd_inpredshape
+                return np.tensordot(self.v,self.model.data.sim_data.D,axes=[[2],[0]])*ysd_inpredshape # D was D.T, but removed to get rid of error
 
     def get_yobs(self, as_obs=False, std=False, obs_ref=0):
         """
