@@ -801,6 +801,9 @@ class SepiaModel:
 
         post_var = self.marg_post_var(x)
 
+        if np.isclose(post_var, 0):
+            raise ZeroDivisionError('post_var is zero; check chains.')
+
         t = 1
         rho = np.ones(n_iters)
         negative_autocorr = False
