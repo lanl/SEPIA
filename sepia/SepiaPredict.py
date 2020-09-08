@@ -239,7 +239,7 @@ class SepiaFullPrediction(SepiaPrediction):
         :param std: provide ysim predictions on standardized scale (defaults to native scale)
         :param obs_ref: if this is a ragged_obs problem, selects the reference observation index
          to use for transformation parameters; default index 0
-        :return: predictions of native ysim, (#samples x #x_pred x py_sim(or py_obs))
+        :return: predictions of native ysim, (#samples x #x_pred x py_sim(or py_obs)) or (#samples x py_sim(or py_obs)) if ragged and obs_ref is specified
         """
         if std:
             if self.model.num.scalar_out:
@@ -248,9 +248,10 @@ class SepiaFullPrediction(SepiaPrediction):
                 if as_obs:
                         if self.model.data.ragged_obs:
                             K = self.model.data.obs_data.K[obs_ref]
+                            return np.tensordot(self.u,K,axes=[[2],[0]])[:,obs_ref,:]
                         else:
                             K = self.model.data.obs_data.K
-                        return np.tensordot(self.u,K,axes=[[2],[0]])
+                            return np.tensordot(self.u,K,axes=[[2],[0]])
                 else:
                     return np.tensordot(self.u,self.model.data.sim_data.K,axes=[[2],[0]])
         else:
@@ -260,10 +261,12 @@ class SepiaFullPrediction(SepiaPrediction):
                 if as_obs:
                     if self.model.data.ragged_obs:
                         K = self.model.data.obs_data.K[obs_ref]
+                        ysd_inpredshape, ymean_inpredshape = self.calc_obs_standardizations_inpredshape(obs_ref=obs_ref)
+                        return (np.tensordot(self.u,K,axes=[[2],[0]])*ysd_inpredshape+ymean_inpredshape)[:,obs_ref,:]
                     else:
                         K = self.model.data.obs_data.K
-                    ysd_inpredshape, ymean_inpredshape = self.calc_obs_standardizations_inpredshape(obs_ref=obs_ref)
-                    return np.tensordot(self.u,K,axes=[[2],[0]])*ysd_inpredshape+ymean_inpredshape
+                        ysd_inpredshape, ymean_inpredshape = self.calc_obs_standardizations_inpredshape(obs_ref=obs_ref)
+                        return np.tensordot(self.u,K,axes=[[2],[0]])*ysd_inpredshape+ymean_inpredshape
                 else:
                     ysd_inpredshape, ymean_inpredshape = self.calc_sim_standardizations_inpredshape()
                     return np.tensordot(self.u,self.model.data.sim_data.K,axes=[[2],[0]])*ysd_inpredshape+ymean_inpredshape
@@ -277,7 +280,7 @@ class SepiaFullPrediction(SepiaPrediction):
         :param std: provide discrepancy predictions on standardized scale (defaults to native scale)
         :param obs_ref: if this is a ragged_obs problem, selects the reference observation index
          to use for transformation parameters; default index 0
-        :return: predictions of native discrepancy, (#samples x #x_pred x py_sim(or py_obs))
+        :return: predictions of native discrepancy, (#samples x #x_pred x py_sim(or py_obs)) or (#samples x py_sim(or py_obs)) if ragged and obs_ref is specified
         """
 
         if self.model.num.pv==0:  # no-discrepancy model
@@ -287,9 +290,10 @@ class SepiaFullPrediction(SepiaPrediction):
             if as_obs:
                 if self.model.data.ragged_obs:
                     D = self.model.data.obs_data.D[obs_ref]
+                    return np.tensordot(self.v,D,axes=[[2],[0]])[:,obs_ref,:]
                 else:
                     D = self.model.data.obs_data.D
-                return np.tensordot(self.v,D,axes=[[2],[0]]) 
+                    return np.tensordot(self.v,D,axes=[[2],[0]]) 
             else:
                 return np.tensordot(self.v,self.model.data.sim_data.D.T,axes=[[2],[0]])
         else:
@@ -297,9 +301,10 @@ class SepiaFullPrediction(SepiaPrediction):
             if as_obs:  
                 if self.model.data.ragged_obs:
                     D = self.model.data.obs_data.D[obs_ref]
+                    return (np.tensordot(self.v,D,axes=[[2],[0]])*ysd_inpredshape)[:,obs_ref,:]
                 else:
                     D = self.model.data.obs_data.D
-                return np.tensordot(self.v,D,axes=[[2],[0]])*ysd_inpredshape
+                    return np.tensordot(self.v,D,axes=[[2],[0]])*ysd_inpredshape
             else:
                 return np.tensordot(self.v,self.model.data.sim_data.D,axes=[[2],[0]])*ysd_inpredshape # D was D.T, but removed to get rid of error
 
@@ -312,7 +317,7 @@ class SepiaFullPrediction(SepiaPrediction):
         :param std: provide discrepancy predictions on standardized scale (defaults to native scale)
         :param obs_ref: if this is a ragged_obs problem, selects the reference observation index
          to use for transformation parameters; default index 0
-        :return: predictions of native y (Emulator+Discrepancy), (#samples x #x_pred x py_sim(or py_obs))
+        :return: predictions of native y (Emulator+Discrepancy), (#samples x #x_pred x py_sim(or py_obs)) or (#samples x py_sim(or py_obs)) if ragged and obs_ref is specified
         """
 
         if self.model.num.pv==0: #means it's a no-discrepancy model
