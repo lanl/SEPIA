@@ -406,7 +406,7 @@ def rmultnormsvd(n,mu,sigma):
     rnorm=np.tile(mu,(1,n)) + U @ np.diag(np.sqrt(s)) @ normalrands
     return rnorm.squeeze()
 
-def uvPred(pred, useAltW=False):
+def uvPred(pred):
     # some shorthand references from the pred object
     xpred=pred.xpred
     samples=pred.samples
@@ -492,47 +492,17 @@ def uvPred(pred, useAltW=False):
             else:
                 SigUplusVpart = SigU + num.SigObs * 1 / lamOs
             SigData=np.block([[SigUplusVpart,SigUW],[SigUW.T,SigW]])
-            # Calculate inverse of SigData directly using block stuff TODO use this?
-            if useAltW:
-                SigWinv = scipy.linalg.inv(SigW)
-                SigWinvSigUWT = scipy.linalg.solve(SigW, SigUW.T)
-                Atmp = SigUpV - SigUW @ SigWinvSigUWT
-                DinvA = scipy.linalg.inv(Atmp)
-                DinvB = -scipy.linalg.solve(Atmp, SigWinvSigUWT.T)
-                DinvD = SigWinv - DinvB.T @ SigWinvSigUWT.T
-                SigDatainv = np.concatenate(
-                   (np.concatenate((DinvA, DinvB), axis=1),
-                    np.concatenate((DinvB.T, DinvD), axis=1) ), axis=0)
         else:
             #SigData=[SigV                 0
             #        0                     [ SigU    SigUW; ...
             #                               SigUW'  SigW  ] ];
             #SigData(1:n*(pv+pu),1:n*(pv+pu)) += model.SigObs*1/lamOs;
             SigSubmat=np.block([[SigU,SigUW],[SigUW.T,SigW]])
-            # Computing inverse of SigData directly TODO use this?
-            if useAltW:
-                USigObs = num.SigObs[n*pv:, n*pv:]
-                VSigObs = num.SigObs[:n*pv, :n*pv]
-                SigWinv = scipy.linalg.inv(SigW)
-                Asub = SigU + USigObs*1/lamOs
-                SigWinvSigUWT = scipy.linalg.solve(SigW, SigUW.T)
-                Atmp = Asub - SigUW @ SigWinvSigUWT
-                DinvA = scipy.linalg.inv(Atmp)
-                DinvB = -scipy.linalg.solve(Atmp, SigWinvSigUWT.T)
-                DinvD = SigWinv - DinvB.T @ SigWinvSigUWT.T
-                Dinv = np.concatenate(
-                   (np.concatenate((DinvA, DinvB), axis=1),
-                    np.concatenate((DinvB.T, DinvD), axis=1) ), axis=0)
             sddim=n*pv+(n+m)*pu
             SigData=np.zeros((sddim,sddim))
             SigData[:n*pv,:n*pv] = SigV
             SigData[n*pv:,n*pv:] = SigSubmat
             SigData[:n*(pv+pu),:n*(pv+pu)] += num.SigObs*1/lamOs
-            # TODO use this?
-            if useAltW:
-                SigDatainv = np.zeros_like(SigData)
-                SigDatainv[:n*pv,:n*pv] = scipy.linalg.inv(SigV + VSigObs*1/lamOs)
-                SigDatainv[n*pv:,n*pv:] = Dinv
 
         # SigPred
         # Generate the part of the matrix related to the predictors
@@ -597,33 +567,12 @@ def uvPred(pred, useAltW=False):
             SigCross[n*(pv+pu):,    npred*pv:]=SigWUx
 
         # Get posterior parameters
-        if not useAltW:
-            W = scipy.linalg.solve(SigData, SigCross, sym_pos=True)
-            if num.scalar_out:
-                Myhat = W.T @ num.uw
-            else:
-                Myhat = W.T @ num.vuw
-            Syhat = SigPred - W.T @ SigCross
+        W = scipy.linalg.solve(SigData, SigCross, sym_pos=True)
+        if num.scalar_out:
+            Myhat = W.T @ num.uw
         else:
-        # TODO see if using structure is better/faster
-            W = np.zeros((n*pv + (n+m)*pu, npred* (pu + pv)))
-            W[:n*pv, :npred*pv] = SigDatainv[:n*pv, :n*pv] @ SigCross[:n*pv, :npred*pv]
-            W[n*pv:, npred*pv:] = SigDatainv[n*pv:, n*pv:] @ SigCross[n*pv:, npred*pv:]
-            #W = SigDatainv @ SigCross
-            #import matplotlib.pyplot as plt
-            #W_zeros = W.copy()
-            #W_zeros[W == 0] = np.nan
-            #plt.imshow(W_zeros, aspect='auto')
-            #plt.show()
-            # So Wnew gets the zero blocks, W doesn't quite.
-            #  Also can exploit the zero blocks for the multiplications below, I think.
-            # TODO see how to use zeros below, check implementation of SigDatainv
-            if num.scalar_out:
-                Myhat = W.T @ num.uw
-            else:
-                #Myhat = W.T @ num.vuw
-                Myhat = W[:n*pv, :].T @ num.v + W[n*pv:, :].T @ np.concatenate([num.u, num.w])
-            Syhat = SigPred - W.T @ SigCross
+            Myhat = W.T @ num.vuw
+        Syhat = SigPred - W.T @ SigCross
 
         if pred.storeRlz:
             # Record a realization
@@ -635,7 +584,6 @@ def uvPred(pred, useAltW=False):
             # add the distribution params to the return
             pred.mu[ii, :] = np.squeeze(Myhat)
             pred.sigma[ii, :, :] = Syhat
-
 
     if pred.storeRlz:
         # Reshape the pred matrix to 3D, for each component:
