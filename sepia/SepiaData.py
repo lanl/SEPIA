@@ -421,6 +421,7 @@ class SepiaData(object):
         Plots K basis elements for both sim and obs indices (if applicable). Only applies to multivariate-output models.
 
         :param int max_plots: maximum number of principal components to plot
+        :return: tuple containing matplotlib figure objects: (fig_sim, fig_obs) or just fig_sim if no observed data is present
         """
         # Return early if scalar out or basis not set up
         if self.scalar_out:
@@ -482,6 +483,7 @@ class SepiaData(object):
         Plots K basis weights for both sim and obs data (if applicable). Only applies to multivariate-output models.
 
         :param int max_u_plot: max number of u's for which to plot vertical line over histogram of w's
+        :return: tuple containing matplotlib figure objects: (fig_uw, fig_v) or just fig_uw if no discrepancy is specified
         """
         # Return early if scalar out or basis not set up
         if self.scalar_out:
@@ -611,6 +613,7 @@ class SepiaData(object):
         Plots principal component basis weights for both sim and obs data (if applicable). Only applies to multivariate-output models.
 
         :param int max_plots: max number of principal components to plot
+        :return: matplotlib figure fig_g: seaborn pairs figure
         """
         # Return early if scalar out or basis not set up
         if self.scalar_out:
@@ -705,7 +708,7 @@ class SepiaData(object):
     def plot_K_residuals(self):
         """
         Plots residuals after projection to K basis. Only applies to multivariate-output models.
-
+        :return: tuple containing matplotlib figure objects: (fig_u, fig_v) or just fig_noD if no discrepancy is specified
         """
         # Return early if scalar out or basis not set up
         if self.scalar_out:
@@ -784,6 +787,7 @@ class SepiaData(object):
         :param float y_max: sets y upper limit on plot
         :param int n_neighbors: sets number of nearest simulations to highlight
         :param int max_sims: sets maximum number of simulation runs to plot
+        :return matplotlib figure fig: figure object of plot
         """
         if self.sim_only:
             print('plot_data does not currently work for sim_only models.')
