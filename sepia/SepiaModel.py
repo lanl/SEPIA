@@ -802,7 +802,7 @@ class SepiaModel:
         post_var = self.marg_post_var(x)
 
         if np.isclose(post_var, 0):
-            raise ZeroDivisionError('post_var is zero; check chains.')
+            raise ZeroDivisionError('One of the chains has zero variation across samples; check chains/model.')
 
         t = 1
         rho = np.ones(n_iters)
