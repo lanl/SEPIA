@@ -5,9 +5,14 @@ import scipy.stats
 
 from sepia.SepiaDistCov import SepiaDistCov
 
-# TODO this is not finished!
+# TODO this needs testing
 
-def sensitivity(model, samples_dict=False, sampleset=False, ngrid=21, varlist=[], jelist=[], rg=None, option='mean'):
+def sensitivity(model, samples_dict=False, sampleset=False, ngrid=21, varlist=None, jelist=None, rg=None, option='mean'):
+
+    if varlist is None:
+        varlist = []
+    if jelist is None:
+        jelist = []
 
     # Extract things from model
     p = model.num.p
@@ -98,8 +103,8 @@ def sensitivity(model, samples_dict=False, sampleset=False, ngrid=21, varlist=[]
         ste[ii,:]=ste[ii,:]/vt0
         vt[ii]=vt0
     
-    smePm=np.squeeze(np.mean(sme))
-    stePm=np.squeeze(np.mean(ste))
+    smePm=np.squeeze(np.mean(sme, 0))
+    stePm=np.squeeze(np.mean(ste, 0))
     
     if varlist:
         sie=np.zeros((npvec,len(varlist)))
@@ -164,15 +169,15 @@ def sensitivity(model, samples_dict=False, sampleset=False, ngrid=21, varlist=[]
     if varlist:
         jef_m=np.zeros((pu,len(varlist),ngrid*ksmm.shape[0],ngrid))
         jef_sd=np.zeros(jef_m.shape)
-        meanmat=np.tile(ymead,(ngrid,ngrid))
+        meanmat=np.tile(ymean,(ngrid,ngrid))
         ysdmat=np.tile(ysd,(ngrid,ngrid))
         for jj in range(pu):
             for kk in range(len(varlist)):
                 jef_m[jj,kk,:,:]=np.kron(np.mean(sa[jj]['jef_m'][:,kk,:,:]).reshape((1,ngrid)),ksmm[:,jj])*\
                 ysdmat+meanmat
-                jef_sd[jj,kk,:,:]=np.sqrt(kron(np.var(sa[jj]['jef_m'][:,kk,:,:],axis=0).reshape((1,ngrid)),\
+                jef_sd[jj,kk,:,:]=np.sqrt(np.kron(np.var(sa[jj]['jef_m'][:,kk,:,:],axis=0).reshape((1,ngrid)),\
                                               ksmm[:,jj]**2)+\
-                                         kron(np.mean(sa[jj]['jef_v'][:,kk,:,:],axis=0).reshape((1,ngrid)),\
+                                         np.kron(np.mean(sa[jj]['jef_v'][:,kk,:,:],axis=0).reshape((1,ngrid)),\
                                              ksmm[:,jj]**2))*ysdmat
         a=jef_m.shape
         tjef_m=np.sum(jef_m,0).reshape((a[1],a[2],a[3]))
@@ -183,7 +188,7 @@ def sensitivity(model, samples_dict=False, sampleset=False, ngrid=21, varlist=[]
         for jj in range(len(varlist)):
             for kk in range(pu):
                 tjef_sd[jj,:,:]=tjef_sd[jj,:,:].reshape((1,ngrid))+\
-                                kron(np.mean(sa[kk]['jef_v'][:,jj,:,:],axis=0).reshape((1,ngrid)),\
+                                np.kron(np.mean(sa[kk]['jef_v'][:,jj,:,:],axis=0).reshape((1,ngrid)),\
                                     ksmm[:,kk]**2)
         tmp=np.zeros((npvec,a[1],a[2]))
         for hh in range(ngrid):
@@ -347,7 +352,8 @@ def component_sens(x, y, beta, lamUz, lamWs, xe, ngrid, varlist, jelist, rg):
         
 def calc1(beta, diff):
     ncdf = scipy.stats.norm.cdf(np.sqrt(2 * beta) * diff)
-    c1 = (np.sqrt(np.pi/beta) * diff * (2 * ncdf - 1) - (1./beta) * (1 - np.sqrt(2*np.pi) * ncdf)) / np.square(diff)
+    npdf = scipy.stats.norm.pdf(np.sqrt(2 * beta) * diff)
+    c1 = (np.sqrt(np.pi/beta) * diff * (2 * ncdf - 1) - (1/beta) * (1 - np.sqrt(2*np.pi) * npdf)) / np.square(diff)
     return c1
 
 def calc2(x ,xdist, m, rg, beta, diff):
