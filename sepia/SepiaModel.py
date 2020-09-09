@@ -23,13 +23,15 @@ class SepiaModel:
     :var bool verbose: print verbose output for this model?
     """
 
-    def __init__(self, data, Sigy=None, lamVzGroup=None, LamSim=None):
+    def __init__(self, data, Sigy=None, lamVzGroup=None, theta_fcon=None, theta_init=None, LamSim=None):
         """
         Sets up `SepiaModel` object based on instantiated `SepiaData` object.
 
         :param sepia.SepiaData data: instantiated `sepia.SepiaData` object with all transformations and basis creation done
         :param numpy.ndarray/NoneType Sigy: optional observation covariance matrix (default is identity)
         :param numpy.ndarray/list lamVzGroup: indicate groups for lamVz (otherwise single lamVz for all D basis functions)
+        :param function/NoneType theta_fcon: constraint function for thetas; should take entire theta array and return True/False for constraint satisfied
+        :param numpy.ndarray/NoneType theta_init: if using theta_fcon, should provide theta_init array that satisfies constraints
         :param numpy.ndarray LamSim: option to pass custom `LamSim` (warning: don't use this unless know what you're doing!)
         :return: instantiated `sepia.SepiaModel` object
         :raises ValueError: if `K_sim` and `K_obs` shapes are not conformal
@@ -313,9 +315,21 @@ class SepiaModel:
         if self.num.sim_only:
             self.set_params_sim_only(lamWOs_a_corr, lamWOs_b_corr)
         elif pv == 0:
-            self.set_params_noD(lamOs_a_corr, lamOs_b_corr, lamWOs_a_corr, lamWOs_b_corr)
+            self.set_params_noD(lamOs_a_corr, lamOs_b_corr, lamWOs_a_corr, lamWOs_b_corr, theta_fcon)
         else:
-            self.set_params_full(lamOs_a_corr, lamOs_b_corr, lamWOs_a_corr, lamWOs_b_corr)
+            self.set_params_full(lamOs_a_corr, lamOs_b_corr, lamWOs_a_corr, lamWOs_b_corr, theta_fcon)
+
+        # theta constraints function
+        if theta_fcon is not None:
+            if theta_init is None:
+                raise ValueError('need to pass theta_init with theta_fcon')
+            elif theta_init.shape != self.params.theta.val_shape:
+                raise ValueError('theta_init shape should match theta.val_shape')
+            else:
+                if self.params.theta.prior.obeys_constraint(theta_init):
+                    self.params.theta.val = theta_init
+                else:
+                    raise ValueError('theta_init does not obey theta_fcon constrant')
 
         # If cat ind, fix start values, bounds, prior variance for corresponding theta
         if not self.num.sim_only:
@@ -351,6 +365,7 @@ class SepiaModel:
                 info = {}
                 info['fixed'] = p.fixed
                 info['prior_bounds'] = p.prior.bounds
+                info['prior_fcon'] = p.prior.fcon
                 info['prior_dist'] = p.prior.dist
                 info['prior_params'] = p.prior.params
                 info['mcmc_stepParam'] = p.mcmc.stepParam
@@ -383,6 +398,7 @@ class SepiaModel:
                 info = param_info[k]
                 p.fixed = info['fixed']
                 p.prior.bounds = info['prior_bounds']
+                p.prior.fcon = info['prior_fcon']
                 p.prior.dist = info['prior_dist']
                 p.prior.params = info['prior_params']
                 p.mcmc.stepParam = info['mcmc_stepParam']
@@ -681,7 +697,7 @@ class SepiaModel:
         # Set up dummy parameter to hold logpost samples
         self.params.lp = SepiaParam(val=-np.inf, name='logPost', dist='Recorder', val_shape=(1, 1))
 
-    def set_params_noD(self, lamOs_a_corr=0, lamOs_b_corr=0, lamWOs_a_corr=0, lamWOs_b_corr=0):
+    def set_params_noD(self, lamOs_a_corr=0, lamOs_b_corr=0, lamWOs_a_corr=0, lamWOs_b_corr=0, theta_fcon=None):
         #
         # Set up parameters and priors for simulation and observed model with no discrepancy.
         #
@@ -699,12 +715,12 @@ class SepiaModel:
         if np.allclose(theta_range[0], theta_range[1]):
             theta_range = None
         self.params.theta = SepiaParam(val=0.5, name='theta', val_shape=(1, self.num.q), dist='Normal', params=[0.5, 10.],
-                                       bounds=[0, 1], mcmcStepParam=0.2, mcmcStepType='Uniform', orig_range=theta_range)
+                                       bounds=[0, 1], mcmcStepParam=0.2, mcmcStepType='Uniform', orig_range=theta_range, theta_fcon=theta_fcon)
         self.params.lamOs = SepiaParam(val=lamOs_init, name='lamOs', val_shape=(1, 1), dist='Gamma',
                                        params=[lamOs_a, lamOs_b], bounds=[0, np.inf], mcmcStepParam=lamOs_init/2, mcmcStepType='PropMH')
         self.params.mcmcList = [self.params.theta, self.params.betaU, self.params.lamUz, self.params.lamWs, self.params.lamWOs, self.params.lamOs]
 
-    def set_params_full(self, lamOs_a_corr=0, lamOs_b_corr=0, lamWOs_a_corr=0, lamWOs_b_corr=0):
+    def set_params_full(self, lamOs_a_corr=0, lamOs_b_corr=0, lamWOs_a_corr=0, lamWOs_b_corr=0, theta_fcon=None):
         #
         # Set up parameters and priors for simulation and observed model with discrepancy.
 
@@ -722,7 +738,7 @@ class SepiaModel:
         if np.allclose(theta_range[0], theta_range[1]):
             theta_range = None
         self.params.theta = SepiaParam(val=0.5, name='theta', val_shape=(1, self.num.q), dist='Normal', params=[0.5, 10.],
-                                       bounds=[0, 1], mcmcStepParam=0.2, mcmcStepType='Uniform', orig_range=theta_range)
+                                       bounds=[0, 1], mcmcStepParam=0.2, mcmcStepType='Uniform', orig_range=theta_range, theta_fcon=theta_fcon)
         self.params.betaV = SepiaParam(val=0.1, name='betaV', val_shape=(self.num.p, self.num.lamVzGnum), dist='Beta', params=[1., 0.1],
                                        bounds=[0, np.inf], mcmcStepParam=0.1, mcmcStepType='BetaRho')
         self.params.lamVz = SepiaParam(val=20., name='lamVz', val_shape=(1, self.num.lamVzGnum), dist='Gamma', params=[1., 1e-3],
@@ -865,7 +881,7 @@ class SepiaModel:
                 prm.val[arr_ind] = cand
                 # print(prm.mcmc.aCorr)
                 if not prm.fixed[arr_ind]: # If not supposed to be fixed, check for acceptance
-                    if prm.mcmc.aCorr and prm.prior.is_in_bounds():
+                    if prm.mcmc.aCorr and prm.prior.is_in_bounds() and prm.prior.obeys_constraint():
                         # This logPost uses val which has the candidate modification
                         clp = self.logPost(cvar=prm.name, cindex=ind)
                         if np.log(np.random.uniform()) < (clp - self.params.lp.val + np.log(prm.mcmc.aCorr)):

@@ -38,7 +38,7 @@ class SepiaParam:
     """
 
     def __init__(self, val, name, val_shape=1, dist='Normal', params=None, bounds=None, mcmcStepType='Uniform',
-                 mcmcStepParam=0.1, orig_range=None):
+                 mcmcStepParam=0.1, orig_range=None, theta_fcon=None):
         """
         Initialize SepiaParam object, which initializes the contained SepiaPrior and SepiaMCMC objects as well.
 
@@ -51,6 +51,7 @@ class SepiaParam:
         :param string mcmcStepType: step type for MCMC (eg 'Uniform', 'BetaRho', 'PropMH')
         :param numpy.ndarray/float mcmcStepParam: step size parameter (has val_shape or scalar is expanded to that shape)
         :param list orig_range: range for untransformed parameter (applicable for theta)
+        :param function/NoneType theta_fcon: constraint function for theta param
         :raises ValueError: if non-scalar val doesn't match val_shape
         """
         if np.isscalar(val):
@@ -64,7 +65,7 @@ class SepiaParam:
         self.val_shape = val_shape
         if dist != 'Recorder':
             self.refVal = False  # place to put val when mcmc cand eval
-            self.prior = SepiaPrior(self, dist=dist, params=params, bounds=bounds)
+            self.prior = SepiaPrior(self, dist=dist, params=params, bounds=bounds, fcon=theta_fcon)
             if np.isscalar(mcmcStepParam):
                 mcmcStepParam = mcmcStepParam * np.ones(val_shape)
             self.mcmc = SepiaMCMC(self, stepType=mcmcStepType, stepParam=mcmcStepParam)
