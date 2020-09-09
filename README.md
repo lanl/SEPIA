@@ -7,12 +7,16 @@ This is a Python adaptation of [GPMSA](https://github.com/lanl/gpmsa).
 
 <img src="docs/sepia.png" alt="sepia cuttlefish logo" width="150"/>
 
-### Warning: Construction Area. SEPIA is under development!
-Basic functionality (model setup, likelihood evaluation, and mcmc sampling, multivariate calibration, predictions) is complete and has been tested against GPMSA matlab.
-Some features are untested or still being developed (visualization and diagnostics, sensitivity analysis).
-
-Users should pull the newest code frequently, particularly if you encounter errors.
-If you have installed using the instructions below, you should not need to reinstall after pulling new code -- the updated code should automatically be tied into your existing sepia installation.
+### What to Expect
+SEPIA is intended to be a tool that enhances the collaboration between statisticians
+and domain scientists who are using computational models to augment observations in
+R&D and engineering applications. The code and the methodology 
+it implements can be demonstrated simply, but new R&D often raises issues in 
+analysis that are subtle and complicated. SEPIA has many options to address issues 
+that have come up in the development team's experience in scientific applications,
+and it is available to be extended to address new application requirements. We 
+recommend the domain scientist consult or partner with a statistician familiar with the
+methodology to ensure best outcomes. 
 
 ### Documentation
 Current documentation is at [Read the Docs](http://sepia-lanl.readthedocs.io).

@@ -10,9 +10,10 @@ class SepiaPrior:
     :var string dist: which prior distribution, in ['Normal', 'Gamma', 'Beta', 'Uniform']
     :var list params: each element is a different parameter to the distribution (ie first is mean, second is SD), can be matrix valued
     :var list bounds: bounds for each prior (can be np.inf)
+    :var function fcon: constraints function (for thetas)
     """
 
-    def __init__(self, parent, dist='Normal', params=None, bounds=None):
+    def __init__(self, parent, dist='Normal', params=None, bounds=None, fcon=None):
         """
         Instantiate SepiaPrior object.
 
@@ -20,6 +21,7 @@ class SepiaPrior:
         :param string dist: which prior distribution, in ['Normal', 'Gamma', 'Beta', 'Uniform']
         :param list/NoneType params: each element is a different parameter to the distribution (ie first is mean, second is SD), can be matrix valued
         :param list/NoneType bounds: bounds for each prior (can be np.inf)
+        :param function/NoneType fcon: constraints function returning bool (for theta only)
         :raises ValueError: if invalid dist type or non-conformal shapes
         """
         self.parent = parent
@@ -59,6 +61,8 @@ class SepiaPrior:
                 self.bounds = [np.zeros(parent.val_shape), np.ones(parent.val_shape)]
             elif dist == 'Uniform':
                 self.bounds = [np.zeros(parent.val_shape), np.ones(parent.val_shape)]
+        # Set constraint function
+        self.fcon = fcon
 
     def compute_log_prior(self):
         """
@@ -96,3 +100,18 @@ class SepiaPrior:
             x = self.parent.val
         # check whether bounds are satisfied for all variables
         return True if np.all(np.logical_and(x > self.bounds[0], x < self.bounds[1])) else False
+
+    def obeys_constraint(self, x=None):
+        """
+        Check whether value obeys constraint function. By default, with no x, checks self.parent.val.
+
+        :param numpy.ndarray/NoneType x: value with self.parent.val_shape; if None, defaults to self.parent.val
+        :return: True if constraint function satisfied, False otherwise
+        """
+        if self.fcon is None:
+            return True
+        else:
+            if x is None:
+                x = self.parent.val
+            return self.fcon(x)
+
