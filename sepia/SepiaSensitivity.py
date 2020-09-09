@@ -293,25 +293,25 @@ def component_sens(x, y, beta, lamUz, lamWs, xe, ngrid, varlist, jelist, rg):
         for jj in range(m):
             c3[jj,:]=calc3(x[jj,:],rg,betaei,diff)
         u2=np.prod(c3,1)
-        e2[ii]=np.prod(c1)/lamUzi-np.trace(np.squeeze(Q[ii,:,:])*\
+        e2[ii]=np.prod(c1)/lamUzi-np.trace(np.squeeze(Q[ii,:,:]) @ \
                                          varf(m,p,[],C2,u2))/lamUzi**2
         e0[ii]=np.matmul(u2.T,My[:,ii])/lamUzi
         # total variance
-        vt[ii]=1/lamUzi-np.trace(np.squeeze(Q[ii,:,:])*\
+        vt[ii]=1/lamUzi-np.trace(np.squeeze(Q[ii,:,:]) @ \
                                 varf(m,p,np.arange(p),C2,[]))/lamUzi**2-e2[ii]
         # 1:p might be an index so we need an arrange from 0 to p-1
         # main/total effect indices; main effect functions
         for jj in range(p):
             Js=[jj]; ll=np.setxor1d(np.arange(p),Js)
             u1=np.prod(c3[:,ll],1); u4=np.prod(c1[ll])
-            sme[ii,jj]=u4/lamUzi-np.trace(np.squeeze(Q[ii,:,:])*\
+            sme[ii,jj]=u4/lamUzi-np.trace(np.squeeze(Q[ii,:,:]) @ \
                                          varf(m,p,Js,C2,u1))/lamUzi**2-e2[ii]
             sme[ii,jj]=sme[ii,jj]/vt[ii]
             ME=etae(Js,x,u1,u4,xexdist[jj],xedist[jj],betaei,lamUzi,\
                    lamWsi,My[:,ii],np.squeeze(P[ii,:,:]))
             mef_m[ii,jj,:]=ME.m; mef_v[ii,jj,:]=ME.v
             ll=[jj]; Js=np.setxor1d(np.arange(p),ll); u2=np.prod(c3[:,ll],1)
-            ste[ii,jj]=c1[ll]/lamUzi-np.trace(np.squeeze(Q[ii,:,:])*\
+            ste[ii,jj]=c1[ll]/lamUzi-np.trace(np.squeeze(Q[ii,:,:]) @ \
                                               varf(m,p,Js,C2,u2))/lamUzi**2-e2[ii]
             ste[ii,jj]=1-ste[ii,jj]/vt[ii]
         # two-factor interaction indices, joint effects
@@ -379,13 +379,14 @@ def calc3(x, rg, beta, diff):
 def varf(m,p,Js,C2,ef):
     kk=0; ll=np.setxor1d(np.arange(p),Js); Vf=np.zeros((m,m));
     for ii in range(m-1):
-        for jj in range(ii,m):
-            kk=kk+1; Vf[ii,jj]=1
+        for jj in range(ii+1,m):
+            Vf[ii,jj]=1
             if len(Js) != 0: Vf[ii,jj]=np.prod(C2[kk,Js])
             if len(ll) != 0: Vf[ii,jj]=Vf[ii,jj]*ef[ii]*ef[jj]
+            kk = kk + 1;
     Vf=Vf+Vf.T;
     for ii in range(m):
-        kk=kk+1; Vf[ii,ii]=1;
+        kk = kk + 1; Vf[ii,ii]=1;
         if len(Js) != 0: Vf[ii,ii]=np.prod(C2[kk,Js])
         if len(ll) != 0: Vf[ii,ii]=Vf[ii,ii]*(ef[ii]**2)
     return Vf
