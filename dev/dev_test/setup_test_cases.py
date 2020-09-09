@@ -56,12 +56,12 @@ def setup_univ_sim_and_obs(m=100, n=50, seed=42., n_lik=0, n_mcmc=0, n_pred=0):
     return model, res
 
 
-def setup_multi_sim_only(m=300, nt=20, nx=5, n_pc=10, seed=42., n_lik=0, n_mcmc=0, n_pred=0, fix_K=False):
+def setup_multi_sim_only(m=300, nt=20, nx=5, n_pc=10, seed=42., n_lik=0, n_mcmc=0, n_pred=0, fix_K=False, sens=0):
     try:
         eng = matlab.engine.start_matlab()
         eng.cd(root_path)
         eng.addpath('matlab/', nargout=0)
-        res = eng.setup_multi_sim_only(m, nt, nx, n_pc, seed, n_lik, n_mcmc, n_pred, nargout=1)
+        res = eng.setup_multi_sim_only(m, nt, nx, n_pc, seed, n_lik, n_mcmc, n_pred, sens, nargout=1)
         eng.quit()
     except Exception as e:
         print(e)

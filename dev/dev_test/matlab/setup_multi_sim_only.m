@@ -1,6 +1,6 @@
 % Sets up test case for comparing multi sim only to python
 
-function res = setup_multi_sim_only(m, nt, nx, n_pc, seed, n_lik, n_mcmc, n_pred)
+function res = setup_multi_sim_only(m, nt, nx, n_pc, seed, n_lik, n_mcmc, n_pred, sens)
 
     fprintf('\nStarting matlab setup_multi_sim_only.m\n')
 
@@ -42,6 +42,9 @@ function res = setup_multi_sim_only(m, nt, nx, n_pc, seed, n_lik, n_mcmc, n_pred
     simData.yStd = ysimStd;
     simData.x = x;
     simData.Ksim = Ksim;
+    simData.orig.y = y;
+    simData.orig.ymean = ymean;
+    simData.orig.ysd = ysimsd ;
     
     % Set up GPMSA
     paramout = setupModel([], simData);
@@ -74,6 +77,17 @@ function res = setup_multi_sim_only(m, nt, nx, n_pc, seed, n_lik, n_mcmc, n_pred
     else
         mcmc_time = 0;
         mcmc_out = [];
+    end
+
+    % Do sensitivity analysis
+    % For now will just compare smePm, stePm to check against sepia
+    if sens == 1
+        sa = gSens(mcmc,'option','mean');
+        smePm = sa.smePm;
+        stePm = sa.stePm;
+    else
+        smePm = [];
+        stePm = [];
     end
 
     if n_pred > 0
@@ -119,5 +133,7 @@ function res = setup_multi_sim_only(m, nt, nx, n_pc, seed, n_lik, n_mcmc, n_pred
     res.pred_arv_w = pred_arv_w;
     res.pred_arv_Myhat = pred_arv_Myhat;
     res.pred_arv_Syhat = pred_arv_Syhat;
+    res.smePm = smePm;
+    res.stePm = stePm;
     
 end
