@@ -16,7 +16,7 @@ Welcome to Sepia!
 
     Sepia implements Bayesian emulation and calibration with the ability to handle multivariate outputs.
 
-    Example jupyter notebooks are found `here`_. These self-contained examples may be helpful for setting up your code.
+    Example code is discussed in :ref:`examples`. These self-contained examples may be helpful for setting up your code.
 
     Full source code on `GitHub`_.
 
@@ -26,8 +26,6 @@ Welcome to Sepia!
 
         Users should pull the newest code frequently, particularly if you encounter errors. If you have installed using the
         instructions on GitHub, you should not need to reinstall after pulling new code.
-
-.. _here: https://github.com/lanl/SEPIA/tree/master/examples
 
 .. _GitHub: https://github.com/lanl/SEPIA
 
@@ -79,6 +77,7 @@ Pages
     :maxdepth: 2
 
     about
+    examples
     quickstart
     snippets
 
