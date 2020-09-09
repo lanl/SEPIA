@@ -97,9 +97,9 @@ def sensitivity(model, samples_dict=False, sampleset=False, ngrid=21, varlist=[]
         sme[ii,:]=sme[ii,:]/vt0
         ste[ii,:]=ste[ii,:]/vt0
         vt[ii]=vt0
-    
-    smePm=np.squeeze(np.mean(sme))
-    stePm=np.squeeze(np.mean(ste))
+
+    smePm=np.squeeze(np.mean(sme,0))
+    stePm=np.squeeze(np.mean(ste,0))
     
     if varlist:
         sie=np.zeros((npvec,len(varlist)))
@@ -107,7 +107,7 @@ def sensitivity(model, samples_dict=False, sampleset=False, ngrid=21, varlist=[]
             for jj in range(pu):
                 sie[ii,:]=sie[ii,:]+lam[jj]*sa[jj]['sie'][ii,:]*sa[jj]['vt'][ii]
             sie[ii,:]=sie[ii,:]/vt[ii]
-        siePm=np.squeeze(np.mean(sie))
+        siePm=np.squeeze(np.mean(sie,0))
         
     if jelist:
         sje=np.zeros(npvec,len(jelist))
@@ -115,7 +115,7 @@ def sensitivity(model, samples_dict=False, sampleset=False, ngrid=21, varlist=[]
             for jj in range(pu):
                 sje[ii,:]=sje[ii,:]+lam[jj]*sa[jj]['sje'][ii,:]*sa[jj]['vt'][ii]
             sje[ii,:]=sje[ii,:]/vt[ii]
-        sjePm=np.squeeze(np.mean(sje))
+        sjePm=np.squeeze(np.mean(sje,0))
         
     # unscales
     e0=np.zeros(ksmm.shape[0])
@@ -168,7 +168,7 @@ def sensitivity(model, samples_dict=False, sampleset=False, ngrid=21, varlist=[]
         ysdmat=np.tile(ysd,(ngrid,ngrid))
         for jj in range(pu):
             for kk in range(len(varlist)):
-                jef_m[jj,kk,:,:]=np.kron(np.mean(sa[jj]['jef_m'][:,kk,:,:]).reshape((1,ngrid)),ksmm[:,jj])*\
+                jef_m[jj,kk,:,:]=np.kron(np.mean(sa[jj]['jef_m'][:,kk,:,:],0).reshape((1,ngrid)),ksmm[:,jj])*\
                 ysdmat+meanmat
                 jef_sd[jj,kk,:,:]=np.sqrt(kron(np.var(sa[jj]['jef_m'][:,kk,:,:],axis=0).reshape((1,ngrid)),\
                                               ksmm[:,jj]**2)+\
