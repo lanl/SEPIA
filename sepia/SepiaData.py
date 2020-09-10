@@ -73,11 +73,10 @@ class SepiaData(object):
             if not self.sep_design: # set up dummy_x in x_sim, or delays until sep/kron processing just below
                 x_sim = 0.5 * np.ones((t_sim.shape[0], 1))
 
-        if not xt_sim_sep is None:
+        if self.sep_design:
             if x_sim is not None or t_sim is not None:
                 raise ValueError('Cannot specify x_sim or t_sim if separable design is supplied')
-            self.sep_design = True
-            # Expand out the design from the components by kronecker product into x_sim and t_sim (if needed)
+            # Expand out the design from the components by kronecker product into x_sim and t_sim (as needed)
             temp_des=xt_sim_sep[-1]
             for ndes in reversed(xt_sim_sep[:-1]):
                 r1,r2=np.meshgrid(np.arange(ndes.shape[0]),np.arange(temp_des.shape[0]))
@@ -97,7 +96,7 @@ class SepiaData(object):
         # the separable design components will be used in logLik and predict, nobody else needs to worry about it now
         # (except carrying it along in SetupModel
 
-        self.sim_data = DataContainer(x=x_sim, y=y_sim, t=t_sim, y_ind=y_ind_sim, sep_des=xt_sim_sep)
+        self.sim_data = DataContainer(x=x_sim, y=y_sim, t=t_sim, y_ind=y_ind_sim, xt_sep_design=xt_sim_sep)
 
         self.scalar_out = (self.sim_data.y.shape[1] == 1)
 

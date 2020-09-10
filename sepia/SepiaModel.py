@@ -88,10 +88,7 @@ class SepiaModel:
         obs_data = data.obs_data
 
         # Infer p, q, n, m, pu, pv
-        if self.data.sep_design: # kronecker separable model
-            p=sum([zz.shape[1] for zz in sim_data.x])
-        else:
-            p = sim_data.x.shape[1]
+        p = sim_data.x.shape[1]
         m=sim_data.y.shape[0]
         if sim_data.t is not None:
             q = sim_data.t.shape[1]
@@ -146,7 +143,7 @@ class SepiaModel:
             data.x = np.array([], dtype=np.float).reshape((0, 1))
             self.num.x0Dist = SepiaDistCov(data.x)
         if self.data.sep_design:
-            data.ztSep=sim_data.x
+            data.ztSep=sim_data.xt_sep_design
             tdes=sim_data.x[-1]
             for ndes in reversed(sim_data.x[:-1]):
                 r1,r2=np.meshgrid(np.arange(ndes.shape[0]),np.arange(tdes.shape[0]))
