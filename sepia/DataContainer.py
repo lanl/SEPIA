@@ -20,11 +20,11 @@ class DataContainer(object):
     :var numpy.ndarray/NoneType orig_t_max: maximum values (columnwise) of original t values
     :var numpy.ndarray/NoneType orig_x_min: minimum values (columnwise) of original x values
     :var numpy.ndarray/NoneType orig_x_max: maximum values (columnwise) of original x values
-    :var list/NoneType sep_des: separable Kronecker design
+    :var list/NoneType xt_sep_design: list of separable design component matrices
 
     """
 
-    def __init__(self, x, y, t=None, y_ind=None, sep_des=None):
+    def __init__(self, x, y, t=None, y_ind=None, xt_sep_design=None):
         """
         Initialize DataContainer object.
 
@@ -40,7 +40,7 @@ class DataContainer(object):
         self.x = x
         self.y = y
         self.t = t
-        self.sep_des = sep_des
+        self.xt_sep_design = xt_sep_design
         self.y_ind = y_ind
 
         if isinstance(self.y, list):
@@ -63,13 +63,13 @@ class DataContainer(object):
             else:
                 if self.y.shape[1] != self.y_ind.shape[0]:
                     raise ValueError('Dimension 1 of y must match dimension 0 of y_ind.')
-        if self.sep_des is not None:
-            if not isinstance(self.sep_des,list):
-                raise ValueError('sep_des must be a list of kronecker composable designs')
+        if self.xt_sep_design is not None:
+            if not isinstance(self.xt_sep_design,list):
+                raise ValueError('xt_sep_design must be a list of kronecker composable designs')
             num_des_vars = self.x.shape[1] + (0 if t is None else self.t.shape[1])
-            if num_des_vars != sum([g.shape[1] for g in self.sep_des]):
-                raise ValueError('sep_des columns must sum to x and t columns')
-            if len(self.y) != np.prod([len(g) for g in self.sep_des]):
+            if num_des_vars != sum([g.shape[1] for g in self.xt_sep_design]):
+                raise ValueError('xt_sep_design columns must sum to x and t columns')
+            if len(self.y) != np.prod([len(g) for g in self.xt_sep_design]):
                 raise ValueError('Number of observations in kron-composed-x and y must be the same size.')
         # Validation complete
 
