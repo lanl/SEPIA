@@ -273,24 +273,32 @@ class SepiaData(object):
                 t_trans = (t - self.sim_data.orig_t_min) / (self.sim_data.orig_t_max - self.sim_data.orig_t_min)
         return x_trans, t_trans
 
-    def standardize_y(self, center=True, scale='scalar'):
+    def standardize_y(self, center=True, scale='scalar', y_mean=None, y_sd=None):
         """
         Standardizes both `sim_data` and `obs_data` outputs y based on sim_data.y mean/SD.
 
         :param bool center: subtract simulation mean (across observations)?
         :param string/bool scale: how to rescale: 'scalar': single SD over all demeaned data, 'columnwise': SD for each column of demeaned data, False: no rescaling
+        :param numpy.ndarray/float/NoneType y_mean: y_mean for sim; optional, should match length of y_ind_sim or be scalar
+        :param numpy.ndarray/float/NoneType y_sd: y_sd for sim; optional, should match length of y_ind_sim or be scalar
         """
         if center:
-            self.sim_data.orig_y_mean = np.mean(self.sim_data.y, 0)
+            if y_mean is None:
+                self.sim_data.orig_y_mean = np.mean(self.sim_data.y, 0)
+            else:
+                self.sim_data.orig_y_mean = y_mean
         else:
             self.sim_data.orig_y_mean = 0.
         y_dm = self.sim_data.y - self.sim_data.orig_y_mean
-        if scale == 'scalar':
-            self.sim_data.orig_y_sd = np.std(y_dm, ddof=1)
-        elif scale == 'columnwise':
-            self.sim_data.orig_y_sd = np.std(y_dm, ddof=1, axis=0)
+        if y_sd is not None:
+            self.sim_data.orig_y_sd = y_sd
         else:
-            self.sim_data.orig_y_sd = 1.
+            if scale == 'scalar':
+                self.sim_data.orig_y_sd = np.std(y_dm, ddof=1)
+            elif scale == 'columnwise':
+                self.sim_data.orig_y_sd = np.std(y_dm, ddof=1, axis=0)
+            else:
+                self.sim_data.orig_y_sd = 1.
         self.sim_data.y_std = y_dm/self.sim_data.orig_y_sd
         if not self.sim_only:
             if not self.scalar_out and not np.isscalar(self.sim_data.orig_y_mean):
