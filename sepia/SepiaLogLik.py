@@ -194,10 +194,10 @@ def compute_log_lik(g, cvar='all', cindex=None):
                 # computation for a kron/separable design
                 zp=np.zeros( (m,n) )
                 for jj in range(n):
-                    zp[:,jj]=sepQuadFormCalc(num.V[ii],SigUW[ii][jj,:].T)
-                zp2=zp * num.Dki2[ii]
+                    zp[:,jj]=np.squeeze(sepQuadFormCalc(num.V[ii],SigUW[ii][jj,:].reshape(-1,1)))
+                zp2=zp * num.Dki2[ii].T
                 SigUgW[ii]=SigU[ii] - zp2.T @ zp2
-                W[ii].mat=zp2.T
+                W[ii]=zp2.T
         
         if (do_betaV or do_lamVz) and pv > 0:
             SigV = []
@@ -236,9 +236,9 @@ def compute_log_lik(g, cvar='all', cindex=None):
                 MuVUgW[ii*n:(ii+1)*n, 0] = W[ii] @ w[ii*m:(ii+1)*m, 0]
             else:
                 # computation for a kron/separable design
-                zp=sepQuadFormCalc(num.V[ii], w[ii*m:(ii+1)*m, 0])
-                zp2=zp * num.Dki2(ii).vec
-                MuVUgW[ii*n:(ii+1)*n, 0]=W[ii] @ zp2
+                zp=sepQuadFormCalc(num.V[ii], w[ii*m:(ii+1)*m, 0].reshape(-1,1))
+                zp2=zp * num.Dki2[ii].T
+                MuVUgW[ii*n:(ii+1)*n, 0]=np.squeeze(W[ii] @ zp2)
 
         # for scalar output:  MuDiff=   [u] - [MuVUgW]
         # otherwise:          MuDiff= [v;u] - [0;MuVUgW] 

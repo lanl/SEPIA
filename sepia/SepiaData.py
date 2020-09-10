@@ -55,15 +55,15 @@ class SepiaData(object):
 
         """
         self.sep_design = xt_sim_sep is not None
-        if y_obs is not None and ((x_obs is None and x_sim is not None) or (x_obs is not None and x_sim is None)):
-            raise ValueError('x_sim and x_obs must both be either not None or None (which is the no-x model case)')
-        self.dummy_x = x_sim is None
+        self.dummy_x = x_sim is None and not self.sep_design
         self.sim_only = y_obs is None
 
         # Initial Checks
         if y_sim is None:
             raise TypeError('y_sim is required to set up model.')
         if not self.sep_design:
+            if y_obs is not None and ((x_obs is None and x_sim is not None) or (x_obs is not None and x_sim is None)):
+                raise ValueError('x_sim and x_obs must both be either not None or None (which is the no-x model case)')
             if x_sim is None and t_sim is None:
                 raise TypeError('At least one of x_sim or t_sim is required to set up model.')
 
@@ -76,13 +76,13 @@ class SepiaData(object):
         if self.sep_design:
             if x_sim is not None or t_sim is not None:
                 raise ValueError('Cannot specify x_sim or t_sim if separable design is supplied')
+            if self.dummy_x: # augment the composed design with dummy_x column
+                xt_sim_sep.insert(0,np.array([0.5]).reshape(1,1))
             # Expand out the design from the components by kronecker product into x_sim and t_sim (as needed)
             temp_des=xt_sim_sep[-1]
             for ndes in reversed(xt_sim_sep[:-1]):
                 r1,r2=np.meshgrid(np.arange(ndes.shape[0]),np.arange(temp_des.shape[0]))
                 temp_des=np.hstack((ndes[r1.reshape(-1,order='F'),:],temp_des[r2.reshape(-1,order='F'),:]))
-            if self.dummy_x: # augment the composed design with dummy_x column
-                temp_des = np.hstack((0.5 * np.ones((temp_des[0], 1)), temp_des ))
             # separate the composed design into x and t components
             if self.sim_only: # Emulator-only model
                 x_sim=temp_des # the design can only be attributed to x's
@@ -110,19 +110,14 @@ class SepiaData(object):
             self.ragged_obs = isinstance(y_obs, list)
 
         # Process categorical indices
-        if not self.sep_design:
-            if x_cat_ind is not None:
-                if len(x_cat_ind) != x_sim.shape[1]:
-                    raise TypeError('x_cat_ind length should equal p.')
-                for i, ci in enumerate(x_cat_ind):
-                    if ci > 0 and ci != np.max(x_sim[:, i]):
-                        raise TypeError('Nonzero values of x_cat_ind should equal number of categories.')
-            else:
-                x_cat_ind = np.zeros(x_sim.shape[1])
+        if x_cat_ind is not None:
+            if len(x_cat_ind) != x_sim.shape[1]:
+                raise TypeError('x_cat_ind length should equal p.')
+            for i, ci in enumerate(x_cat_ind):
+                if ci > 0 and ci != np.max(x_sim[:, i]):
+                    raise TypeError('Nonzero values of x_cat_ind should equal number of categories.')
         else:
-            # TODO don't process categorical inputs for the separable design for now ...
-            # ultimately, they need to be input and validated as a list
-            x_cat_ind = [np.zeros(x_sim[ii].shape[1]) for ii in range(len(x_sim))]
+            x_cat_ind = np.zeros(x_sim.shape[1])
         self.x_cat_ind = x_cat_ind
         if t_cat_ind is not None:
             if t_sim is None:
@@ -145,14 +140,8 @@ class SepiaData(object):
         res += 'This SepiaData instance implies the following:\n'
         if self.sim_only:
             res += 'This is a simulator (eta)-only model, y dimension %d\n' % self.sim_data.y.shape[1]
-            if not self.sep_design:
-                res += 'm  = %5d (number of simulated data)\n' % self.sim_data.x.shape[0]
-                res += 'p  = %5d (number of inputs)\n' % self.sim_data.x.shape[1]
-            else:
-                res += 'This is a Kronecker separable simulation design with components: \n'
-                for ii in range(len(self.sim_data.x)):
-                    res += '   x component %d has m = %5d (simulated data design size) \n' % (ii,self.sim_data.x[ii].shape[0])
-                    res += '   x component %d has p = %5d (number of inputs) \n' % (ii,self.sim_data.x[ii].shape[1])
+            res += 'm  = %5d (number of simulated data)\n' % self.sim_data.x.shape[0]
+            res += 'p  = %5d (number of inputs)\n' % self.sim_data.x.shape[1]
             if self.sim_data.t is not None:
                 res += 'q  = %5d (number of additional simulation inputs)\n' % self.sim_data.t.shape[1]
             if self.scalar_out:
@@ -184,6 +173,14 @@ class SepiaData(object):
                         res += 'pv = %5d (transformed discrepancy dimension)\n' % self.obs_data.D.shape[0]
                 else:
                     res += 'pv NOT SET (transformed discrepancy dimension); call method create_D_basis\n'
+        # Info on separable design, if that's in place.
+        if self.sep_design:
+            res += 'This is a separable simulation design with components: \n'
+            for ii in range(len(self.sim_data.xt_sep_design)):
+                res += '   x component %d has m = %5d (simulated data design size) \n' % (
+                ii, self.sim_data.xt_sep_design[ii].shape[0])
+                res += '   x component %d has p = %5d (number of inputs) \n' % (
+                ii, self.sim_data.xt_sep_design[ii].shape[1])
         # Print info on categorical variables
         if not self.sep_design:
             if np.any(np.array(self.x_cat_ind) > 0):
@@ -215,10 +212,6 @@ class SepiaData(object):
                   or if the user specifies no transformation using x_notrans or t_notrans arguments.
 
         """
-
-        # TODO fix this hack for separable design development: x scaling needs to update sep list
-        if self.sep_design:
-            return
 
         x_trans, t_trans = None, None
         if x_notrans is None:
