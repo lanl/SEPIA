@@ -55,8 +55,6 @@ class SepiaData(object):
 
         """
         self.sep_design = xt_sim_sep is not None
-        if y_obs is not None and ((x_obs is None and x_sim is not None) or (x_obs is not None and x_sim is None)):
-            raise ValueError('x_sim and x_obs must both be either not None or None (which is the no-x model case)')
         self.dummy_x = x_sim is None
         self.sim_only = y_obs is None
 
@@ -64,6 +62,8 @@ class SepiaData(object):
         if y_sim is None:
             raise TypeError('y_sim is required to set up model.')
         if not self.sep_design:
+            if y_obs is not None and ((x_obs is None and x_sim is not None) or (x_obs is not None and x_sim is None)):
+                raise ValueError('x_sim and x_obs must both be either not None or None (which is the no-x model case)')
             if x_sim is None and t_sim is None:
                 raise TypeError('At least one of x_sim or t_sim is required to set up model.')
 
@@ -76,13 +76,13 @@ class SepiaData(object):
         if self.sep_design:
             if x_sim is not None or t_sim is not None:
                 raise ValueError('Cannot specify x_sim or t_sim if separable design is supplied')
+            if self.dummy_x: # augment the composed design with dummy_x column
+                xt_sim_sep.insert(0,np.array([0.5]).reshape(1,1))
             # Expand out the design from the components by kronecker product into x_sim and t_sim (as needed)
             temp_des=xt_sim_sep[-1]
             for ndes in reversed(xt_sim_sep[:-1]):
                 r1,r2=np.meshgrid(np.arange(ndes.shape[0]),np.arange(temp_des.shape[0]))
                 temp_des=np.hstack((ndes[r1.reshape(-1,order='F'),:],temp_des[r2.reshape(-1,order='F'),:]))
-            if self.dummy_x: # augment the composed design with dummy_x column
-                temp_des = np.hstack((0.5 * np.ones((temp_des.shape[0], 1)), temp_des ))
             # separate the composed design into x and t components
             if self.sim_only: # Emulator-only model
                 x_sim=temp_des # the design can only be attributed to x's
