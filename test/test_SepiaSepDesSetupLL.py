@@ -1,4 +1,6 @@
 import unittest
+
+import unittest
 import numpy as np
 from sepia.SepiaModel import SepiaModel
 from sepia.SepiaData import SepiaData
