@@ -66,9 +66,10 @@ class DataContainer(object):
         if self.xt_sep_design is not None:
             if not isinstance(self.xt_sep_design,list):
                 raise ValueError('xt_sep_design must be a list of kronecker composable designs')
-            num_des_vars = self.x.shape[1] + (0 if t is None else self.t.shape[1])
-            if num_des_vars != sum([g.shape[1] for g in self.xt_sep_design]):
-                raise ValueError('xt_sep_design columns must sum to x and t columns')
+            # This can't be done here, looks like - needs to know about dummy_x
+            #num_des_vars = self.x.shape[1] + (0 if t is None else self.t.shape[1])
+            #if num_des_vars != sum([g.shape[1] for g in self.xt_sep_design]):
+            #    raise ValueError('xt_sep_design columns must sum to x and t columns')
             if len(self.y) != np.prod([len(g) for g in self.xt_sep_design]):
                 raise ValueError('Number of observations in kron-composed-x and y must be the same size.')
         # Validation complete

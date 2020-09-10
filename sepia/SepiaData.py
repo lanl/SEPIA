@@ -82,7 +82,7 @@ class SepiaData(object):
                 r1,r2=np.meshgrid(np.arange(ndes.shape[0]),np.arange(temp_des.shape[0]))
                 temp_des=np.hstack((ndes[r1.reshape(-1,order='F'),:],temp_des[r2.reshape(-1,order='F'),:]))
             if self.dummy_x: # augment the composed design with dummy_x column
-                temp_des = np.hstack((0.5 * np.ones((temp_des[0], 1)), temp_des ))
+                temp_des = np.hstack((0.5 * np.ones((temp_des.shape[0], 1)), temp_des ))
             # separate the composed design into x and t components
             if self.sim_only: # Emulator-only model
                 x_sim=temp_des # the design can only be attributed to x's
@@ -110,19 +110,14 @@ class SepiaData(object):
             self.ragged_obs = isinstance(y_obs, list)
 
         # Process categorical indices
-        if not self.sep_design:
-            if x_cat_ind is not None:
-                if len(x_cat_ind) != x_sim.shape[1]:
-                    raise TypeError('x_cat_ind length should equal p.')
-                for i, ci in enumerate(x_cat_ind):
-                    if ci > 0 and ci != np.max(x_sim[:, i]):
-                        raise TypeError('Nonzero values of x_cat_ind should equal number of categories.')
-            else:
-                x_cat_ind = np.zeros(x_sim.shape[1])
+        if x_cat_ind is not None:
+            if len(x_cat_ind) != x_sim.shape[1]:
+                raise TypeError('x_cat_ind length should equal p.')
+            for i, ci in enumerate(x_cat_ind):
+                if ci > 0 and ci != np.max(x_sim[:, i]):
+                    raise TypeError('Nonzero values of x_cat_ind should equal number of categories.')
         else:
-            # TODO don't process categorical inputs for the separable design for now ...
-            # ultimately, they need to be input and validated as a list
-            x_cat_ind = [np.zeros(x_sim[ii].shape[1]) for ii in range(len(x_sim))]
+            x_cat_ind = np.zeros(x_sim.shape[1])
         self.x_cat_ind = x_cat_ind
         if t_cat_ind is not None:
             if t_sim is None:
@@ -149,10 +144,10 @@ class SepiaData(object):
                 res += 'm  = %5d (number of simulated data)\n' % self.sim_data.x.shape[0]
                 res += 'p  = %5d (number of inputs)\n' % self.sim_data.x.shape[1]
             else:
-                res += 'This is a Kronecker separable simulation design with components: \n'
-                for ii in range(len(self.sim_data.x)):
+                res += 'This is a separable simulation design with components: \n'
+                for ii in range(len(self.sim_data.xt_sep_design)):
                     res += '   x component %d has m = %5d (simulated data design size) \n' % (ii,self.sim_data.x[ii].shape[0])
-                    res += '   x component %d has p = %5d (number of inputs) \n' % (ii,self.sim_data.x[ii].shape[1])
+                    res += '   x component %d has p = %5d (number of inputs) \n' % (ii,self.sim_data.xt_sep_design[ii].shape[1])
             if self.sim_data.t is not None:
                 res += 'q  = %5d (number of additional simulation inputs)\n' % self.sim_data.t.shape[1]
             if self.scalar_out:
@@ -215,10 +210,6 @@ class SepiaData(object):
                   or if the user specifies no transformation using x_notrans or t_notrans arguments.
 
         """
-
-        # TODO fix this hack for separable design development: x scaling needs to update sep list
-        if self.sep_design:
-            return
 
         x_trans, t_trans = None, None
         if x_notrans is None:
