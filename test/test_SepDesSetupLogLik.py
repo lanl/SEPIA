@@ -4,7 +4,7 @@ from sepia.SepiaModel import SepiaModel
 from sepia.SepiaData import SepiaData
 from sepia.SepiaLogLik import compute_log_lik
 
-class KronSetupLogLik(unittest.TestCase):
+class SepDesSetupLogLik(unittest.TestCase):
 
     def setUp(self):
         # Set up and check kronecker Emulator-only model
