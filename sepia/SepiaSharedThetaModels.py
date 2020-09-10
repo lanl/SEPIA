@@ -91,7 +91,7 @@ class SepiaSharedThetaModels:
                         # Check whether this theta ind is shared
                         if prm.name == 'theta' and np.any(ind == self.shared_theta_inds[:, mi]):
                             shr_ind = np.where(self.shared_theta_inds[:, mi] == ind)[0]
-                            # to match matlab, we will draw here (may not be used at all)
+                            # to match matlab RNG, we will draw here (may not be used at all)
                             #  check for categorical theta
                             if prm.name == 'theta' and model.data.t_cat_ind[ind] > 0:
                                 # Get possible category values, excluding current value
@@ -100,11 +100,10 @@ class SepiaSharedThetaModels:
                                 cand = np.random.choice(cat_vals, 1)
                             else:
                                 cand = prm.mcmc.draw_candidate(arr_ind, do_propMH)
-                            # If this is the model to sample from, do sample and update other models
+                            # If this is the model to sample from, update other models
                             if self.to_sample[shr_ind, mi] == 1:
-                                # Draw candidate
-                                #cand = prm.mcmc.drawCand(arr_ind, do_propMH)
                                 inb = cand > prm.prior.bounds[0][arr_ind] and cand < prm.prior.bounds[1][arr_ind]
+                                inb = inb and prm.prior.obeys_constraint(cand) # check theta constraint -- going to assume theta has same constraints in all models?
                                 other_model_inds = np.where(self.to_update[shr_ind, :].squeeze() == 1)[0]
                                 # Make reference copies across other models in case we reject, check if cand in bounds
                                 for omi in other_model_inds:
@@ -158,7 +157,7 @@ class SepiaSharedThetaModels:
                             # Set value to candidate
                             prm.val[arr_ind] = cand
                             if not prm.fixed[arr_ind]: # If not supposed to be fixed, check for acceptance
-                                if prm.mcmc.aCorr and prm.prior.is_in_bounds():
+                                if prm.mcmc.aCorr and prm.prior.is_in_bounds() and prm.prior.obeys_constraint():
                                     # This logPost uses val which has the candidate modification
                                     clp = model.logPost(prm.name, ind)
                                     if np.log(np.random.uniform()) < (clp - lp + np.log(prm.mcmc.aCorr)):
