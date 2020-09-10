@@ -55,7 +55,7 @@ class SepiaData(object):
 
         """
         self.sep_design = xt_sim_sep is not None
-        self.dummy_x = x_sim is None
+        self.dummy_x = x_sim is None and not self.sep_design
         self.sim_only = y_obs is None
 
         # Initial Checks
@@ -140,14 +140,8 @@ class SepiaData(object):
         res += 'This SepiaData instance implies the following:\n'
         if self.sim_only:
             res += 'This is a simulator (eta)-only model, y dimension %d\n' % self.sim_data.y.shape[1]
-            if not self.sep_design:
-                res += 'm  = %5d (number of simulated data)\n' % self.sim_data.x.shape[0]
-                res += 'p  = %5d (number of inputs)\n' % self.sim_data.x.shape[1]
-            else:
-                res += 'This is a separable simulation design with components: \n'
-                for ii in range(len(self.sim_data.xt_sep_design)):
-                    res += '   x component %d has m = %5d (simulated data design size) \n' % (ii,self.sim_data.x[ii].shape[0])
-                    res += '   x component %d has p = %5d (number of inputs) \n' % (ii,self.sim_data.xt_sep_design[ii].shape[1])
+            res += 'm  = %5d (number of simulated data)\n' % self.sim_data.x.shape[0]
+            res += 'p  = %5d (number of inputs)\n' % self.sim_data.x.shape[1]
             if self.sim_data.t is not None:
                 res += 'q  = %5d (number of additional simulation inputs)\n' % self.sim_data.t.shape[1]
             if self.scalar_out:
@@ -179,6 +173,14 @@ class SepiaData(object):
                         res += 'pv = %5d (transformed discrepancy dimension)\n' % self.obs_data.D.shape[0]
                 else:
                     res += 'pv NOT SET (transformed discrepancy dimension); call method create_D_basis\n'
+        # Info on separable design, if that's in place.
+        if self.sep_design:
+            res += 'This is a separable simulation design with components: \n'
+            for ii in range(len(self.sim_data.xt_sep_design)):
+                res += '   x component %d has m = %5d (simulated data design size) \n' % (
+                ii, self.sim_data.xt_sep_design[ii].shape[0])
+                res += '   x component %d has p = %5d (number of inputs) \n' % (
+                ii, self.sim_data.xt_sep_design[ii].shape[1])
         # Print info on categorical variables
         if not self.sep_design:
             if np.any(np.array(self.x_cat_ind) > 0):
