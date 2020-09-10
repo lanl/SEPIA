@@ -28,6 +28,9 @@ class SepiaData(object):
     :var bool ragged_obs: do the observations have ragged (non-shared) multivariate indices across instances?
     :var numpy.ndarray/list x_cat_ind: indices of x that are categorical (0 = not cat, int > 0 = how many categories)
     :var numpy.ndarray/list t_cat_ind: indices of t that are categorical (0 = not cat, int > 0 = how many categories)
+    :var numpy.ndarray/list/NoneType xt_sim_sep: for separable design, list of kronecker composable matrices
+    :var bool dummy_x: is there a dummy x? (used in problems where no x is provided)
+    :var bool sep_design: is there a Kronecker separable design?
     """
 
     def __init__(self, x_sim=None, t_sim=None, y_sim=None, y_ind_sim=None, x_obs=None, y_obs=None, y_ind_obs=None,
@@ -51,12 +54,15 @@ class SepiaData(object):
         .. note: At least one of x_sim and t_sim must be provided, and y_sim must always be provided.
 
         """
-
         self.sep_design = xt_sim_sep is not None
         if y_obs is not None and ((x_obs is None and x_sim is not None) or (x_obs is not None and x_sim is None)):
             raise ValueError('x_sim and x_obs must both be either not None or None (which is the no-x model case)')
         self.dummy_x = x_sim is None
         self.sim_only = y_obs is None
+        try:
+            self.scalar_out = (y_sim.shape[1] == 1)
+        except IndexError:
+            raise IndexError('y_sim should be a 2D array')
 
         # Initial Checks
         if y_sim is None:
@@ -83,7 +89,7 @@ class SepiaData(object):
             if self.dummy_x: # augment the composed design with dummy_x column
                 temp_des = np.hstack((0.5 * np.ones((temp_des[0], 1)), temp_des ))
             # separate the composed design into x and t components
-            if x_obs is None: # Emulator-only model
+            if self.sim_only: # Emulator-only model
                 x_sim=temp_des # the design can only be attributed to x's
             else:   # extract the shape
                 p=x_obs.shape[1]
@@ -105,12 +111,6 @@ class SepiaData(object):
             self.obs_data = DataContainer(x=x_obs, y=y_obs, y_ind=y_ind_obs)
             self.sim_only = False
             self.ragged_obs = isinstance(y_obs, list)
-
-        # TODO is the following if block logic correct? Move to top? Assign scalar_out to boolean expression directly?
-        if y_ind_sim is not None and y_sim.shape[1] > 1:
-            self.scalar_out = False
-        else:
-            self.scalar_out = True
 
         # Process categorical indices
         if not self.sep_design:

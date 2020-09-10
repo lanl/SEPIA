@@ -20,6 +20,7 @@ class DataContainer(object):
     :var numpy.ndarray/NoneType orig_t_max: maximum values (columnwise) of original t values
     :var numpy.ndarray/NoneType orig_x_min: minimum values (columnwise) of original x values
     :var numpy.ndarray/NoneType orig_x_max: maximum values (columnwise) of original x values
+    :var list/NoneType sep_des: separable Kronecker design
 
     """
 
@@ -31,6 +32,7 @@ class DataContainer(object):
         :param numpy.ndarray/list y: GP outputs, shape (n, ell), or list of 1D arrays for ragged observations
         :param numpy.ndarray/NoneType t: optional GP inputs (not controllable, would be known only for sim), shape (n, q)
         :param numpy.ndarray/list/NoneType y_ind: optional y indices (needed if ell > 1) or list of 1D arrays for ragged observations
+        :param list/NoneType sep_des: separable Kronecker design
 
         .. note:: DataContainer objects are constructed when you instantiate SepiaData and generally won't be instantiated directly.
 
@@ -38,7 +40,7 @@ class DataContainer(object):
         self.x = x
         self.y = y
         self.t = t
-        self.sep_des=sep_des
+        self.sep_des = sep_des
         self.y_ind = y_ind
 
         if isinstance(self.y, list):
