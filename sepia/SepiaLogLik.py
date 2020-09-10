@@ -54,8 +54,8 @@ def compute_log_lik(g, cvar='all', cindex=None):
         D=[None]*len(Sigma)
         for ii in range(len(Sigma)):
             D[ii], V[ii] = np.linalg.eig(Sigma[ii])
-            #V[ii]=np.flip(V[ii]) # these are needed for detailed numerical comparison to gpmsa
-            #D[ii]=np.flip(D[ii]) #
+            #V[ii]=np.flip(V[ii]) # these are needed for detailed numerical comparison to gpmsa of these
+            #D[ii]=np.flip(D[ii]) #  (but doesn't lead to the correct final answer overall in python)
         # determinant from eigenvalues
         dkron=D[-1]
         for ii in range(len(D)-2,-1,-1):

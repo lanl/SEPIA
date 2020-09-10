@@ -31,7 +31,7 @@ class SepiaData(object):
     """
 
     def __init__(self, x_sim=None, t_sim=None, y_sim=None, y_ind_sim=None, x_obs=None, y_obs=None, y_ind_obs=None,
-                 x_cat_ind=None, t_cat_ind=None):
+                 x_cat_ind=None, t_cat_ind=None, xt_sim_sep=None):
         """
         Create SepiaData object. Many arguments are optional depending on the type of model.
         Users should instantiate with all data needed for the desired model. See documentation pages for more detail.
@@ -45,39 +45,75 @@ class SepiaData(object):
         :param numpy.ndarray/list/NoneType y_ind_obs: vector of indices for multivariate y, shape (l_obs, ), or list length m of 1D arrays (for ragged y_ind_obs), or None
         :param numpy.ndarray/list/NoneType x_cat_ind: indices of x that are categorical (0 = not cat, int > 0 = how many categories), or None
         :param numpy.ndarray/list/NoneType t_cat_ind: indices of t that are categorical (0 = not cat, int > 0 = how many categories), or None
+        :param numpy.ndarray/list/NoneType xt_sim_sep: for separable design, list of kronecker composable matrices
         :raises: TypeError if shapes not conformal or required data missing.
 
         .. note: At least one of x_sim and t_sim must be provided, and y_sim must always be provided.
 
         """
 
+        self.sep_design = xt_sim_sep is not None
+        if y_obs is not None and ((x_obs is None and x_sim is not None) or (x_obs is not None and x_sim is None)):
+            raise ValueError('x_sim and x_obs must both be either not None or None (which is the no-x model case)')
+        self.dummy_x = x_sim is None
+        self.sim_only = y_obs is None
+
+        # Initial Checks
         if y_sim is None:
             raise TypeError('y_sim is required to set up model.')
-        if x_sim is None and t_sim is None:
-            raise TypeError('At least one of x_sim or t_sim is required to set up model.')
-        if x_sim is None:
-            x_sim = 0.5 * np.ones((t_sim.shape[0], 1)) # sets up dummy x
-        self.kron_design=isinstance(x_sim,list)
-        self.sim_data = DataContainer(x=x_sim, y=y_sim, t=t_sim, y_ind=y_ind_sim)
-        self.ragged_obs = False
-        if y_obs is None:
+        if not self.sep_design:
+            if x_sim is None and t_sim is None:
+                raise TypeError('At least one of x_sim or t_sim is required to set up model.')
+
+        if self.dummy_x:
+            if y_obs is not None:
+                x_obs = 0.5 * np.ones((len(y_obs), 1))  # sets up dummy x_obs
+            if not self.sep_design: # set up dummy_x in x_sim, or delays until sep/kron processing just below
+                x_sim = 0.5 * np.ones((t_sim.shape[0], 1))
+
+        if not xt_sim_sep is None:
+            if x_sim is not None or t_sim is not None:
+                raise ValueError('Cannot specify x_sim or t_sim if separable design is supplied')
+            self.sep_design = True
+            # Expand out the design from the components by kronecker product into x_sim and t_sim (if needed)
+            temp_des=xt_sim_sep[-1]
+            for ndes in reversed(xt_sim_sep[:-1]):
+                r1,r2=np.meshgrid(np.arange(ndes.shape[0]),np.arange(temp_des.shape[0]))
+                temp_des=np.hstack((ndes[r1.reshape(-1,order='F'),:],temp_des[r2.reshape(-1,order='F'),:]))
+            if self.dummy_x: # augment the composed design with dummy_x column
+                temp_des = np.hstack((0.5 * np.ones((temp_des[0], 1)), temp_des ))
+            # separate the composed design into x and t components
+            if x_obs is None: # Emulator-only model
+                x_sim=temp_des # the design can only be attributed to x's
+            else:   # extract the shape
+                p=x_obs.shape[1]
+                x_sim=temp_des[:,:p]
+                t_sim=temp_des[:,p:]
+
+        # At this point, dummy_x should be place if needed
+        # if it's a separable design, that's composed and split into x_sim and t_sim appropriately
+        # the separable design components will be used in logLik and predict, nobody else needs to worry about it now
+        # (except carrying it along in SetupModel
+
+        self.sim_data = DataContainer(x=x_sim, y=y_sim, t=t_sim, y_ind=y_ind_sim, sep_des=xt_sim_sep)
+
+        if self.sim_only:
             self.obs_data = None
-            self.sim_only = True
         else:
-            if x_obs is None:
-                x_obs = 0.5 * np.ones((len(y_obs), 1)) # sets up dummy x
             if x_sim.shape[1] != x_obs.shape[1]:
                 raise TypeError('x_sim and x_obs do not contain the same number of variables/columns.')
             self.obs_data = DataContainer(x=x_obs, y=y_obs, y_ind=y_ind_obs)
             self.sim_only = False
-            if isinstance(y_obs, list):
-                self.ragged_obs = True
+            self.ragged_obs = isinstance(y_obs, list)
+
+        # TODO is the following if block logic correct? Move to top? Assign scalar_out to boolean expression directly?
         if y_ind_sim is not None and y_sim.shape[1] > 1:
             self.scalar_out = False
         else:
             self.scalar_out = True
+
         # Process categorical indices
-        if not self.kron_design:
+        if not self.sep_design:
             if x_cat_ind is not None:
                 if len(x_cat_ind) != x_sim.shape[1]:
                     raise TypeError('x_cat_ind length should equal p.')
@@ -87,7 +123,8 @@ class SepiaData(object):
             else:
                 x_cat_ind = np.zeros(x_sim.shape[1])
         else:
-            # TODO only consider the case of non-categorical inputs for the kron design for now ...
+            # TODO don't process categorical inputs for the separable design for now ...
+            # ultimately, they need to be input and validated as a list
             x_cat_ind = [np.zeros(x_sim[ii].shape[1]) for ii in range(len(x_sim))]
         self.x_cat_ind = x_cat_ind
         if t_cat_ind is not None:
@@ -111,7 +148,7 @@ class SepiaData(object):
         res += 'This SepiaData instance implies the following:\n'
         if self.sim_only:
             res += 'This is a simulator (eta)-only model, y dimension %d\n' % self.sim_data.y.shape[1]
-            if not self.kron_design:
+            if not self.sep_design:
                 res += 'm  = %5d (number of simulated data)\n' % self.sim_data.x.shape[0]
                 res += 'p  = %5d (number of inputs)\n' % self.sim_data.x.shape[1]
             else:
@@ -151,7 +188,7 @@ class SepiaData(object):
                 else:
                     res += 'pv NOT SET (transformed discrepancy dimension); call method create_D_basis\n'
         # Print info on categorical variables
-        if not self.kron_design:
+        if not self.sep_design:
             if np.any(np.array(self.x_cat_ind) > 0):
                 res += 'Categorical x input variables:\n'
                 for i, ci in enumerate(self.x_cat_ind):
@@ -182,8 +219,8 @@ class SepiaData(object):
 
         """
 
-        # TODO fix this hack for kron development: x scaling needs to handle kron list
-        if self.kron_design:
+        # TODO fix this hack for separable design development: x scaling needs to update sep list
+        if self.sep_design:
             return
 
         x_trans, t_trans = None, None

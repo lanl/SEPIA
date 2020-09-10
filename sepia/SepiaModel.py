@@ -88,7 +88,7 @@ class SepiaModel:
         obs_data = data.obs_data
 
         # Infer p, q, n, m, pu, pv
-        if self.data.kron_design: # kronecker separable model
+        if self.data.sep_design: # kronecker separable model
             p=sum([zz.shape[1] for zz in sim_data.x])
         else:
             p = sim_data.x.shape[1]
@@ -145,7 +145,7 @@ class SepiaModel:
         else:
             data.x = np.array([], dtype=np.float).reshape((0, 1))
             self.num.x0Dist = SepiaDistCov(data.x)
-        if self.data.kron_design:
+        if self.data.sep_design:
             data.ztSep=sim_data.x
             tdes=sim_data.x[-1]
             for ndes in reversed(sim_data.x[:-1]):
@@ -343,7 +343,7 @@ class SepiaModel:
         # allocate lists for pre-computed components
         self.num.SigWl = [None] * pu
         self.num.SigWi = [None] * pu
-        if data.kron_design:
+        if data.sep_design:
             self.num.V = [None] * pu
             self.num.Dki2 = [None] * pu
 
@@ -941,7 +941,7 @@ class ModelContainer():
         self.lamVzGnum = 1
         #self.x0Dist = self.xzDist = self.xthetaDist = self.ztDist = None  # distances for covariance
         self.SigV = self.SigU = self.SigWl = self.SigWi = self.SigUW = None
-        self.V = self.Dki2 = None # this will be used if kron_design
+        self.V = self.Dki2 = None # this will be used if separable design
         self.auto_stepsize = False
 
     def ref_copy(self, pname):

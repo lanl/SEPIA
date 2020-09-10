@@ -23,7 +23,7 @@ class DataContainer(object):
 
     """
 
-    def __init__(self, x, y, t=None, y_ind=None):
+    def __init__(self, x, y, t=None, y_ind=None, sep_des=None):
         """
         Initialize DataContainer object.
 
@@ -36,33 +36,41 @@ class DataContainer(object):
 
         """
         self.x = x
-        if isinstance(y, list):
-            y = [yel.squeeze() for yel in  y] # squeeze extra dims if provided
-            y_ind = [yel.squeeze() for yel in y_ind]  # squeeze extra dims if provided
         self.y = y
+        self.t = t
+        self.sep_des=sep_des
+        self.y_ind = y_ind
+
+        if isinstance(self.y, list):
+            self.y = [yel.squeeze() for yel in  self.y] # squeeze extra dims if provided
+            self.y_ind = [yel.squeeze() for yel in self.y_ind]  # squeeze extra dims if provided
         # Parse mandatory inputs (x and y)
-        if not isinstance(self.x,list):
-            if self.x.shape[0] != len(self.y):
-                raise ValueError('Number of observations in x and y must be the same size.')
-        else: # in the kronecker setup, the composition of the matrices in the x list should be len(y)
-            if np.prod([len(g) for g in self.x]) != len(self.y):
-                raise ValueError('Number of observations in kron-composed-x and y must be the same size.')
+        if self.x.shape[0] != len(self.y):
+            raise ValueError('Number of observations in x and y must be the same size.')
         # Optional inputs (depending on if sim_only or scalar_out)
-        if t is not None and t.shape[0] != self.x.shape[0]:
+        if self.t is not None and self.t.shape[0] != self.x.shape[0]:
             raise ValueError('Dimension 0 of x and t must be the same size.')
-        if self.y[0].shape[0] > 1 and y_ind is None:
+        if self.y[0].shape[0] > 1 and self.y_ind is None:
             raise ValueError('y_ind required when y has multivariate output.')
-        if y_ind is not None:
-            if isinstance(y_ind, list):
+        if self.y_ind is not None:
+            if isinstance(self.y_ind, list):
                 y_shapes = np.array([ytmp.shape for ytmp in self.y])
-                y_ind_shapes = np.array([ytmp.shape for ytmp in y_ind])
+                y_ind_shapes = np.array([ytmp.shape for ytmp in self.y_ind])
                 if not np.all(y_shapes[:,0] == y_ind_shapes[:,0]):
                     raise ValueError('Dimension 1 of y must match dimension 0 of y_ind.')
             else:
-                if self.y.shape[1] != y_ind.shape[0]:
+                if self.y.shape[1] != self.y_ind.shape[0]:
                     raise ValueError('Dimension 1 of y must match dimension 0 of y_ind.')
-        self.t = t
-        self.y_ind = y_ind
+        if self.sep_des is not None:
+            if not isinstance(self.sep_des,list):
+                raise ValueError('sep_des must be a list of kronecker composable designs')
+            num_des_vars = self.x.shape[1] + (0 if t is None else self.t.shape[1])
+            if num_des_vars != sum([g.shape[1] for g in self.sep_des]):
+                raise ValueError('sep_des columns must sum to x and t columns')
+            if len(self.y) != np.prod([len(g) for g in self.sep_des]):
+                raise ValueError('Number of observations in kron-composed-x and y must be the same size.')
+        # Validation complete
+
         # Basis and transform stuff initialized to None
         self.K = None
         self.D = None
