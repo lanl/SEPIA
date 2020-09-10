@@ -151,9 +151,13 @@ class SepiaModel:
         if self.data.sep_design:
             data.ztSep=sim_data.xt_sep_design
             self.num.ztSepDist=[]
-            for ii in sim_data.xt_sep_design:
-                self.num.ztSepDist.append(SepiaDistCov(ii))  #,cat_ind=data.x_cat_ind) TODO?
-            self.num.ztDist = SepiaDistCov(data.zt) #, cat_ind=np.concatenate([data.x_cat_ind, data.t_cat_ind]))
+            cat_ind = np.concatenate([data.x_cat_ind, data.t_cat_ind])
+            tind=0
+            for dele in sim_data.xt_sep_design:
+                tlen=dele.shape[1]
+                self.num.ztSepDist.append(SepiaDistCov(dele,cat_ind=cat_ind[tind:tind+tlen]))
+                tind=tind+tlen
+            self.num.ztDist = SepiaDistCov(data.zt, cat_ind=np.concatenate([data.x_cat_ind, data.t_cat_ind]))
         else:
             self.num.ztDist = SepiaDistCov(data.zt, cat_ind=np.concatenate([data.x_cat_ind, data.t_cat_ind]))
 

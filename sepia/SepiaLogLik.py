@@ -101,7 +101,7 @@ def compute_log_lik(g, cvar='all', cindex=None):
         num.xzDist = SepiaDistCov(xt_tmp, g.data.zt, cat_ind=np.concatenate([g.data.x_cat_ind, g.data.t_cat_ind])) # the connection to theta variables
 
     # check if we're in a kron separable data definition
-    if hasattr(g.data,'ztSep'):
+    if g.data.sep_design:
         ztSep=g.data.ztSep
         ztSepDist=g.num.ztSepDist
     else:

@@ -182,19 +182,16 @@ class SepiaData(object):
                 res += '   x component %d has p = %5d (number of inputs) \n' % (
                 ii, self.sim_data.xt_sep_design[ii].shape[1])
         # Print info on categorical variables
-        if not self.sep_design:
-            if np.any(np.array(self.x_cat_ind) > 0):
-                res += 'Categorical x input variables:\n'
-                for i, ci in enumerate(self.x_cat_ind):
-                    if ci > 0:
-                        res += 'x index %d with %d categories\n' % (i, ci)
-            if np.any(np.array(self.t_cat_ind) > 0):
-                res += 'Categorical t input variables:\n'
-                for i, ci in enumerate(self.t_cat_ind):
-                    if ci > 0:
-                        res += 't index %d with %d categories\n' % (i, ci)
-        else:
-            pass  # TODO OMG....
+        if np.any(np.array(self.x_cat_ind) > 0):
+            res += 'Categorical x input variables:\n'
+            for i, ci in enumerate(self.x_cat_ind):
+                if ci > 0:
+                    res += 'x index %d with %d categories\n' % (i, ci)
+        if np.any(np.array(self.t_cat_ind) > 0):
+            res += 'Categorical t input variables:\n'
+            for i, ci in enumerate(self.t_cat_ind):
+                if ci > 0:
+                    res += 't index %d with %d categories\n' % (i, ci)
         return res
 
     def transform_xt(self, x_notrans=None, t_notrans=None, x=None, t=None):
@@ -221,9 +218,14 @@ class SepiaData(object):
         if x_notrans is True:
             x_notrans = np.arange(self.sim_data.x.shape[1])
 
+        # making notes to transform the separable design elements, if needed
+        transform_sep = False
+
         # Transform x to unit hypercube
         # if not computed, compute orig x min and orig x max, accounting for notrans_x, all equal x, and categorical x
         if self.sim_data.orig_x_min is None or self.sim_data.orig_x_max is None or self.sim_data.x_trans is None:
+            if self.sep_design:
+                transform_sep=True
             nx = self.sim_data.x.shape[1]
             orig_x_min = np.min(self.sim_data.x, 0, keepdims=True)
             orig_x_max = np.max(self.sim_data.x, 0, keepdims=True)
@@ -271,6 +273,21 @@ class SepiaData(object):
             # If a new t was passed in, transform it
             if t is not None:
                 t_trans = (t - self.sim_data.orig_t_min) / (self.sim_data.orig_t_max - self.sim_data.orig_t_min)
+
+        if transform_sep:
+            self.sim_data.xt_sep_design_orig = self.sim_data.xt_sep_design.copy()
+            if self.sim_data.orig_t_min is not None:
+                sep_min = np.hstack((self.sim_data.orig_x_min, self.sim_data.orig_t_min))
+                sep_max = np.hstack((self.sim_data.orig_x_max, self.sim_data.orig_t_max))
+            else:
+                sep_min = self.sim_data.orig_x_min
+                sep_max = self.sim_data.orig_x_max
+            tind=0
+            for dele in self.sim_data.xt_sep_design:
+                dlen = dele.shape[1]
+                dele = (dele - sep_min[0,tind:tind+dlen]) / (sep_max[0,tind:tind+dlen] - sep_min[0,tind:tind+dlen])
+                tind = tind + dlen
+
         return x_trans, t_trans
 
     def standardize_y(self, center=True, scale='scalar', y_mean=None, y_sd=None):
