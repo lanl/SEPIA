@@ -56,6 +56,8 @@ Welcome to Sepia!
 
 .. topic:: Recent changes
 
+    * 9/10/20: users can pass custom theta constraint function `theta_fcon` to `SepiaModel` that evaluates True if theta follows the constraint
+        and False otherwise. Must also pass in `theta_init` that satisfies the constraint.
     * 8/27/2020: predictions now expect `x` and `t` to be passed in the native (untransformed) space.
     * 8/25/2020: use `SepiaModel(data)` to set up model (no more `setup_model` function).
 
