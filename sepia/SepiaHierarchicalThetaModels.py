@@ -120,7 +120,7 @@ class SepiaHierarchicalThetaModels:
                     arr_ind = np.unravel_index(0, self.hier_delta[hi].val_shape, order='F')
                     delta_cand = self.hier_delta[hi].mcmc.draw_candidate(arr_ind, False)
                     mu_cand = delta_cand + mu_param.val[0, 0].copy()
-                    # check in bounds for mu; check in bounds for theta (TODO other constraints...)
+                    # check in bounds for mu; check in bounds for theta (TODO other constraints... theta bounds...)
                     inb = mu_param.prior.is_in_bounds(mu_cand)
                     if inb:
                         for mi in range(self.n_models):
@@ -187,8 +187,10 @@ class SepiaHierarchicalThetaModels:
         # draw cand
         arr_ind = np.unravel_index(0, hprm.val_shape, order='F')
         hprm_cand = hprm.mcmc.draw_candidate(arr_ind, True)
-        # check in bounds for mu; check in bounds for theta? (TODO other constraints...)
+        # check in bounds for mu; check in bounds for theta? (TODO theta constraints for mu)
         inb = hprm_cand > hprm.prior.bounds[0][arr_ind] and hprm_cand < hprm.prior.bounds[1][arr_ind]
+        #if 'mu' in hprm.name:
+        #
         # If in bounds, evaluate draw to decide whether or not to accept; if not in bounds, nothing changes
         if inb:
             # Store old/current log prior and prior params for thetas in case reject, put cand into theta priors
