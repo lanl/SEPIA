@@ -48,6 +48,7 @@ class SepiaMCMCTestCase(unittest.TestCase):
         d.create_K_basis(5)
         d.create_D_basis('linear')
         self.multi_sim_and_obs_model = SepiaModel(d)
+        self.multi_sim_and_obs_data = d
 
     def test_univariate_sim_only_mcmc(self):
         """
@@ -114,6 +115,26 @@ class SepiaMCMCTestCase(unittest.TestCase):
         model.tune_step_sizes(50, 10)
         model.do_mcmc(100)
 
+    def test_multivariate_sim_and_obs_mcmc_thetacon(self):
+        """
+        Tests mcmc for multivariate sim and obs model with theta constraint function
+        """
+
+        print('Testing multivariate sim and obs SepiaMCMC w theta constraint...', flush=True)
+
+        data = self.multi_sim_and_obs_data
+
+        def fcon(x):
+            return (x[:, 0] + x[:, 1]) < 0.8
+
+        theta_init = np.array([[0.2, 0.3, 0.5]])
+
+        model = SepiaModel(data, theta_init=theta_init, theta_fcon=fcon)
+
+        model.tune_step_sizes(50, 10)
+        model.do_mcmc(100)
+        samples = model.get_samples()
+        self.assertTrue(np.all(samples['theta'][:, 0] + samples['theta'][:, 1] < 0.8))
 
 
 
