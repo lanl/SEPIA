@@ -40,7 +40,7 @@ class SepDesSetupLogLik(unittest.TestCase):
         kmod=SepiaModel(kd)
         print('Emulator Sep model LL=%f \n' % compute_log_lik(kmod) )
 
-        self.assertEqual(compute_log_lik(mod),compute_log_lik(kmod))
+        self.assertAlmostEqual(compute_log_lik(mod),compute_log_lik(kmod),places=5)
         pass
 
     def test_full_setup_loglik(self):
@@ -81,6 +81,6 @@ class SepDesSetupLogLik(unittest.TestCase):
 
         print('Calibration Sep model LL=%f'%compute_log_lik(kcmod))
 
-        self.assertEqual(compute_log_lik(cmod),compute_log_lik(kcmod))
+        self.assertAlmostEqual(compute_log_lik(cmod),compute_log_lik(kcmod), places=5)
 
         pass
