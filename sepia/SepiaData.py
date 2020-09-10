@@ -59,10 +59,6 @@ class SepiaData(object):
             raise ValueError('x_sim and x_obs must both be either not None or None (which is the no-x model case)')
         self.dummy_x = x_sim is None
         self.sim_only = y_obs is None
-        try:
-            self.scalar_out = (y_sim.shape[1] == 1)
-        except IndexError:
-            raise IndexError('y_sim should be a 2D array')
 
         # Initial Checks
         if y_sim is None:
@@ -102,6 +98,8 @@ class SepiaData(object):
         # (except carrying it along in SetupModel
 
         self.sim_data = DataContainer(x=x_sim, y=y_sim, t=t_sim, y_ind=y_ind_sim, sep_des=xt_sim_sep)
+
+        self.scalar_out = (self.sim_data.y.shape[1] == 1)
 
         if self.sim_only:
             self.obs_data = None
