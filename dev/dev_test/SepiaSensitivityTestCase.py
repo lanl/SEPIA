@@ -19,7 +19,36 @@ class SepiaSensitivityTestCase(unittest.TestCase):
     Checks Sensitivity analysis results between matlab and python.
     Run files in matlab/ dir to generate data prior to running these tests.
     """
+    def test_sens_neddermeyer(self):
+        print('starting test_sens_neddermeyer',flush=True)
+        seed = 42.
+        n_mcmc = 100
+        
+        model, matlab_output = setup_neddermeyer(seed=seed,n_mcmc=n_mcmc,sens=1)
 
+        # do python sampling
+        np.random.seed(int(seed))
+        model.do_mcmc(n_mcmc)
+
+        # get python sensitivity
+        sa = sensitivity(model)
+        sme_py = sa['smePm']
+        ste_py = sa['stePm']
+        
+        sme_mat = np.array(matlab_output['smePm'])
+        ste_mat = np.array(matlab_output['stePm'])
+        
+        if not np.allclose(sme_py, sme_mat):
+            print('sme_py',sme_py,'\n','sme_mat',sme_mat)
+        if not np.allclose(ste_py, ste_mat):
+            print('ste_py',ste_py,'\n','ste_mat',ste_mat)
+        
+        samples = model.get_samples()
+        print('max abs difference in logpost (matlab-python):\n',\
+              max(np.abs(matlab_output['mcmc']['logPost']-samples['logPost'])))
+        self.assertTrue(np.allclose(sme_py, sme_mat))
+        self.assertTrue(np.allclose(ste_py, ste_mat))
+        
     def test_sens_univ_sim_only(self):
         print('starting test_sens_univ_sim_only', flush=True)
 

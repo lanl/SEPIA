@@ -193,12 +193,30 @@ def setup_multi_sim_and_obs_hiertheta(m=100, n=10, nt_sim=20, nt_obs=15, noise_s
         model_list.append(model)
     return model_list, res
 
+def setup_neddermeyer(seed=42.,n_mcmc=100,sens=1,n_burn=0,n_lev=0):
+    try:
+        eng = matlab.engine.start_matlab()
+        eng.cd(root_path)
+        eng.addpath('matlab/', nargout=0)
+        #dataStruct = eng.neddeg(0, nargout=1)
+        res = eng.setup_neddermeyer(seed,n_mcmc,sens,n_burn,n_lev)
+        eng.quit()
+    except Exception as e:
+        print(e)
+        print('Matlab error; make sure matlab.engine installed, check Matlab code for errors.')
+    
+    # get python model
+    import pickle
+    data = pickle.load(open('../../examples/Neddermeyer/pkls/nedderData.pkl','rb'))
+    model=SepiaModel(data)
+    
+    return model, res
 
 if __name__ == '__main__':
     setup_multi_sim_and_obs_sharedtheta(n_mcmc=20, clist=[[1, 1], [2, 2]])
     setup_multi_sim_only()
     setup_univ_sim_only()
     setup_univ_sim_and_obs()
-
+    setup_neddermeyer()
 
 
