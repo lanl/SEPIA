@@ -207,7 +207,23 @@ def setup_neddermeyer(seed=42.,n_mcmc=100,sens=1,n_burn=0,n_lev=0):
     
     # get python model
     import pickle
-    data = pickle.load(open('../../examples/Neddermeyer/pkls/nedderData.pkl','rb'))
+    data_dict = pickle.load(open('../../examples/Neddermeyer/pkls/nedderDataDict.pkl','rb'))
+    data = SepiaData(x_sim=data_dict['x_sim'],t_sim=data_dict['t_sim'],y_sim=data_dict['y_sim'],\
+                 y_ind_sim=data_dict['y_ind_sim'],x_obs=data_dict['x_obs'],y_obs=data_dict['y_obs'],\
+                 y_ind_obs=data_dict['y_ind_obs'])
+    data.transform_xt()
+    # set orig sim vals and Ksim
+    data.sim_data.orig_y_mean=data_dict['sim_orig_y_mean']
+    data.sim_data.orig_y_sd=data_dict['sim_orig_y_sd']
+    data.sim_data.y_std=data_dict['sim_y_std']
+    data.sim_data.K=data_dict['Ksim'] 
+    # set orig obs vals and Kobs
+    data.obs_data.orig_y_mean=data_dict['obs_orig_y_mean']
+    data.obs_data.orig_y_sd=data_dict['obs_orig_y_sd']
+    data.obs_data.y_std=data_dict['obs_orig_y_std']
+    data.obs_data.K=data_dict['Kobs']
+    # call create_D_basis
+    data.create_D_basis(D_obs=data_dict['Dobs'],D_sim=data_dict['Dsim'])
     model=SepiaModel(data)
     
     return model, res
