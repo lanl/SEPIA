@@ -5,6 +5,7 @@ import numpy as np
 from sepia.SepiaModel import SepiaModel
 from sepia.SepiaData import SepiaData
 from sepia.SepiaLogLik import compute_log_lik
+from sepia.SepiaPredict import SepiaEmulatorPrediction, SepiaFullPrediction
 
 class SepDesSetupLogLik(unittest.TestCase):
 
@@ -60,9 +61,7 @@ class SepDesSetupLogLik(unittest.TestCase):
         dc.create_K_basis(K=np.eye(2))
         dc.create_D_basis(D_sim=np.eye(2),D_obs=np.eye(2))
         dc.transform_xt(x_notrans=True,t_notrans=True)
-        #dc.standardize_y(scale='columnwise')
-        dc.sim_data.y_std=dc.sim_data.y
-        dc.obs_data.y_std=dc.obs_data.y
+        dc.standardize_y(y_mean=0,y_sd=1)
         print(dc)
         cmod=SepiaModel(dc)
 
@@ -73,14 +72,32 @@ class SepDesSetupLogLik(unittest.TestCase):
         kdc.create_K_basis(K=np.eye(2))
         kdc.create_D_basis(D_sim=np.eye(2),D_obs=np.eye(2))
         kdc.transform_xt(x_notrans=True,t_notrans=True)
-        #kdc.standardize_y(scale='columnwise')
-        kdc.sim_data.y_std=kdc.sim_data.y
-        kdc.obs_data.y_std=kdc.obs_data.y
+        kdc.standardize_y(y_mean=0,y_sd=1)
         print(kdc)
         kcmod=SepiaModel(kdc)
 
         print('Calibration Sep model LL=%f'%compute_log_lik(kcmod))
 
         self.assertAlmostEqual(compute_log_lik(cmod),compute_log_lik(kcmod), places=5)
+
+        np.random.seed(42)
+        cmod.do_mcmc(100)
+        csamp=cmod.get_samples(sampleset=[99])
+        cpred=SepiaFullPrediction(mode='Sep',model=cmod,samples=csamp, storeMuSigma=True,
+                                 x_pred=np.array([0.5,0.5]).reshape((1,-1)))
+        print(cpred.get_ysim())
+        csm,css=cpred.get_mu_sigma()
+        print(csm)
+        print(css)
+
+        np.random.seed(42)
+        kcmod.do_mcmc(100)
+        kcsamp=kcmod.get_samples(sampleset=[99])
+        kcpred=SepiaFullPrediction(mode='Sep',model=kcmod,samples=kcsamp, storeMuSigma=True,
+                                 x_pred=np.array([0.5,0.5]).reshape((1,-1)))
+        print(kcpred.get_ysim())
+        kcsm,kcss=kcpred.get_mu_sigma()
+        print(kcsm)
+        print(kcss)
 
         pass

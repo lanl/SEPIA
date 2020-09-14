@@ -237,7 +237,7 @@ class SepiaFullPrediction(SepiaPrediction):
     Make predictions of the full model: both emulator ('eta') and discrepancy ('delta') == (u,v)
     Predictions are performed on init and stored in the object for access by methods.
     """
-    def __init__(self,*args,**kwrds):
+    def __init__(self,mode='nonSep',*args,**kwrds):
         """
         Instantiate SepiaFullPrediction object.
 
@@ -254,7 +254,11 @@ class SepiaFullPrediction(SepiaPrediction):
         """
         super(SepiaFullPrediction,self).__init__(*args,**kwrds)
         # prediction is samples x prediction points x pu or pv (basis)
-        uvPred(self)
+        if mode=='nonSep':
+            uvPred(self)
+        else:
+            uvPredSep(self)
+
 
     def get_u_v(self):
         """
@@ -903,7 +907,7 @@ def uvPredSep(pred):
             zt=zp[:,jj]
             for ii in range(len(V)-1,-1,-1):
                 Vsize=V[ii].shape[1]
-                zt=np.linalg.solve(V[ii],zt.reshape((Vsize,int(dlen/Vsize)),order='F') ).T
+                zt=scipy.linalg.solve(V[ii],zt.reshape((Vsize,int(dlen/Vsize)),order='F') ).T
             zpo[:,jj]=zt.reshape(-1,order='F')
         return zpo
 
@@ -920,13 +924,13 @@ def uvPredSep(pred):
         for ii in range(len(S)):
             D[ii], V[ii] = np.linalg.eig(S[ii])
 
-        # determinant from eigenvalues
+        # compose eigenvalues
         dkron=D[-1]
         for ii in range(len(D)-2,-1,-1):
             dkron=np.kron(D[ii],dkron)
 
         # inverse sqrt of the D diagonal augmented with the nugget
-        Dki2=1/np.sqrt(dkron + nugget)
+        Dki2=(1/np.sqrt(dkron + nugget)).reshape((-1,1))
 
         # Put the parts together for W'inv(S)W
         zp=sepQuadFormCalc(V,W)
@@ -936,7 +940,7 @@ def uvPredSep(pred):
         # Put the parts together for W'inv(S)m
         zp=sepQuadFormCalc(V,m)
         zp2r=zp * Dki2
-        r=zp2T.T*zp2r
+        r=zp2T.T @ zp2r
 
         return T,r
 
@@ -957,7 +961,7 @@ def uvPredSep(pred):
     x0Dist = num.x0Dist
     xpred0Dist=SepiaDistCov(xpred, cat_ind=data.x_cat_ind)
     xxpred0Dist=SepiaDistCov(data.x, xpred, cat_ind=data.x_cat_ind)
-    if data.sep_model:
+    if data.sep_design:
         ztSep=data.ztSep
         ztSepDist=num.ztSepDist
 
@@ -1021,11 +1025,11 @@ def uvPredSep(pred):
         #    SigUW[jj*n:(jj+1)*n,jj*m:(jj+1)*m]=xzDist.compute_cov_mat(betaU[:, jj], lamUz[0, jj])
 
         SigWb = [None]*pu
-        if not data.sep_model:
+        if not data.sep_design:
             for jj in range(pu):
                 SigWb[jj]= num.ztDist.compute_cov_mat(betaU[:, jj], lamUz[0, jj])
                 # a scalar added to diagonal for each block
-                np.fill_diagonal(SigWb[jj], SigWb[jj].diagonal() + 1/(num.LamSim[jj] * lamWOs) + 1/lamWs[jj] )
+                np.fill_diagonal(SigWb[jj], SigWb[jj].diagonal() + 1/(num.LamSim[jj] * lamWOs) + 1/lamWs[0,jj] )
         else:
             SigWbDiag = [None]*pu
             for jj in range(pu):
@@ -1034,10 +1038,10 @@ def uvPredSep(pred):
                 for kk in range(len(ztSep)):
                     segInds=np.arange(segVarStart,segVarStart+ztSepDist[kk].p)
                     if kk==0: # count lamUz once while composing the block from sep design
-                        SigWb[jj][kk] = ztSepDist.compute_cov_mat(betaU[segInds, jj], lamUz[0, jj])
+                        SigWb[jj][kk] = ztSepDist[kk].compute_cov_mat(betaU[segInds, jj], lamUz[0, jj])
                     else:
-                        SigWb[jj][kk] = ztSepDist.compute_cov_mat(betaU[segInds, jj], 1)
-                SigWbDiag[jj]=1/(num.LamSim[jj] * lamWOs) + 1/lamWs[jj] # should be scalar
+                        SigWb[jj][kk] = ztSepDist[kk].compute_cov_mat(betaU[segInds, jj], 1)
+                SigWbDiag[jj]=1/(num.LamSim[jj] * lamWOs) + 1/lamWs[0,jj] # should be scalar
 
         SigUWb = [None]*pu
         for jj in range(pu):
@@ -1106,7 +1110,7 @@ def uvPredSep(pred):
         SigWUxb=[None]*pu
         for jj in range(pu):
             SigWUxb[jj] = np.vstack( ( np.zeros((jj*npred,m)),
-                                      zxpredDist.compute_cov_mat(betaU[:, jj], lamUz[0, jj]),
+                                      zxpredDist.compute_cov_mat(betaU[:, jj], lamUz[0, jj]).T,
                                       np.zeros(((pu-jj-1)*npred,m)) ) )
 
         # TODO needs to be augmented for separable
@@ -1158,17 +1162,17 @@ def uvPredSep(pred):
             SigWcrossb[n*pv:n*(pv+pu),:]=SigUWb[jj]
             SigWcrossb[(n*(pv+pu)+npred*pv):((n+npred)*(pv+pu)),:]=SigWUxb[jj]
             SigWcrossb=SigWcrossb.T
-            if not data.sep_model:
-                Tb=scipy.linalg.solve(SigWb[jj],SigWcrossb, sym_pos=True)
+            if not data.sep_design:
+                Tb=scipy.linalg.solve(SigWb[jj],SigWcrossb, sym_pos=True).T
                 SigWsb[jj] = Tb @ SigWcrossb
-                mugWsb[jj] = Tb @ num.w[jj*m:(jj+1)*m,0]
+                mugWsb[jj] = (Tb @ num.w[jj*m:(jj+1)*m,0] ).reshape(-1,1)
             else:
-                SigWsb[jj],mugWsb[jj]=sepCalc(SigWcrossb,SigWb[jj],SigWbDiag[jj],num.w[jj*m:(jj+1)*m,0])
+                SigWsb[jj],mugWsb[jj]=sepCalc(SigWcrossb,SigWb[jj],SigWbDiag[jj],num.w[jj*m:(jj+1)*m,:])
 
         SiggWb=SignoW
         mugWb=np.zeros(mugWsb[0].shape)
-        for ii in range(pu):
-            SiggWb=SiggWsb - SigWsb[jj]
+        for jj in range(pu):
+            SiggWb=SiggWb - SigWsb[jj]
             mugWb=mugWb + mugWsb[jj]
 
         SiggW11=SiggWb[:n*(pv+pu),:n*(pv+pu)]
@@ -1177,9 +1181,9 @@ def uvPredSep(pred):
         mugW1=mugWb[:n*(pv+pu)]
         mugW2=mugWb[n*(pv+pu):]
 
-        T=np.linalg.solve(SiggW11,SiggW12,sym_pos=True)
+        T=scipy.linalg.solve(SiggW11,SiggW12).T
         Syhat=SiggW22 - T@SiggW12
-        Myhat=mugW2 + T@(num.vu-mugW1)
+        Myhat=mugW2 + T @ (num.vu-mugW1)
 
         if pred.storeRlz:
             # Record a realization

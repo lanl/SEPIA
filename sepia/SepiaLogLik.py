@@ -35,7 +35,7 @@ def compute_log_lik(g, cvar='all', cindex=None):
         L = -logDet - 0.5 * np.sum(p1 * w)
         return L
 
-        # calculate the equivalent quadratic form of kron separable data
+    # calculate the equivalent quadratic form of kron separable data
     def sepQuadFormCalc(V,zp):
         # calculate right side of the kronecker quadratic form solve
         dlen,mlen=zp.shape
