@@ -408,12 +408,22 @@ class SepiaFullPrediction(SepiaPrediction):
 # So much for the sugar, here's the medicine...
 # """
 
-def rmultnormsvd(n,mu,sigma):
-    # using this for development, to verify with the same rand stream as matlab
-    U, s, V = np.linalg.svd(sigma, full_matrices=False)
-    normalrands=norm.ppf(np.random.rand(np.shape(mu)[0],n))
-    rnorm=np.tile(mu,(1,n)) + U @ np.diag(np.sqrt(s)) @ normalrands
-    return rnorm.squeeze()
+def rmultnorm(n, mu, sigma, dev=True):
+
+    # the deal with this is to use the same rand stream to generate realizations in the same way
+    # gpmsa, for testing purposes. numpy's mvn uses a different stream.
+    # I guess there's no reason not to leave it like this - in dev mode?
+
+    if not dev:
+        if n!=1:
+            raise ValueError('Internal error: native method should have only been asked to produce single realizations')
+        return np.random.multivariate_normal(mu.squeeze(), sigma)
+    else:
+        # development, to verify with the same rand stream as matlab
+        U, s, V = np.linalg.svd(sigma, full_matrices=False)
+        normalrands=norm.ppf(np.random.rand(np.shape(mu)[0],n))
+        rnorm=np.tile(mu,(1,n)) + U @ np.diag(np.sqrt(s)) @ normalrands
+        return rnorm.squeeze()
 
 def uvPred(pred):
     # some shorthand references from the pred object
@@ -585,7 +595,7 @@ def uvPred(pred):
 
         if pred.storeRlz:
             # Record a realization
-            tpred[ii, :] = rmultnormsvd(1, Myhat, Syhat)
+            tpred[ii, :] = rmultnorm(1, Myhat, Syhat)
             # testing speed of built in
             #tpred[ii, :] = np.random.multivariate_normal(Myhat.squeeze(), Syhat)
 
@@ -677,7 +687,7 @@ def wPred(pred):
 
         if pred.storeRlz:
           # Record a realization
-          tpred[ii,:]=rmultnormsvd(1,Myhat,Syhat)
+          tpred[ii,:]=rmultnorm(1, Myhat, Syhat)
 
         if pred.storeMuSigma:
           pred.mu[ii,:]=np.squeeze(Myhat)
@@ -873,7 +883,7 @@ def uvPred(pred):
 
         if pred.storeRlz:
             # Record a realization
-            tpred[ii, :] = rmultnormsvd(1, Myhat, Syhat)
+            tpred[ii, :] = rmultnorm(1, Myhat, Syhat)
             # testing speed of built in
             # tpred[ii, :] = np.random.multivariate_normal(Myhat.squeeze(), Syhat)
 
@@ -1188,7 +1198,7 @@ def uvPredSep(pred):
 
         if pred.storeRlz:
             # Record a realization
-            tpred[ii, :] = rmultnormsvd(1, Myhat, Syhat)
+            tpred[ii, :] = rmultnorm(1, Myhat, Syhat)
             # testing speed of built in
             #tpred[ii, :] = np.random.multivariate_normal(Myhat.squeeze(), Syhat)
 
