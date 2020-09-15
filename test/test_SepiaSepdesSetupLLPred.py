@@ -7,6 +7,8 @@ from sepia.SepiaData import SepiaData
 from sepia.SepiaLogLik import compute_log_lik
 from sepia.SepiaPredict import SepiaEmulatorPrediction, SepiaFullPrediction
 
+from time import time
+
 class SepDesSetupLogLik(unittest.TestCase):
 
     def setUp(self):
@@ -80,9 +82,12 @@ class SepDesSetupLogLik(unittest.TestCase):
 
         self.assertAlmostEqual(compute_log_lik(cmod),compute_log_lik(kcmod), places=5)
 
+        print('Running MCMC on Calibration model in Sep pred mode, regular design')
         np.random.seed(42)
-        cmod.do_mcmc(100)
-        csamp=cmod.get_samples(sampleset=[99])
+        t1=time()
+        cmod.do_mcmc(10)
+        print('sampling time %f'%(time()-t1))
+        csamp=cmod.get_samples(sampleset=[cmod.get_last_sample_ind()])
         cpred=SepiaFullPrediction(mode='Sep',model=cmod,samples=csamp, storeMuSigma=True,
                                  x_pred=np.array([0.5,0.5]).reshape((1,-1)))
         print(cpred.get_ysim())
@@ -90,9 +95,12 @@ class SepDesSetupLogLik(unittest.TestCase):
         print(csm)
         print(css)
 
+        print('Running MCMC on Calibration model in Sep pred mode, separable design')
         np.random.seed(42)
-        kcmod.do_mcmc(100)
-        kcsamp=kcmod.get_samples(sampleset=[99])
+        t1=time()
+        kcmod.do_mcmc(10)
+        print('sampling time %f'%(time()-t1))
+        kcsamp=kcmod.get_samples(sampleset=[kcmod.get_last_sample_ind()])
         kcpred=SepiaFullPrediction(mode='Sep',model=kcmod,samples=kcsamp, storeMuSigma=True,
                                  x_pred=np.array([0.5,0.5]).reshape((1,-1)))
         print(kcpred.get_ysim())
@@ -105,5 +113,25 @@ class SepDesSetupLogLik(unittest.TestCase):
 
         print('testing max difference which is %g'%np.max(abs(css - kcss)))
         self.assertAlmostEqual(0,np.max(abs(css-kcss)))
+
+        ###### Timing for predictions
+
+        test_x_pred=np.random.rand(10,2)
+
+        csamp=cmod.get_samples()
+        t1=time()
+        cpred0=SepiaFullPrediction(mode='notSep',model=cmod,samples=csamp, storeMuSigma=True,
+                                 x_pred=test_x_pred )
+        print('predict time non-Sep in non-Sep mode %f'%(time()-t1))
+        t1=time()
+        cpred=SepiaFullPrediction(mode='Sep',model=cmod,samples=csamp, storeMuSigma=True,
+                                 x_pred=test_x_pred )
+        print('predict time non-sep in Sep mode %f'%(time()-t1))
+
+        kcsamp=kcmod.get_samples()
+        t1=time()
+        kcpred=SepiaFullPrediction(mode='Sep',model=kcmod,samples=kcsamp, storeMuSigma=True,
+                                 x_pred=test_x_pred )
+        print('predict time Sep %f'%(time()-t1))
 
         pass

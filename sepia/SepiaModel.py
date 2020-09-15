@@ -519,6 +519,11 @@ class SepiaModel:
         for _ in tqdm(range(nsamp), desc='MCMC sampling', mininterval=0.5, disable=not(prog)):
             self.mcmc_step(do_propMH)
 
+    def get_num_samples(self):
+        return self.params.lp.get_num_samples()
+    def get_last_sample_ind(self):
+        return self.get_num_samples() - 1
+
     def get_samples(self, nburn=0, sampleset=False, numsamples=False, flat=True, includelogpost=True, effectivesamples=False):
         """
         Extract MCMC samples into dictionary format. By default, all samples are returned, or samples can be
@@ -538,7 +543,7 @@ class SepiaModel:
         """
         if self.num.sim_only and effectivesamples:
             print('Emulator only - returning all samples')
-        total_samples = self.params.lp.get_num_samples()
+        total_samples = self.get_num_samples()
         if total_samples == 0:
             raise TypeError('No MCMC samples; call do_mcmc() first.')
 
