@@ -5,7 +5,6 @@ from .SepiaDistCov import SepiaDistCov
 from .SepiaLogLik import compute_log_lik
 from .SepiaMCMC import SepiaMCMC
 from .SepiaModel import SepiaModel
-from examples.Optimization.SepiaOptim import SepiaOptim
 from .SepiaParam import SepiaParam
 from .SepiaPlot import *
 from .SepiaPrior import SepiaPrior
