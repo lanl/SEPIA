@@ -48,7 +48,8 @@ class SepiaData(object):
         :param numpy.ndarray/list/NoneType y_ind_obs: vector of indices for multivariate y, shape (l_obs, ), or list length m of 1D arrays (for ragged y_ind_obs), or None
         :param numpy.ndarray/list/NoneType x_cat_ind: indices of x that are categorical (0 = not cat, int > 0 = how many categories), or None
         :param numpy.ndarray/list/NoneType t_cat_ind: indices of t that are categorical (0 = not cat, int > 0 = how many categories), or None
-        :param numpy.ndarray/list/NoneType xt_sim_sep: for separable design, list of kronecker composable matrices
+        :param numpy.ndarray/list/NoneType xt_sim_sep: for separable design, list of kronecker composable matrices; it is a list of 2 or
+                                                       more design components that, through Kronecker expansion, produce the full input space (`x` and `t`) for the simulations.
         :raises: TypeError if shapes not conformal or required data missing.
 
         .. note: At least one of x_sim and t_sim must be provided, and y_sim must always be provided.
