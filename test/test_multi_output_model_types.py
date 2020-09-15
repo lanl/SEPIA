@@ -116,7 +116,7 @@ class TestMultiOutputModelTypes(unittest.TestCase):
         call_plot_functions(model)
 
         samples = model.get_samples()
-        pred = SepiaEmulatorPrediction(x_pred=0.5 * np.ones((m, 1)), t_pred=t, samples=samples, model=model, addResidVar=True, storeMuSigma=True)
+        pred = SepiaEmulatorPrediction(t_pred=t, samples=samples, model=model, addResidVar=True, storeMuSigma=True)
         pred.get_w()
         pred.get_y()
         pred.get_y(std=True)
@@ -143,7 +143,7 @@ class TestMultiOutputModelTypes(unittest.TestCase):
         call_plot_functions(model)
 
         samples = model.get_samples()
-        pred = SepiaEmulatorPrediction(x_pred=0.5 * np.ones((m, 1)), t_pred=t, samples=samples, model=model, addResidVar=True, storeMuSigma=True)
+        pred = SepiaEmulatorPrediction(t_pred=t, samples=samples, model=model, addResidVar=True, storeMuSigma=True)
         pred.get_w()
         pred.get_y()
         pred.get_y(std=True)
@@ -234,7 +234,7 @@ class TestMultiOutputModelTypes(unittest.TestCase):
         call_plot_functions(model)
 
         samples = model.get_samples()
-        pred = SepiaEmulatorPrediction(x_pred=0.5 * np.ones((m, 1)), t_pred=t, samples=samples, model=model, addResidVar=True, storeMuSigma=True)
+        pred = SepiaEmulatorPrediction(t_pred=t, samples=samples, model=model, addResidVar=True, storeMuSigma=True)
         pred.get_w()
         pred.get_y()
         pred.get_y(std=True)
@@ -246,7 +246,7 @@ class TestMultiOutputModelTypes(unittest.TestCase):
         xpred.get_y(std=True)
         xpred.get_mu_sigma()
 
-        pred = SepiaFullPrediction(x_pred=0.5 * np.ones((m, 1)), t_pred=t, samples=samples, model=model, addResidVar=True, storeMuSigma=True)
+        pred = SepiaFullPrediction(t_pred=t, samples=samples, model=model, addResidVar=True, storeMuSigma=True)
         pred.get_u_v()
         pred.get_mu_sigma()
         pred.get_ysim()
@@ -274,7 +274,7 @@ class TestMultiOutputModelTypes(unittest.TestCase):
         call_plot_functions(model)
 
         samples = model.get_samples()
-        pred = SepiaEmulatorPrediction(x_pred=0.5 * np.ones((m, 1)), t_pred=t, samples=samples, model=model, addResidVar=True, storeMuSigma=True)
+        pred = SepiaEmulatorPrediction(t_pred=t, samples=samples, model=model, addResidVar=True, storeMuSigma=True)
         pred.get_w()
         pred.get_y()
         pred.get_y(std=True)
@@ -286,7 +286,7 @@ class TestMultiOutputModelTypes(unittest.TestCase):
         pred.get_y(std=True)
         xpred.get_mu_sigma()
 
-        pred = SepiaFullPrediction(x_pred=0.5 * np.ones((m, 1)), t_pred=t, samples=samples, model=model, addResidVar=True, storeMuSigma=True)
+        pred = SepiaFullPrediction(t_pred=t, samples=samples, model=model, addResidVar=True, storeMuSigma=True)
         pred.get_u_v()
         pred.get_mu_sigma()
         pred.get_ysim()
@@ -442,7 +442,7 @@ class TestMultiOutputModelTypes(unittest.TestCase):
         call_plot_functions(model)
 
         samples = model.get_samples()
-        pred = SepiaEmulatorPrediction(x_pred=0.5 * np.ones((m, 1)), t_pred=t, samples=samples, model=model, addResidVar=True, storeMuSigma=True)
+        pred = SepiaEmulatorPrediction(t_pred=t, samples=samples, model=model, addResidVar=True, storeMuSigma=True)
         pred.get_w()
         pred.get_y()
         pred.get_y(std=True)
@@ -454,7 +454,7 @@ class TestMultiOutputModelTypes(unittest.TestCase):
         xpred.get_y(std=True)
         xpred.get_mu_sigma()
 
-        pred = SepiaFullPrediction(x_pred=0.5 * np.ones((m, 1)), t_pred=t, samples=samples, model=model, addResidVar=True, storeMuSigma=True)
+        pred = SepiaFullPrediction(t_pred=t, samples=samples, model=model, addResidVar=True, storeMuSigma=True)
         pred.get_u_v()
         pred.get_mu_sigma()
         pred.get_ysim()
@@ -485,7 +485,7 @@ class TestMultiOutputModelTypes(unittest.TestCase):
         call_plot_functions(model)
 
         samples = model.get_samples()
-        pred = SepiaEmulatorPrediction(x_pred=0.5 * np.ones((m, 1)), t_pred=t, samples=samples, model=model, addResidVar=True, storeMuSigma=True)
+        pred = SepiaEmulatorPrediction(t_pred=t, samples=samples, model=model, addResidVar=True, storeMuSigma=True)
         pred.get_w()
         pred.get_y()
         pred.get_y(std=True)
@@ -497,7 +497,7 @@ class TestMultiOutputModelTypes(unittest.TestCase):
         xpred.get_y(std=True)
         xpred.get_mu_sigma()
 
-        pred = SepiaFullPrediction(x_pred=0.5 * np.ones((m, 1)), t_pred=t, samples=samples, model=model, addResidVar=True, storeMuSigma=True)
+        pred = SepiaFullPrediction(t_pred=t, samples=samples, model=model, addResidVar=True, storeMuSigma=True)
         pred.get_u_v()
         pred.get_mu_sigma()
         pred.get_ysim()
