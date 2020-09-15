@@ -220,6 +220,7 @@ class SepiaModel:
 
         if self.num.scalar_out:
             self.num.uw = np.concatenate((self.num.u, self.num.w), axis=0)
+            self.num.vu = self.num.u
         else:
             self.num.vuw = np.concatenate((self.num.v, self.num.u, self.num.w), axis=0)
             self.num.vu = np.concatenate((self.num.v, self.num.u), axis=0)

@@ -56,7 +56,8 @@ class SepiaData(object):
 
         """
         self.sep_design = xt_sim_sep is not None
-        self.dummy_x = x_sim is None and not self.sep_design
+        self.dummy_x = (not self.sep_design and x_sim is None) or \
+                       (self.sep_design and y_obs is not None and x_obs is None)
         self.sim_only = y_obs is None
 
         # Initial Checks

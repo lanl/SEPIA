@@ -46,8 +46,12 @@ class SepiaPrediction():
         # """
 
         # make a list or scalar into an ndarray
-        if not isinstance(x_pred,np.ndarray) or len(x_pred.shape)!=2:
-            raise TypeError('x_pred is not a 2D numpy ndarray')
+        if not model.data.dummy_x:
+            if not isinstance(x_pred,np.ndarray) or len(x_pred.shape)!=2:
+                raise TypeError('x_pred is not a 2D numpy ndarray')
+        else:
+            if x_pred is not None:
+                raise TypeError('specified x_pred, but this is a no-x model')
         if t_pred is not None and (not isinstance(t_pred,np.ndarray) or len(t_pred.shape)!=2):
             raise TypeError('t_pred is not a 2D numpy ndarray')
 
@@ -62,6 +66,9 @@ class SepiaPrediction():
             if x_pred.shape[0] != t_pred.shape[0]:
                 raise ValueError('x_pred and t_pred have different number of rows: %d vs %d resp.'%\
                                  (x_pred.shape[0],t_pred.shape[0]))
+
+        if model.data.dummy_x:
+            x_pred=np.array([0.5]).reshape((1,1))
 
         # transform x and/or t from native scale to emulator scale
         if t_pred is None:
