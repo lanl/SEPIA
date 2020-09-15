@@ -5,14 +5,36 @@ import scipy.stats
 
 from sepia.SepiaDistCov import SepiaDistCov
 
-# TODO this needs testing
+# TODO this needs testing, docstring
 
-def sensitivity(model, samples_dict=False, sampleset=False, ngrid=21, varlist=None, jelist=None, rg=None, option='mean'):
+def sensitivity(model, samples_dict=None, ngrid=21, varlist=None, jelist=None, rg=None, option='mean'):
+    """
+    Compute sensitivity Sobol indices.
 
-    if varlist is None:
-        varlist = []
-    if jelist is None:
-        jelist = []
+    :param sepia.SepiaModel model: instantiated SepiaModel with MCMC samples
+    :param dict/NoneType samples_dict: selected samples from model.get_samples(flat=True) (default: uses all samples in model)
+    :param int ngrid: number of grid points in each dimension for calculation of mian/joint effects (default: 21)
+    :param list/string/NoneType varlist: list of tuples giving pairs of variables for which joint effects are desired;
+                                         using 'all' indicates to compute joint effects for all variables. Default is None.
+    :param list jelist: list of tuples indicating variables for which joint sensitivities are desired (similar to varlist; default is None)
+    :param numpy.ndarray/NoneType rg: matrix with one row for each varaible giving min/max values for sensitivity calculations
+                             assuming unit hypercube scaling, shape (num_vars, 2), default: unit hypercube.
+    :param string/dict option: do calculations based on 'mean' (posterior mean GP params), 'median' (posterior median GP params),
+                               'samples' (GP param samples in samples_dict), or pass dict of samples from model.get_samples(flat=True)
+    :returns dict:
+        Depending on input options, sens dict may contain:
+            * totalMean (overall output mean -- posterior mean)
+            * totalVar (total output variance -- posterior samples)
+            * smePm (main effect sensitivity indices -- posterior mean)
+            * stePm (total effect sensitivity indices -- posterior mean)
+            * siePm (two-factor ineraction effect sensitivity indices -- posterior mean)
+            * sjePm (joint effect sensitivity indices -- posterior mean)
+            * mef (main effect functions by basis component -- posterior mean and SD)
+            * tmef (main effect functions -- posterior mean and SD)
+            * tjef (two-factor joint effect functions -- posterior mean and SD)
+            * sa (dict with information by basis coefficient; keys, e0 - overall output mean, vt - total output variance, sme, ste, sie, sje, mef, jef)
+
+    """
 
     # Extract things from model
     p = model.num.p
@@ -21,7 +43,7 @@ def sensitivity(model, samples_dict=False, sampleset=False, ngrid=21, varlist=No
     pu = model.num.pu
     m = model.num.m
 
-    if not samples_dict: samples_dict = {p.name: p.mcmc_to_array(sampleset=sampleset, flat=True) for p in model.params.mcmcList}
+    if samples_dict is None: samples_dict = {p.name: p.mcmc_to_array(flat=True) for p in model.params.mcmcList}
     betaU = samples_dict['betaU']
     lamUz = samples_dict['lamUz']
     lamWs = samples_dict['lamWs']
@@ -50,7 +72,7 @@ def sensitivity(model, samples_dict=False, sampleset=False, ngrid=21, varlist=No
 
     # Get posterior mean/median/user defined values for betaU/lamUz/lamWOs
     if option == 'samples':
-        npvec = len(sampleset)
+        npvec = model.params.betaU.get_num_samples()
     elif option == 'mean':
         betaU = np.mean(betaU, 0, keepdims=True)
         lamUz = np.mean(lamUz, 0, keepdims=True)
@@ -106,7 +128,7 @@ def sensitivity(model, samples_dict=False, sampleset=False, ngrid=21, varlist=No
     smePm=np.squeeze(np.mean(sme, 0))
     stePm=np.squeeze(np.mean(ste, 0))
 
-    if varlist:
+    if varlist is not None:
         sie=np.zeros((npvec,len(varlist)))
         for ii in range(npvec):
             for jj in range(pu):
@@ -114,7 +136,7 @@ def sensitivity(model, samples_dict=False, sampleset=False, ngrid=21, varlist=No
             sie[ii,:]=sie[ii,:]/vt[ii]
         siePm=np.squeeze(np.mean(sie,0))
         
-    if jelist:
+    if jelist is not None:
         sje=np.zeros(npvec,len(jelist))
         for ii in range(npvec):
             for jj in range(pu):
@@ -166,7 +188,7 @@ def sensitivity(model, samples_dict=False, sampleset=False, ngrid=21, varlist=No
         tmef_sd[kk,:,:]=np.sqrt(tmef_sd[kk,:,:].reshape((a[2],a[3])))*ysdmat
     tmef_sd.squeeze()
     
-    if varlist:
+    if varlist is not None:
         jef_m=np.zeros((pu,len(varlist),ngrid*ksmm.shape[0],ngrid))
         jef_sd=np.zeros(jef_m.shape)
         meanmat=np.tile(ymean,(ngrid,ngrid))
@@ -212,11 +234,11 @@ def sensitivity(model, samples_dict=False, sampleset=False, ngrid=21, varlist=No
             'tmef_m':tmef_m,\
             'tmef_sd':tmef_sd,\
            }
-    if varlist:
+    if varlist is not None:
         sens['siePm']=siePm
         sens['jef']=jef
         sens['tjef']=tjef
-    if jelist:
+    if jelist is not None:
         sens['sjePm']=sjePm
     return sens
             
