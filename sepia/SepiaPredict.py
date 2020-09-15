@@ -199,8 +199,11 @@ class SepiaXvalEmulatorPrediction(SepiaEmulatorPrediction):
 
         """
         import copy
-        super(SepiaXvalEmulatorPrediction, self).__init__(do_call=False, x_pred=model.data.sim_data.x_trans,
-                                                          t_pred=model.data.sim_data.t_trans, model=model, *args, **kwrds)
+        if model.data.dummy_x:
+            super(SepiaXvalEmulatorPrediction, self).__init__(do_call=False, t_pred=model.data.sim_data.t_trans, model=model, *args, **kwrds)
+        else:
+            super(SepiaXvalEmulatorPrediction, self).__init__(do_call=False, x_pred=model.data.sim_data.x_trans,
+                                                              t_pred=model.data.sim_data.t_trans, model=model, *args, **kwrds)
         m = self.model.num.m
         pu = self.model.num.pu
         orig_model = copy.deepcopy(self.model)
@@ -219,7 +222,8 @@ class SepiaXvalEmulatorPrediction(SepiaEmulatorPrediction):
             sub_model.num.ztDist = SepiaDistCov(sub_model.data.zt, cat_ind=np.concatenate([sub_model.data.x_cat_ind, sub_model.data.t_cat_ind]))
             # Subset x/t to predict inds (check if None)
             if sub_model.data.sim_data.x_trans is None:
-                self.xpred = np.array([[0.5]])
+                #self.xpred = np.array([[0.5]])
+                self.xpred = None
             else:
                 self.xpred = sub_model.data.sim_data.x_trans[li, :]
             if sub_model.data.sim_data.t_trans is None:
