@@ -23,9 +23,8 @@ instructions below, you should not need to reinstall after pulling new code.
 
 SEPIA is still under development and is intended to be a research tool, not production-level code.
 Please submit questions as `GitHub`_ issues if you encounter unexpected behavior or need help using SEPIA.
-As of 9/15/2020, basic functionality (model setup, likelihood evaluation, MCMC sampling,
-multivariate calibration, visualization and diagnostics) is complete and has been tested.
-Some features are not yet fully tested for all model cases (predictions, sensitivity analysis).
+As of the current release, basic functionality (model setup, likelihood evaluation, MCMC sampling,
+multivariate calibration, visualization and diagnostics, predictions) is complete and has been tested.
 
 .. _GPMSA: https://github.com/lanl/gpmsa
 .. _GitHub: https://github.com/lanl/SEPIA
