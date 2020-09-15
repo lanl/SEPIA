@@ -1036,7 +1036,8 @@ def uvPredSep(pred):
                 segVarStart=0
                 SigWb[jj] = [None]*len(ztSep)
                 for kk in range(len(ztSep)):
-                    segInds=np.arange(segVarStart,segVarStart+ztSepDist[kk].p)
+                    segInds = np.arange(segVarStart,segVarStart+ztSepDist[kk].p)
+                    segVarStart = segVarStart + ztSepDist[kk].p
                     if kk==0: # count lamUz once while composing the block from sep design
                         SigWb[jj][kk] = ztSepDist[kk].compute_cov_mat(betaU[segInds, jj], lamUz[0, jj])
                     else:

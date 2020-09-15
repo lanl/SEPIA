@@ -100,4 +100,10 @@ class SepDesSetupLogLik(unittest.TestCase):
         print(kcsm)
         print(kcss)
 
+        print('testing max difference which is %g'%np.max(abs(csm - kcsm)))
+        self.assertAlmostEqual(0,np.max(abs(csm-kcsm)))
+
+        print('testing max difference which is %g'%np.max(abs(css - kcss)))
+        self.assertAlmostEqual(0,np.max(abs(css-kcss)))
+
         pass
