@@ -80,8 +80,8 @@ class SepiaModel:
                         if data.sim_data.K.shape[0] != data.obs_data.K.shape[0]:
                             raise ValueError('Sim and obs K shapes not conformal.')
             if not data.sim_only and data.obs_data.D is None:
-                print('Warning: you did not set up a D basis!')
-                print('To use one, call data.create_D_basis on your SepiaData object.')
+                print('Warning: No D basis, proceeding with a no-discrepancy model.')
+                print('To use a D basis (normally recommended), call data.create_D_basis on your SepiaData object.')
 
         # Local references to data for initialization of model
         sim_data = data.sim_data

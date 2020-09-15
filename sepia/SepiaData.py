@@ -174,7 +174,7 @@ class SepiaData(object):
                     else:
                         res += 'pv = %5d (transformed discrepancy dimension)\n' % self.obs_data.D.shape[0]
                 else:
-                    res += 'pv NOT SET (transformed discrepancy dimension); call method create_D_basis\n'
+                    res += 'pv not set, indicating (unusual case of) no discrepancy; call method create_D_basis to fix \n'
         # Info on separable design, if that's in place.
         if self.sep_design:
             res += 'This is a separable simulation design with components: \n'
