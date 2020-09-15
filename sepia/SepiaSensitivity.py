@@ -9,7 +9,7 @@ from sepia.SepiaDistCov import SepiaDistCov
 
 def sensitivity(model, samples_dict=None, ngrid=21, varlist=None, jelist=None, rg=None, option='mean'):
     """
-    Compute sensitivity Sobol indices.
+    Compute sensitivity Sobol indices. (Not fully tested)
 
     :param sepia.SepiaModel model: instantiated SepiaModel with MCMC samples
     :param dict/NoneType samples_dict: selected samples from model.get_samples(flat=True) (default: uses all samples in model)
