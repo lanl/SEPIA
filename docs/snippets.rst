@@ -5,7 +5,7 @@ Helpful Code Snippets
 
 Unlike notebooks, these are not self-contained examples, but are meant to be a quick reference for specific tasks.
 These are not necessarily exhaustive examples; see full class documentation for all possible arguments and options.
-For a more full walkthrough, see :ref:`workflow`.
+For a more full description of the SEPIA work flow, see :ref:`workflow`.
 
 :ref:`SepiaData inputs`
 
@@ -26,31 +26,13 @@ SepiaData inputs
 ----------------
 
 :ref:`sepiadata` objects are used to hold various types of data inputs to a model.
-The types and sizes of each input to `SepiaData` helps Sepia determine which kind of model is to be set up.
+The types and sizes of each input to `SepiaData` helps determine which kind of model is to be set up.
 
-A Sepia model may contain only simulation data (an emulator-only model) or both simulation and observed data.
-
-For an emulator-only model, the possible inputs are:
-
-* `x_sim`: controllable simulation inputs (those inputs that would also be known for observed data).
-  These are optional. If not provided, Sepia internally uses a dummy set of controllable input values all equal to 0.5.
-* `t_sim`: simulation inputs that would not be known for observed data.
-  At least one of `x_sim` or `t_sim` must be provided to make a valid model.
-* `y_sim`: simulation outputs, must be provided.
-* `y_ind_sim`: vector of indices for multivariate simulation output, required if the output is multivariate.
-* `x_cat_ind`: list to identify columns of `x` that are categorical variables, where 0 means not categorical and an integer gives the number of categories. Categorical variables should be nonzero integers.
-* `t_cat_ind`: list to identify columns of `t` that are categorical variables, similar to `x_cat_ind`.
-
-
-If, in addition, observed data will be included, the following possible inputs would be included:
-
-* `x_obs`: controllable inputs for the observed data, which are again optional if there are none for your data.
-* `y_obs`: observation outputs, must be provided.
-* `y_ind_obs`: indices for multivariate observation outputs, required if the outputs are multivariate.
+A SEPIA model may contain only simulation data (an emulator-only model) or both simulation and observed data.
 
 It is always good to call `print(data)` on your `SepiaData` object to verify your setup is as intended.
 
-Examples of data setup for different kinds of Sepia models (see :ref:`sepiadata` for fuller explanation of inputs):
+Examples of data setup for different kinds of SEPIA models (see :ref:`sepiadata` for fuller explanation of inputs):
 
 Univariate-output emulator-only data
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -213,20 +195,6 @@ Automatic step size tuning based on `YADAS`_::
 
 .. _YADAS: https://arxiv.org/abs/1103.5986
 
-MAP optimization for start values
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-Numerical optimization of the log likelihood will reset start values to the best points found.
-:ref:`sepiaoptim` implements two gradient-free optimizers::
-
-    optimizer = SepiaOptim(model)
-    nm_opt_result = optimizer.nelder_mead(log_transform=['betaU','betaV','lamVz','lamWs','lamWOs','lamOs'])
-    nm_opt_param = nm_opt_result[2]          # Optimized params, untransformed
-    optimizer.set_model_params(nm_opt_param) # Sets into model parameter values
-    pso_opt_result = optimizer.particle_swarm(log_transform=['betaU','betaV','lamVz','lamWs','lamWOs','lamOs'])
-    pso_opt_param = pso_opt_result[5]
-    optimizer.set_model_params(pso_opt_param)
-
 Run MCMC or add more samples
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -362,6 +330,15 @@ and you can add residual variance to the predictions::
     pred_samples = model.get_samples(numsamples=7)
     CV_pred = SepiaXvalEmulatorPrediction(samples=pred_samples, model=model, leave_out_inds=leave_out_inds, addResidVar=True)
 
+
+Sensitivity analysis
+--------------------
+
+Run sensitivity analysis::
+
+    model.do_mcmc(1000)
+    samples = model.get_samples(20)
+    sens = sensitivity(model, samples)
 
 Hierarchical or shared theta models
 -----------------------------------
