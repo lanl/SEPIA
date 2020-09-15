@@ -55,6 +55,13 @@ class SepiaPrediction():
         if t_pred is not None and (not isinstance(t_pred,np.ndarray) or len(t_pred.shape)!=2):
             raise TypeError('t_pred is not a 2D numpy ndarray')
 
+        # Specify the x_pred for a no-x model with a dummy-x field if needed
+        if model.data.dummy_x:
+            if t_pred is None:
+                x_pred=np.array([0.5]).reshape((1,1)) # 1x1 x, to use for predictions of sampled thetas
+            else:
+                x_pred=0.5*np.ones((t_pred.shape[0],1))
+
         # Validation of input sizes
         if x_pred.shape[1] != model.num.p:
             raise ValueError('x_pred number of columns %d is not the same as model defined p = %d'%\
@@ -66,9 +73,6 @@ class SepiaPrediction():
             if x_pred.shape[0] != t_pred.shape[0]:
                 raise ValueError('x_pred and t_pred have different number of rows: %d vs %d resp.'%\
                                  (x_pred.shape[0],t_pred.shape[0]))
-
-        if model.data.dummy_x:
-            x_pred=np.array([0.5]).reshape((1,1))
 
         # transform x and/or t from native scale to emulator scale
         if t_pred is None:
