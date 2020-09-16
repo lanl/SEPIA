@@ -5,11 +5,9 @@ import scipy.stats
 
 from sepia.SepiaDistCov import SepiaDistCov
 
-# TODO this needs testing, docstring
-
 def sensitivity(model, samples_dict=None, ngrid=21, varlist=None, jelist=None, rg=None, option='mean'):
     """
-    Compute sensitivity Sobol indices. (Not fully tested)
+    Compute sensitivity Sobol indices. (Warning: not fully tested for all model types and input choices.)
 
     :param sepia.SepiaModel model: instantiated SepiaModel with MCMC samples
     :param dict/NoneType samples_dict: selected samples from model.get_samples(flat=True) (default: uses all samples in model)
@@ -43,7 +41,7 @@ def sensitivity(model, samples_dict=None, ngrid=21, varlist=None, jelist=None, r
     pu = model.num.pu
     m = model.num.m
 
-    if samples_dict is None: samples_dict = {p.name: p.mcmc_to_array(flat=True) for p in model.params.mcmcList}
+    if samples_dict is None: samples_dict = model.get_samples(flat=True)
     betaU = samples_dict['betaU']
     lamUz = samples_dict['lamUz']
     lamWs = samples_dict['lamWs']
@@ -72,172 +70,169 @@ def sensitivity(model, samples_dict=None, ngrid=21, varlist=None, jelist=None, r
 
     # Get posterior mean/median/user defined values for betaU/lamUz/lamWOs
     if option == 'samples':
-        npvec = model.params.betaU.get_num_samples()
+        pass
     elif option == 'mean':
         betaU = np.mean(betaU, 0, keepdims=True)
         lamUz = np.mean(lamUz, 0, keepdims=True)
         lamWs = np.mean(lamWs, 0, keepdims=True)
-        npvec = betaU.shape[0]
     elif option == 'median':
         betaU = np.median(betaU, 0, keepdims=True)
         lamUz = np.median(lamUz, 0, keepdims=True)
         lamWs = np.median(lamWs, 0, keepdims=True)
-        npvec = betaU.shape[0]
     elif isinstance(option, dict):
         betaU = option['betaU']
         lamUz = option['lamUz']
         lamWs = option['lamWs']
-        npvec = betaU.shape[0]
     else:
         print('invalid option (choose mean, median, or samples, or pass dict of values for betaU, lamUz, lamWs)')
         return
+    npvec = betaU.shape[0]
 
-    # Set up varlist
+    # Set up varlist if using 'all'
     if varlist == 'all':
         varlist = list(itertools.combinations(range(nv), 2))
 
-    # component Sens
+    # component Sens -- the bulk of the calculations are in component_sens()
     sim_xt = model.data.zt
-    w = model.num.w.reshape((m, pu), order='F') # TODO check
+    w = model.num.w.reshape((m, pu), order='F')
     sa = []
     for ii in range(pu):
         bind = [ind + ii*nv for ind in ii0]
         betaU_sub = betaU[:, bind]
         lamUz_sub = lamUz[:, ii]
         lamWs_sub = lamWs[:, ii]
-        sa.append(component_sens(sim_xt[:, ii0], w[:, ii], betaU_sub, lamUz_sub, lamWs_sub, xe, ngrid, varlist, jelist, rg)) # TODO match sig
+        sa.append(component_sens(sim_xt[:, ii0], w[:, ii], betaU_sub, lamUz_sub, lamWs_sub, xe, ngrid, varlist, jelist, rg))
 
-    ymean=model.data.sim_data.orig_y_mean; ysd=model.data.sim_data.orig_y_sd;
-    if np.isscalar(ysd): ysd = np.tile(ysd,ymean.shape[0])
-    
-    ksmm=model.data.sim_data.K.T
-    lam = np.diag(np.matmul(ksmm.T,ksmm))
-    sme=np.zeros((npvec,nv))
-    ste=np.zeros((npvec,nv))
-    vt=np.zeros(npvec)
+    # Extract y info from model
+    ymean = model.data.sim_data.orig_y_mean
+    ysd = model.data.sim_data.orig_y_sd
+    if np.isscalar(ysd): ysd = np.tile(ysd, ymean.shape[0])
+
+    # Extract K matrix
+    if model.data.sim_data.K is not None:
+        ksmm = model.data.sim_data.K.T
+    else:
+        ksmm = np.array([[1]])
+
+    # Calculate smePm, stePm
+    lam = np.diag(np.matmul(ksmm.T, ksmm))
+    sme = np.zeros((npvec, nv))
+    ste = np.zeros((npvec, nv))
+    vt = np.zeros(npvec)
     for ii in range(npvec):
-        vt0=0
+        vt0 = 0
         for jj in range(pu):
-            sme[ii,:]=sme[ii,:]+lam[jj]*sa[jj]['sme'][ii,:]*sa[jj]['vt'][ii]
-            ste[ii,:]=ste[ii,:]+lam[jj]*sa[jj]['ste'][ii,:]*sa[jj]['vt'][ii]
-            vt0=vt0+lam[jj]*sa[jj]['vt'][ii]
-        sme[ii,:]=sme[ii,:]/vt0
-        ste[ii,:]=ste[ii,:]/vt0
-        vt[ii]=vt0
+            sme[ii, :] += lam[jj] * sa[jj]['sme'][ii, :] * sa[jj]['vt'][ii]
+            ste[ii, :] += lam[jj] * sa[jj]['ste'][ii, :] * sa[jj]['vt'][ii]
+            vt0 += lam[jj] * sa[jj]['vt'][ii]
+        sme[ii, :] /= vt0
+        ste[ii, :] /= vt0
+        vt[ii] = vt0
 
-    smePm=np.squeeze(np.mean(sme, 0))
-    stePm=np.squeeze(np.mean(ste, 0))
+    smePm = np.squeeze(np.mean(sme, 0))
+    stePm = np.squeeze(np.mean(ste, 0))
 
+    # If varlist is not None, compute sie/siePm
     if varlist is not None:
-        sie=np.zeros((npvec,len(varlist)))
+        sie = np.zeros((npvec, len(varlist)))
         for ii in range(npvec):
             for jj in range(pu):
-                sie[ii,:]=sie[ii,:]+lam[jj]*sa[jj]['sie'][ii,:]*sa[jj]['vt'][ii]
-            sie[ii,:]=sie[ii,:]/vt[ii]
-        siePm=np.squeeze(np.mean(sie,0))
-        
+                sie[ii, :] += lam[jj] * sa[jj]['sie'][ii, :] * sa[jj]['vt'][ii]
+            sie[ii, :] /= vt[ii]
+        siePm = np.squeeze(np.mean(sie, 0))
+
+    # If jelist is not None, compute sje/sjePm
     if jelist is not None:
-        sje=np.zeros(npvec,len(jelist))
+        sje = np.zeros(npvec, len(jelist))
         for ii in range(npvec):
             for jj in range(pu):
-                sje[ii,:]=sje[ii,:]+lam[jj]*sa[jj]['sje'][ii,:]*sa[jj]['vt'][ii]
-            sje[ii,:]=sje[ii,:]/vt[ii]
-        sjePm=np.squeeze(np.mean(sje,0))
+                sje[ii, :] += lam[jj] * sa[jj]['sje'][ii, :] * sa[jj]['vt'][ii]
+            sje[ii, :] /= vt[ii]
+        sjePm = np.squeeze(np.mean(sje, 0))
         
-    # unscales
-    e0=np.zeros(ksmm.shape[0])
-    mef_m=np.zeros((pu, nv, ksmm.shape[0], ngrid))
-    mef_sd=np.zeros((pu, nv, ksmm.shape[0], ngrid))
+    # unscaling
+    e0 = np.zeros(ksmm.shape[0])
+    mef_m = np.zeros((pu, nv, ksmm.shape[0], ngrid))
+    mef_sd = np.zeros((pu, nv, ksmm.shape[0], ngrid))
     
-    meanmat=np.tile(ymean,(ngrid,1)).T
-    ysdmat=np.tile(ysd,(ngrid,1)).T
+    meanmat = np.tile(ymean, (ngrid, 1)).T
+    ysdmat = np.tile(ysd, (ngrid, 1)).T
     
     for jj in range(pu):
-        e0+=ksmm[:,jj]*np.mean(sa[jj]['e0'])
+        e0 += ksmm[:, jj] * np.mean(sa[jj]['e0'])
         for kk in range(nv):
-            mef_m[jj,kk,:,:]=np.kron(ksmm[:,jj],np.mean(sa[jj]['mef_m'][:,kk,:],0).reshape((ngrid,-1))).T*\
-                                                                                    ysdmat+meanmat # element multiplication no matmul
-            mef_sd[jj,kk,:,:]=np.sqrt(np.kron(ksmm[:,jj]**2, np.var(sa[jj]['mef_m'][:,kk,:],0).reshape((ngrid,-1)))+\
-                                      np.kron(ksmm[:,jj]**2,np.mean(sa[jj]['mef_v'][:,kk,:],0).reshape(ngrid,-1))).T*ysdmat
-    e0=e0*ysd+ymean
+            mef_m[jj, kk, :, :] = np.kron(ksmm[:, jj], np.mean(sa[jj]['mef_m'][:, kk, :],0).reshape((ngrid, -1))).T * ysdmat + meanmat
+            mef_sd[jj, kk, :, :] = np.sqrt(np.kron(ksmm[:, jj]**2, np.var(sa[jj]['mef_m'][:, kk, :],0).reshape((ngrid, -1))) +
+                                           np.kron(ksmm[:, jj]**2, np.mean(sa[jj]['mef_v'][:, kk ,:],0).reshape(ngrid, -1))).T * ysdmat
+    e0 = e0 * ysd + ymean
     
-    a=mef_m.shape
-    #print('a',a)
-    tmef_m = np.reshape(np.sum(mef_m,0),(a[1],a[2],a[3]))
+    a = mef_m.shape
+    tmef_m = np.reshape(np.sum(mef_m, 0), a[1:4])
     for kk in range(nv):
-        tmef_m[kk,:,:] -= (pu-1)*meanmat
+        tmef_m[kk, :, :] -= (pu - 1) * meanmat
     tmef_m.squeeze()
-    tmef_sd=np.zeros((a[1],a[2],a[3]))
+    tmef_sd = np.zeros(a[1:4])
     for jj in range(nv):
         for kk in range(pu):
-            tmef_sd[jj,:,:]=tmef_sd[jj,:,:].reshape((-1,ngrid))+np.kron(ksmm[:,kk]**2,\
-                                                      np.reshape(np.mean(sa[kk]['mef_v'][:,jj,:],0),(ngrid,-1))).T
-    tmp=np.zeros((npvec,a[1],a[3]))
+            tmef_sd[jj, :, :] = tmef_sd[jj, :, :].reshape((-1, ngrid)) + np.kron(ksmm[:, kk]**2, np.reshape(np.mean(sa[kk]['mef_v'][:, jj, :], 0), (ngrid, -1))).T
+    tmp = np.zeros((npvec, a[1], a[3]))
     for ii in range(ksmm.shape[0]):
         for jj in range(nv):
             for kk in range(pu):
-                tmp[:,jj,:]=tmp[:,jj,:].reshape((-1,ngrid))+ksmm[ii,kk]*\
-                sa[kk]['mef_m'][:,jj,:].reshape((-1,ngrid))
-            tmef_sd[jj,ii,:]+=np.var(tmp[:,jj,:],axis=0)
+                tmp[:, jj, :] = tmp[:, jj, :].reshape((-1, ngrid)) + ksmm[ii, kk] * sa[kk]['mef_m'][:, jj, :].reshape((-1, ngrid))
+            tmef_sd[jj, ii, :] += np.var(tmp[:, jj, :], axis=0)
     for kk in range(nv):
-        #print('final shape',tmef_sd[kk,:,:].shape)
-        #print(tmef_sd[kk,:,:].reshape((a[2],a[3])).shape)
-        #print(ysdmat.shape)
-        tmef_sd[kk,:,:]=np.sqrt(tmef_sd[kk,:,:].reshape((a[2],a[3])))*ysdmat
+        tmef_sd[kk, :, :] = np.sqrt(tmef_sd[kk, :, :].reshape(a[2:4])) * ysdmat
     tmef_sd.squeeze()
     
     if varlist is not None:
-        jef_m=np.zeros((pu,len(varlist),ngrid*ksmm.shape[0],ngrid))
-        jef_sd=np.zeros(jef_m.shape)
-        meanmat=np.tile(ymean,(ngrid,ngrid))
-        ysdmat=np.tile(ysd,(ngrid,ngrid))
+        jef_m = np.zeros((pu, len(varlist), ngrid * ksmm.shape[0], ngrid))
+        jef_sd = np.zeros(jef_m.shape)
+        meanmat = np.tile(ymean, (ngrid, ngrid))
+        ysdmat = np.tile(ysd, (ngrid, ngrid))
         for jj in range(pu):
             for kk in range(len(varlist)):
-                jef_m[jj,kk,:,:]=np.kron(np.mean(sa[jj]['jef_m'][:,kk,:,:],0).reshape((1,ngrid)),ksmm[:,jj])*\
-                ysdmat+meanmat
-                jef_sd[jj,kk,:,:]=np.sqrt(np.kron(np.var(sa[jj]['jef_m'][:,kk,:,:],axis=0).reshape((1,ngrid)),\
-                                              ksmm[:,jj]**2)+\
-                                         np.kron(np.mean(sa[jj]['jef_v'][:,kk,:,:],axis=0).reshape((1,ngrid)),\
-                                             ksmm[:,jj]**2))*ysdmat
-        a=jef_m.shape
-        tjef_m=np.sum(jef_m,0).reshape((a[1],a[2],a[3]))
+                jef_m[jj, kk, :, :] = np.kron(np.mean(sa[jj]['jef_m'][:, kk, :, :],0).reshape((1, ngrid)), ksmm[:, jj]) * ysdmat + meanmat
+                jef_sd[jj, kk, :, :] = np.sqrt(np.kron(np.var(sa[jj]['jef_m'][:, kk, :, :], axis=0).reshape((1, ngrid)), ksmm[:, jj]**2) +
+                                               np.kron(np.mean(sa[jj]['jef_v'][:, kk, :, :], axis=0).reshape((1, ngrid)), ksmm[:, jj]**2)) * ysdmat
+        a = jef_m.shape
+        tjef_m = np.sum(jef_m, 0).reshape(a[1:4])
         for kk in range(len(varlist)):
-            tjef_m[kk,:,:]=tjef_m[kk,:,:].reshape((a[2],a[3]))-(pu-1)*meanmat
+            tjef_m[kk, :, :] = tjef_m[kk, :, :].reshape(a[2:4]) - (pu-1)*meanmat
         tjef_m.sqeeze()
-        tjef_sd=np.zeros((a[1],a[2],a[3]))
+        tjef_sd = np.zeros((a[1], a[2], a[3]))
         for jj in range(len(varlist)):
             for kk in range(pu):
-                tjef_sd[jj,:,:]=tjef_sd[jj,:,:].reshape((1,ngrid))+\
-                                np.kron(np.mean(sa[kk]['jef_v'][:,jj,:,:],axis=0).reshape((1,ngrid)),\
-                                    ksmm[:,kk]**2)
-        tmp=np.zeros((npvec,a[1],a[2]))
+                tjef_sd[jj, :, :]=tjef_sd[jj, :, :].reshape((1, ngrid)) + np.kron(np.mean(sa[kk]['jef_v'][:, jj, :, :], axis=0).reshape((1, ngrid)), ksmm[:, kk]**2)
+        tmp = np.zeros((npvec, a[1], a[2]))
         for hh in range(ngrid):
             for ii in range(ksmm.shape[0]):
                 for jj in range(len(varlist)):
                     for kk in range(pu):
-                        tmp[:,jj,:]=tmp[:,jj,:].reshape((1,ngrid))+ksmm[ii,kk]*\
-                                    sa[kk]['jef_m'][:,jj,hh,:].reshape((1,ngrid))
-                    tjef_sd[jj,(hh-1)*ksmm.shape[0]+ii,:]+=np.var(tmp[:,jj,:],axis=0)
+                        tmp[:, jj, :] = tmp[:, jj, :].reshape((1, ngrid)) + ksmm[ii, kk] * sa[kk]['jef_m'][:, jj, hh, :].reshape((1, ngrid))
+                    tjef_sd[jj, (hh-1)*ksmm.shape[0]+ii, :] += np.var(tmp[:, jj, :], axis=0)
         for kk in range(len(varlist)):
-            tjef_sd[kk,:,:]=np.sqrt(tjef_sd[kk,:,:].reshape((a[2],a[3]))*ysdmat)
+            tjef_sd[kk, :, :] = np.sqrt(tjef_sd[kk, :, :].reshape((a[2], a[3])) * ysdmat)
         tjef_sd.squeeze()
     
-    sens = {'sa':sa,\
-            'totalMean':e0,\
-            'totalVar':vt,\
-            'smePm':smePm,\
-            'stePm':stePm,\
-            'mef_m':mef_m,\
-            'mef_sd':mef_sd,\
-            'tmef_m':tmef_m,\
-            'tmef_sd':tmef_sd,\
+    sens = {'sa':sa,
+            'totalMean':e0,
+            'totalVar':vt,
+            'smePm':smePm,
+            'stePm':stePm,
+            'mef_m':mef_m,
+            'mef_sd':mef_sd,
+            'tmef_m':tmef_m,
+            'tmef_sd':tmef_sd,
            }
     if varlist is not None:
-        sens['siePm']=siePm
-        sens['jef']=jef
-        sens['tjef']=tjef
+        sens['siePm'] = siePm
+        sens['jef_m'] = jef_m
+        sens['jef_sd'] = jef_sd
+        sens['tjef_m'] = tjef_m
+        sens['tjef_sd'] = tjef_sd
     if jelist is not None:
-        sens['sjePm']=sjePm
+        sens['sjePm'] = sjePm
     return sens
             
 def component_sens(x, y, beta, lamUz, lamWs, xe, ngrid, varlist, jelist, rg):
@@ -356,11 +351,11 @@ def component_sens(x, y, beta, lamUz, lamWs, xe, ngrid, varlist, jelist, rg):
                                              varf(m,p,Js,C2,u6))/lamUzi**2-e2[ii]
                 sje[ii,jj]=sje[ii,jj]/vt[ii]
                 
-    sa = {'e0':e0,\
-          'vt':vt,\
-          'sme':sme,\
-          'ste':ste,\
-          'mef_m':mef_m,\
+    sa = {'e0':e0,
+          'vt':vt,
+          'sme':sme,
+          'ste':ste,
+          'mef_m':mef_m,
           'mef_v':mef_v}
     if varlist:
         sa['sie']=sie
@@ -424,23 +419,6 @@ def etae(Js,x,ef,vf,xexdist,xedist,beta,lamUz,lamWs,My,P):
     C = xedist.compute_cov_mat(beta[Js].T,lamUz,lamWs)
     ee.v=np.diag(C*vf-np.matmul(np.matmul(Ct,P),Ct.T))
     return ee
-
-if __name__ == '__main__':
-    from dev_test.setup_test_cases import *
-
-    seed = 42.
-    m = 20
-    nt = 10
-    n_pc = 4
-    nx = 5
-    n_mcmc = 100
-
-    model, matlab_output = setup_multi_sim_only(m=m, nt=nt, nx=nx, n_pc=n_pc, seed=seed)
-    model.do_mcmc(n_mcmc)
-
-    #sensitivity(model)
-
-    sensitivity(model, sampleset=[1, 2, 3, 4, 5], ngrid=10, varlist='all', rg=None, option='mean')
 
 
 
