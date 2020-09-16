@@ -83,9 +83,19 @@ function res = setup_multi_sim_only(m, nt, nx, n_pc, seed, n_lik, n_mcmc, n_pred
     % For now will just compare smePm, stePm to check against sepia
     if sens == 1
         sa = gSens(mcmc,'option','mean');
+        %sa_struct = sa.sa; % TODO cannot pass back from matlab engine, not scalar struct.
+        mef = sa.mef;
+        tmef = sa.tmef;
+        totalMean = sa.totalMean;
+        totalVar = sa.totalVar;
         smePm = sa.smePm;
         stePm = sa.stePm;
     else
+        %sa_struct = [];
+        mef = [];
+        tmef = [];
+        totalMean = [];
+        totalVar = [];
         smePm = [];
         stePm = [];
     end
@@ -135,5 +145,10 @@ function res = setup_multi_sim_only(m, nt, nx, n_pc, seed, n_lik, n_mcmc, n_pred
     res.pred_arv_Syhat = pred_arv_Syhat;
     res.smePm = smePm;
     res.stePm = stePm;
+    %res.sa_struct = sa_struct;
+    res.mef = mef;
+    res.tmef = tmef;
+    res.totalMean = totalMean;
+    res.totalVar = totalVar;
     
 end
