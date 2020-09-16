@@ -153,21 +153,19 @@ def sensitivity(model, samples_dict=None, ngrid=21, varlist=None, jelist=None, r
     ysdmat=np.tile(ysd,(ngrid,1)).T
     
     for jj in range(pu):
-        e0=e0+ksmm[:,jj]*np.mean(sa[jj]['e0'])
+        e0+=ksmm[:,jj]*np.mean(sa[jj]['e0'])
         for kk in range(nv):
             mef_m[jj,kk,:,:]=np.kron(ksmm[:,jj],np.mean(sa[jj]['mef_m'][:,kk,:],0).reshape((ngrid,-1))).T*\
                                                                                     ysdmat+meanmat # element multiplication no matmul
-            mef_sd[jj,kk,:,:]=np.sqrt(np.kron(ksmm[:,jj]**2,\
-                                           np.var(sa[jj]['mef_m'][:,kk,:],0).reshape((ngrid,-1)))*\
-                                      np.kron(ksmm[:,jj]**2,np.mean(sa[jj]['mef_v'][:,kk,:],0).\
-                                           reshape(ngrid,-1))).T*ysdmat
+            mef_sd[jj,kk,:,:]=np.sqrt(np.kron(ksmm[:,jj]**2, np.var(sa[jj]['mef_m'][:,kk,:],0).reshape((ngrid,-1)))+\
+                                      np.kron(ksmm[:,jj]**2,np.mean(sa[jj]['mef_v'][:,kk,:],0).reshape(ngrid,-1))).T*ysdmat
     e0=e0*ysd+ymean
     
     a=mef_m.shape
     #print('a',a)
     tmef_m = np.reshape(np.sum(mef_m,0),(a[1],a[2],a[3]))
     for kk in range(nv):
-        tmef_m[kk,:,:].reshape((a[2],a[3]))-(pu-1)*meanmat
+        tmef_m[kk,:,:] -= (pu-1)*meanmat
     tmef_m.squeeze()
     tmef_sd=np.zeros((a[1],a[2],a[3]))
     for jj in range(nv):
@@ -259,7 +257,7 @@ def component_sens(x, y, beta, lamUz, lamWs, xe, ngrid, varlist, jelist, rg):
         xexdist.append(SepiaDistCov(xe[:, ii][:, None], x[:, ii][:, None]))
         xedist.append(SepiaDistCov(xe[:, ii][:, None]))
 
-    if len(varlist) > 0:
+    if varlist is not None:
         for ii in range(len(varlist)):
             xte = np.array([(vi, vj) for vi in xe[:, varlist[ii][0]] for vj in xe[:, varlist[ii][1]]])
             xexdist.append(SepiaDistCov(xte, x[:, varlist[ii]]))
@@ -291,7 +289,7 @@ def component_sens(x, y, beta, lamUz, lamWs, xe, ngrid, varlist, jelist, rg):
     mef_v = np.zeros((nmcmc, p, ngrid))
     u1 = np.zeros(m)
     u2 = np.zeros(m)
-    if len(varlist) > 0:
+    if varlist is not None:
         sie = np.zeros((nmcmc, len(varlist)))
         jef_m = np.zeros((nmcmc, len(varlist), ngrid, ngrid))
         jef_v = np.zeros((nmcmc, len(varlist), ngrid, ngrid))
@@ -300,7 +298,7 @@ def component_sens(x, y, beta, lamUz, lamWs, xe, ngrid, varlist, jelist, rg):
         sie = None
         jef_m = None
         jef_v = None
-    if len(jelist) > 0:
+    if jelist is not None:
         sje = np.zeros((nmcmc, len(jelist)))
     else:
         sje = None
@@ -337,7 +335,7 @@ def component_sens(x, y, beta, lamUz, lamWs, xe, ngrid, varlist, jelist, rg):
                                               varf(m,p,Js,C2,u2))/lamUzi**2-e2[ii]
             ste[ii,jj]=1-ste[ii,jj]/vt[ii]
         # two-factor interaction indices, joint effects
-        if not varlist:
+        if varlist is not None:
             for jj in range(len(varlist)):
                 Js=varlist[jj,:]; ll=np.setxor1d(np.arange(p),Js)
                 u3=np.prod(c3[:,ll],1); u5=np.prod(c1[ll])
@@ -350,7 +348,7 @@ def component_sens(x, y, beta, lamUz, lamWs, xe, ngrid, varlist, jelist, rg):
                 jef_m[ii,jj,:,:]=np.reshape(JE.m,(ngrid,ngrid))
                 jef_v[ii,jj,:,:]=np.reshape(JE.v,(ngrid,ngrid))
         # joint effect indices
-        if not jelist:
+        if jelist is not None:
             for jj in range(len(jelist)):
                 Js=jelist[jj]; ll=np.setxor1d(np.arange(p),Js)
                 u6=np.prod(c3[:,ll],1); u7=np.prod(c1[ll])
