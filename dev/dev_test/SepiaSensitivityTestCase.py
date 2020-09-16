@@ -67,13 +67,10 @@ class SepiaSensitivityTestCase(unittest.TestCase):
         np.random.seed(int(seed))
         model.do_mcmc(n_mcmc)
 
-        sme_mat = np.array(matlab_output['smePm'])
-        ste_mat = np.array(matlab_output['stePm'])
-
-        # TODO sensitivity fails due to no K
-        #sa = sensitivity(model)
-        # sme_py = sa.sme
-        # ste_py = sa.ste
+        # TODO check other quantities
+        sa = sensitivity(model)
+        self.assertTrue(np.allclose(matlab_output['smePm'], sa['smePm']))
+        self.assertTrue(np.allclose(matlab_output['stePm'], sa['stePm']))
 
     def test_basic_sens_multi_sim_only(self):
         print('starting test_sens_multi_sim_only', flush=True)
