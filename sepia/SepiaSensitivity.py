@@ -214,7 +214,7 @@ def sensitivity(model, samples_dict=None, ngrid=21, varlist=None, jelist=None, r
                         tmp[:, jj, :] = tmp[:, jj, :].reshape((-1, ngrid)) + ksmm[ii, kk] * sa[kk]['jef_m'][:, jj, hh, :].reshape((-1, ngrid))
                     tjef_sd[jj, (hh-1)*ksmm.shape[0]+ii, :] += np.var(tmp[:, jj, :], axis=0)
         for kk in range(len(varlist)):
-            tjef_sd[kk, :, :] = np.sqrt(tjef_sd[kk, :, :].reshape((a[2], a[3])) * ysdmat.T)
+            tjef_sd[kk, :, :] = np.sqrt(tjef_sd[kk, :, :].reshape((a[2], a[3]))) * ysdmat.T
         tjef_sd.squeeze()
     
     sens = {'sa':sa,

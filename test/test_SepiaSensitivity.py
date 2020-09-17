@@ -33,22 +33,13 @@ class SepiaSensitivityTestCase(unittest.TestCase):
         d.create_K_basis(5)
         self.multi_sim_only_model = SepiaModel(d)
 
-        d = SepiaData(t_sim=multi_data_dict['t_sim'], y_sim=multi_data_dict['y_sim'],
-                      y_ind_sim=multi_data_dict['y_ind_sim'], y_obs=multi_data_dict['y_obs'],
-                      y_ind_obs=multi_data_dict['y_ind_obs'])
+        t = np.concatenate([multi_data_dict['t_sim'], np.random.choice(range(1,5), (m, 1), replace=True)], axis=1)
+        d = SepiaData(t_sim=t, y_sim=multi_data_dict['y_sim'], y_ind_sim=multi_data_dict['y_ind_sim'], t_cat_ind=[0,0,0,4])
         d.transform_xt()
         d.standardize_y()
         d.create_K_basis(5)
-        self.multi_sim_and_obs_noD_model = SepiaModel(d)
+        self.multi_sim_only_catind_model = SepiaModel(d)
 
-        d = SepiaData(t_sim=multi_data_dict['t_sim'], y_sim=multi_data_dict['y_sim'],
-                      y_ind_sim=multi_data_dict['y_ind_sim'], y_obs=multi_data_dict['y_obs'],
-                      y_ind_obs=multi_data_dict['y_ind_obs'])
-        d.transform_xt()
-        d.standardize_y()
-        d.create_K_basis(5)
-        d.create_D_basis('linear')
-        self.multi_sim_and_obs_model = SepiaModel(d)
 
     def test_univariate_sim_only_sensitivity(self):
         """
@@ -79,6 +70,26 @@ class SepiaSensitivityTestCase(unittest.TestCase):
         print('Testing multivariate sim-only SepiaSensitivity...', flush=True)
 
         model = self.multi_sim_only_model
+
+        model.do_mcmc(20)
+        samples_dict = model.get_samples(20)
+        sens = sensitivity(model, jelist=[(0, 1), (0, 2)])
+        sens = sensitivity(model, varlist='all')
+        sens = sensitivity(model, samples_dict)
+        sens = sensitivity(model)
+        sens = sensitivity(model, varlist=[(0, 1), (0, 2)])
+        sens = sensitivity(model, option='median')
+        sens = sensitivity(model, option='samples')
+        sens = sensitivity(model, option=model.get_samples(numsamples=10, flat=True))
+
+    def test_multivariate_sim_only_catind_sensitivity(self):
+        """
+        Tests sensitivity for multivariate sim only model with cat_ind
+        """
+
+        print('Testing multivariate sim-only cat ind SepiaSensitivity...', flush=True)
+
+        model = self.multi_sim_only_catind_model
 
         model.do_mcmc(20)
         samples_dict = model.get_samples(20)
