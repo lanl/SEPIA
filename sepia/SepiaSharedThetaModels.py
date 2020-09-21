@@ -137,7 +137,8 @@ class SepiaSharedThetaModels:
                                 if inb:
                                     # Get current logpost: only evaluate theta prior on this model!
                                     other_mod_loglik = sum([self.model_list[i].logLik(prm.name) for i in other_model_inds])
-                                    lp = model.logPost(prm.name, ind) + other_mod_loglik
+                                    lp = model.params.lp.val + other_mod_loglik
+                                    #lp = model.logPost(prm.name, ind) + other_mod_loglik
                                     # Set candidate into models to get new lp
                                     prm.val[arr_ind] = cand
                                     for omi in other_model_inds:
@@ -172,7 +173,8 @@ class SepiaSharedThetaModels:
                             # Make reference copies in this model in case we reject
                             prm.refVal = prm.val.copy()
                             model.refNum = model.num.ref_copy(prm.name)
-                            lp = model.logPost(prm.name, ind)
+                            lp = model.params.lp.val
+                            #lp = model.logPost(prm.name, ind)
                             # Usual sampling for non shared params
                             # Draw candidate
                             cand = prm.mcmc.draw_candidate(arr_ind, do_propMH)
