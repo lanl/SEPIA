@@ -64,6 +64,28 @@ class SepiaSharedThetaModels:
         self.to_sample = to_sample
         self.to_update = to_update
 
+    def get_samples(self, nburn=0, sampleset=False, numsamples=False, flat=True, includelogpost=True):
+        """
+        Extract MCMC samples into dictionary format for each model in self.model_list.
+        By default, all samples are returned, or samples can be
+        subset using in various ways using the optional input arguments.
+
+        :param int nburn: number of samples to discard at beginning of chain
+        :param list sampleset: list of indices of samples to include
+        :param int numsamples: number of samples to include, evenly spaced from first to last
+        :param bool flat: flatten the resulting arrays (for parameters stored as matrices)?
+        :param bool includelogpost: include logPost values?
+        :return: dict of dict -- one dict per model, each dict is array of samples for each parameter, keyed by parameter name
+        :raises: TypeError if no samples exist or nburn inconsistent with number of draws
+
+        .. note:: Adds key `theta_native` with `theta` rescaled to original range.
+
+        """
+        result = {}
+        for i, model in enumerate(self.model_list):
+            result['model%d' % i] = model.get_samples(nburn=nburn, sampleset=sampleset, numsamples=numsamples, flat=flat, includelogpost=includelogpost)
+        return result
+
     def do_mcmc(self, nsamp, do_propMH=True, prog=True):
         """
         Do MCMC for shared theta model.
