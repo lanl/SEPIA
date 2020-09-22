@@ -59,7 +59,7 @@ data.create_D_basis(D_obs=D_obs.T,D_sim=D_sim)
 # Data setup completed
 #
 
-
+nmcmc=5000
 #
 # Standard mcmc reference model setup and sampling
 #
@@ -71,7 +71,7 @@ model_ref.do_mcmc(10, prog=False)
 # and discard those samples
 model_ref.clear_samples()
 tref=time() # timing start
-model_ref.do_mcmc(5000)
+model_ref.do_mcmc(nmcmc)
 print('Single-process mcmc took %f s'%(time()-tref), flush=True)
 
 #
@@ -95,7 +95,7 @@ tref0=time() # timing checkpoint
 # so typically, divide the total number of cores reported by 2
 ptasks=int(mp.cpu_count()/2)   # number of parallel jobs
 # split up the mcmc loops
-total_mcmc=5000                     # total samples desired
+total_mcmc=nmcmc                    # total samples desired
 each_mcmc=int(total_mcmc/ptasks)    # the number of samples desired from each worker
 
 # define a worker function to do some mcmc and return the samples dictionary in a queue
@@ -129,6 +129,8 @@ tref2=time() # timing checkpoint
 # Add the samples to the model object (which currently has no samples)
 for r in resList:
     model.add_samples(r)
+# Set the model state to the last sample inserted
+model.set_model_to_sample()
 
 tref3=time()
 
@@ -156,6 +158,5 @@ p_stats_ref = SepiaPlot.param_stats(samples_dict_ref,theta_names=theta_names,q1=
 p_stats     = SepiaPlot.param_stats(samples_dict    ,theta_names=theta_names,q1=.05,q2=.95,digits=4)
 print(p_stats_ref)
 print(p_stats)
-
 
 pass  # finished
