@@ -558,7 +558,7 @@ class SepiaModel:
         nsamp=len(sdict['logPost'])
         for pf in self.params.mcmcList:
             for ii in range(nsamp):
-                pf.mcmc.draws.append(sdict[pf.name][ii,:].reshape(pf.val_shape))
+                pf.mcmc.draws.append(sdict[pf.name][ii,:].reshape(pf.val_shape, order='F'))
         for ii in range(nsamp):
             self.params.lp.mcmc.draws.append(sdict['logPost'][ii,:].reshape((1,1)))
 
@@ -628,23 +628,25 @@ class SepiaModel:
             samples['theta_native'] = self.params.theta.mcmc_to_array(trim=nburn, sampleset=ss, flat=flat, untransform_theta=True)
         return samples
 
-    def tune_step_sizes(self, n_burn, n_levels, prog=True, diagnostics=False, update_vals=True):
+    def tune_step_sizes(self, n_burn, n_levels, prog=True, diagnostics=False, update_vals=True, verbose=True):
         """
         Auto-tune step size based on acceptance rate with YADAS approach.
 
         :param int n_burn: number of samples to draw for each proposed step size
         :param int n_levels: number of levels to propose for each step size
         :param bool prog: show progress bar?
+        :param bool verbose: Print before and after info to console, default True
         :param bool diagnostics: return some information on acceptance rates used inside step size tuning?
 
         .. note:: Does not work for hierarchical or shared theta models.
 
         """
-        print('Starting tune_step_sizes...')
-        print('Default step sizes:')
-        for param in self.params.mcmcList:
-            print('%s' % param.name)
-            print(param.mcmc.stepParam)
+        if verbose:
+            print('Starting tune_step_sizes...')
+            print('Default step sizes:')
+            for param in self.params.mcmcList:
+                print('%s' % param.name)
+                print(param.mcmc.stepParam)
         self.num.auto_stepsize = True
         import copy
         # Set up ranges, step sizes
@@ -704,11 +706,12 @@ class SepiaModel:
             p.mcmc.stepParam = new_ss.copy()
             if update_vals:
                 p.val = mod_tmp.params.mcmcList[pi].val.copy()
-        print('Done with tune_step_size.')
-        print('Selected step sizes:')
-        for param in self.params.mcmcList:
-            print('%s' % param.name)
-            print(param.mcmc.stepParam)
+        if verbose:
+            print('Done with tune_step_size.')
+            print('Selected step sizes:')
+            for param in self.params.mcmcList:
+                print('%s' % param.name)
+                print(param.mcmc.stepParam)
         if diagnostics:
             return step_sizes, acc, mod_tmp
 
