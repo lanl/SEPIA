@@ -261,6 +261,11 @@ A pairs plot of the `theta` values is shown using::
     fig = theta_pairs(samples)
     plt.show()
 
+Parallel sampling
+^^^^^^^^^^^^^^^^^
+
+With a little extra work, you can run multiple chains in parallel and aggregate the samples.
+See `link <http://www.github.com/lanl/SEPIA/tree/master/examples/Ball_Drop/ball_drop_1_parallelchains.py>`_ for an example.
 
 Predictions
 -----------

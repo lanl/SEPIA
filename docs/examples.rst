@@ -79,3 +79,4 @@ The remaining examples show more advanced or customized usages of Sepia.
 * Categorical input variables: `link <https://nbviewer.jupyter.org/github/lanl/SEPIA/blob/master/examples/Synthetic_toy_examples/univariate_example_categorical_variable.ipynb>`_
 * Neddermeyer with separate groups of parameters for different discrepancy basis elements: `link <https://nbviewer.jupyter.org/github/lanl/SEPIA/blob/master/examples/Neddermeyer/neddermeyer_lamVzGroup.ipynb>`_
 * Neddermeyer used to demo shared and hierarchical theta models: `link <https://nbviewer.jupyter.org/github/lanl/SEPIA/blob/master/examples/Neddermeyer/neddermeyer_shared_hierarchical.ipynb>`_
+* Tower with parallel chain sampling (not a notebook): `link <http://www.github.com/lanl/SEPIA/tree/master/examples/Ball_Drop/ball_drop_1_parallelchains.py>`_
