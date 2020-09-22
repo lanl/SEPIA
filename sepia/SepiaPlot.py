@@ -234,6 +234,10 @@ def plot_acf(model,nlags,nburn=0,alpha=.05,save=None):
     :param str save: file name to save figure
     :return: matplotlib figure
     """
+
+    if nlags>model.get_num_samples():
+        raise ValueError('plot_acf: must have more samples than requested lag size')
+
     if alpha <= 0 or alpha >= 1:
         raise ValueError('alpha must be in (0,1)')
     if model.num.sim_only:
