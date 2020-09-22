@@ -520,10 +520,47 @@ class SepiaModel:
         for _ in tqdm(range(nsamp), desc='MCMC sampling', mininterval=0.5, disable=not(prog)):
             self.mcmc_step(do_propMH)
 
+    def clear_samples(self):
+        """
+        clear the mcmc samples in the model
+        :return: no returned value
+        """
+        for p in self.params.mcmcList:
+            p.mcmc.draws=[]
+        self.params.lp.mcmc.draws=[]
+
     def get_num_samples(self):
+        """
+        Return the number of samples recorded in the model
+        :return: number of samples
+        """
         return self.params.lp.get_num_samples()
     def get_last_sample_ind(self):
+        """
+        Return index of the last sample = the number of samples - 1
+        :return: number of samples - 1
+        """
         return self.get_num_samples() - 1
+    def add_samples(self,sdict):
+        """
+        Add samples from the samples_dict to the model
+        Will be particularly useful in parallel chains, to re-integrate samples.
+        :return: no return value; model will be modified.
+        """
+        if not isinstance(sdict,dict):
+            raise TypeError('add_samples: requires a samples dict as input')
+
+        if not ( set(sdict.keys()) - set(['theta_native']) ) == set([p.name for p in self.params.mcmcList]+['logPost']):
+            print(( set(sdict.keys()) - set(['theta_native']) ))
+            print(set([p.name for p in self.params.mcmcList]+['logPost']))
+            raise ValueError('add_samples: samples dict must match fields in model')
+
+        nsamp=len(sdict['logPost'])
+        for pf in self.params.mcmcList:
+            for ii in range(nsamp):
+                pf.mcmc.draws.append(sdict[pf.name][ii,:].reshape(pf.val_shape))
+        for ii in range(nsamp):
+            self.params.lp.mcmc.draws.append(sdict['logPost'][ii,:].reshape((1,1)))
 
     def get_samples(self, nburn=0, sampleset=False, numsamples=False, flat=True, includelogpost=True, effectivesamples=False):
         """
