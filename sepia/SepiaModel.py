@@ -541,11 +541,12 @@ class SepiaModel:
         :return: number of samples - 1
         """
         return self.get_num_samples() - 1
-    def add_samples(self,sdict):
+    def add_samples(self,sdict=None):
         """
         Add samples from the samples_dict to the model
         Will be particularly useful in parallel chains, to re-integrate samples.
-        :return: no return value; model will be modified.
+        :param dict sdict: samples dict, as obtained from get_samples()
+        :return: no return value; model object will be modified
         """
         if not isinstance(sdict,dict):
             raise TypeError('add_samples: requires a samples dict as input')
@@ -554,6 +555,9 @@ class SepiaModel:
             print(( set(sdict.keys()) - set(['theta_native']) ))
             print(set([p.name for p in self.params.mcmcList]+['logPost']))
             raise ValueError('add_samples: samples dict must match fields in model')
+        for k in sdict.keys():
+            if len(sdict[k])!=len(sdict['logPost']):
+                raise ValueError('add_samples: samples dictionary keys passed in have mismatched sample lengths')
 
         nsamp=len(sdict['logPost'])
         for pf in self.params.mcmcList:
@@ -561,6 +565,25 @@ class SepiaModel:
                 pf.mcmc.draws.append(sdict[pf.name][ii,:].reshape(pf.val_shape, order='F'))
         for ii in range(nsamp):
             self.params.lp.mcmc.draws.append(sdict['logPost'][ii,:].reshape((1,1)))
+        self.logLik()
+
+    def set_model_to_sample(self,samp=None):
+        """
+        Add samples from the samples_dict to the model
+        Will be particularly useful in parallel chains, to re-integrate samples.
+        :param int samp: sample index to set model to. Default will be final stored sample.
+        :return: no return value; model object will be modified
+        """
+        if samp is None:
+            samp=self.get_last_sample_ind()
+        elif isinstance(samp,int):
+            if samp>self.get_last_sample_ind() or samp<0:
+                raise ValueError('set_model_to_sample: samp parameter outside of valid sample indices')
+        else:
+            raise ValueError('set_model_to_sample: samp parameter must be an integer index')
+        for p in self.params.mcmcList:
+            p.val=p.mcmc.draws[samp]
+        self.logLik()
 
     def get_samples(self, nburn=0, sampleset=False, numsamples=False, flat=True, includelogpost=True, effectivesamples=False):
         """
