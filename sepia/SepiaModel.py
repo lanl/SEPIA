@@ -948,30 +948,37 @@ class ModelContainer():
     """
     Internally used to contain numeric elements computed for the model/likelihood evaluations.
 
-    :var bool scalar_out: is y a scalar output?
-    :var bool sim_only: is it simulation-only?
-    :var numpy.ndarray x: unit hypercube inputs corresponding to observed data
-    :var numpy.ndarray theta:
-    :var numpy.ndarray zt: unite hypercube inputs corresponding to simulated data
-    :var numpy.ndarray LamSim:
-    :var numpy.ndarray LamObs:
-    :var numpy.ndarray SigObs:
-    :var int n: number of observed data observations
+    :var bool auto_stepsize: was step size tuning used?
+    :var Dki2: for separable input calculations
+    :var np.ndarray LamSim: simulation noise precision diagonal entries, length pu
+    :var list lamVzGroup: list size pv giving group assignments for each discrepancy basis element; default is [0]*pv
+    :var int lamVzGnum: number of groups for discrepancy basis elements (separate lamVz/betaV per group); default is 1
     :var int m: number of simulation data observations
+    :var int n: number of observed data observations
+    :var int p: number of controllable inputs (known in principle for both sim and obs data)
     :var int pu: number of PC components
     :var int pv: number of discrepancy basis components
-    :var int p: number of controllable inputs (known in principle for both sim and obs data)
     :var int q: number of non-controllable inputs (known in principle only for sim data)
-    :var lamVzGroup:
-    :var lamVzGnum:
-    :var numpy.ndarray SigV:
-    :var numpy.ndarray SigU:
-    :var numpy.ndarray SigWl:
-    :var numpy.ndarray SigWi:
-    :var numpy.ndarray SigUW:
-    :var bool auto_stepsize: was auto step size tuning done?
-
-    .. note:: Need to finish documenting, check that we got everything in num. TODO
+    :var bool scalar_out: is y a scalar output?
+    :var np.ndarray SigObs: observation noise variance matrix, size (pu+pv, pu+pv)
+    :var numpy.ndarray SigV: part of likelihood calculation
+    :var numpy.ndarray SigU: part of likelihood calculation
+    :var numpy.ndarray SigWl: part of likelihood calculation
+    :var numpy.ndarray SigWi: part of likelihood calculation
+    :var numpy.ndarray SigUW: part of likelihood calculation
+    :var bool sim_only: is it simulation-only?
+    :var np.ndarray u: projection of observations onto K, size (pu, n)
+    :var np.ndarray v: projection of observations onto D, size (pv, n)
+    :var list V: for separable design calculations
+    :var np.ndarray vu: concatenation of u and v reordered for model usage, size (pu+pv, n)
+    :var np.ndarray vuw: concatenation/reordering/reshaping of v, u, and w, size (pu*m + pu*n + pv*n)
+    :var np.ndarray w: projection of simulations onto K, size (pu*m, 1)
+    :var np.ndarray x: unit hypercube inputs corresponding to observed data
+    :var sepia.SepiaDistCov x0Dist: sepia.SepiaDistCov for data.x (obs controllable inputs)
+    :var sepia.SepiaDistCov xzDist: sepia.SepiaDistCov for x/z (sim and obs controllable inputs)
+    :var zt: unit hypercube inputs corresponding to simulated data
+    :var sepia.SepiaDistCov ztDist: sepia.SepiaDistCov for z/t (sim controllable/noncontrollable inputs)
+    :var sepia.SepiaDistCov ztSepDist: for separable designs
 
     """
 
