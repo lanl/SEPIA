@@ -82,6 +82,7 @@ Pages
     quickstart
     snippets
     forgpmsa
+    model_math
 
 API
 ===
