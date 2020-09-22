@@ -86,7 +86,6 @@ model.clear_samples()                           # reset the model's sample set, 
 # Multiprocessing
 #
 import multiprocessing as mp
-import copy
 
 tref0=time() # timing checkpoint
 
@@ -115,7 +114,7 @@ resList=manager.list()
 # First, define the processes as ptasks number of workers with appropriate arguments
 procs=[]
 for _ in range(ptasks):
-    procs.append( mp.Process(target=worker_mcmc, args=(copy.deepcopy(model),each_mcmc,resList)) )
+    procs.append( mp.Process(target=worker_mcmc, args=(model,each_mcmc,resList)) )
 # Start the processes
 tref1=time() # timing checkpoint
 for p in procs:
@@ -153,6 +152,9 @@ theta_names = ['C']
 
 mcmc_trace_ref = SepiaPlot.mcmc_trace(samples_dict_ref,theta_names)
 mcmc_trace     = SepiaPlot.mcmc_trace(samples_dict    ,theta_names)
+
+mcmc_trace_ref.show()
+mcmc_trace.show()
 
 p_stats_ref = SepiaPlot.param_stats(samples_dict_ref,theta_names=theta_names,q1=.05,q2=.95,digits=4)
 p_stats     = SepiaPlot.param_stats(samples_dict    ,theta_names=theta_names,q1=.05,q2=.95,digits=4)
