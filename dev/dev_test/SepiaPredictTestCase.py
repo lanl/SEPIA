@@ -49,7 +49,7 @@ class SepiaPredictTestCase(unittest.TestCase):
         samples_dict['logPost'] = np.array(model.params.lp.mcmc.draws).reshape((-1, 1))
 
         np.random.seed(int(seed))
-        psamps = model.get_samples(0, sampleset=range(n_pred), flat=True)
+        psamps = model.get_samples(sampleset=range(n_pred), flat=True)
         pred = SepiaEmulatorPrediction(x_pred=np.array([0.5]).reshape(1,1), t_pred=np.array([0.5]).reshape(1,1),
                                        samples=psamps, model=model, storeMuSigma=True)
         print('Samples are:')
@@ -133,7 +133,7 @@ class SepiaPredictTestCase(unittest.TestCase):
         samples_dict['logPost'] = np.array(model.params.lp.mcmc.draws).reshape((-1, 1))
 
         np.random.seed(int(seed))
-        psamps = model.get_samples(0, sampleset=range(n_pred), flat=True)
+        psamps = model.get_samples(sampleset=range(n_pred), flat=True)
         pred = SepiaEmulatorPrediction(x_pred=np.array([0.5]).reshape(1,1),
                                        samples=psamps, model=model, storeMuSigma=True)
         print('Samples are:')
@@ -196,7 +196,7 @@ class SepiaPredictTestCase(unittest.TestCase):
         self.assertTrue(set(samples_dict.keys()) == set(mcmc_mat.keys()))
 
         np.random.seed(int(seed))
-        psamps = model.get_samples(0, sampleset=range(n_pred), flat=True)
+        psamps = model.get_samples(sampleset=range(n_pred), flat=True)
         pred=SepiaEmulatorPrediction(x_pred=np.array([0.5]).reshape(1,1), t_pred=np.array([0.5]).reshape(1,1),
                                      samples=psamps, model=model, storeMuSigma=True)
         print('Samples are:')
@@ -293,7 +293,7 @@ class SepiaPredictTestCase(unittest.TestCase):
         self.assertTrue(set(samples_dict.keys()) == set(mcmc_mat.keys()))
 
         np.random.seed(int(seed))
-        psamps = model.get_samples(0, sampleset=range(5), flat=True)
+        psamps = model.get_samples(sampleset=range(5), flat=True)
         pred = SepiaEmulatorPrediction(np.array([0.5]).reshape(1,1), samples=psamps,
                                        model=model, storeMuSigma=True)
         print('Samples are:')
@@ -321,7 +321,7 @@ class SepiaPredictTestCase(unittest.TestCase):
                                     pred_sigma.squeeze().reshape(n_pred * n_pc, n_pc).T))
 
         np.random.seed(int(seed))
-        psamps = model.get_samples(0, sampleset=[0, n_pred-1], flat=True)
+        psamps = model.get_samples(sampleset=[0, n_pred-1], flat=True)
         pred = SepiaFullPrediction(x_pred=np.array([0.5]).reshape(1,1), samples=psamps,
                                        model=model, storeMuSigma=True)
         (pred_u,pred_v)=pred.get_u_v()
@@ -392,7 +392,7 @@ class SepiaPredictTestCase(unittest.TestCase):
 
         self.assertTrue(set(samples_dict.keys()) == set(mcmc_mat.keys()))
 
-        psamps = model.get_samples(0, sampleset=[0, n_pred-1], flat=True)
+        psamps = model.get_samples(sampleset=[0, n_pred-1], flat=True)
         pred = SepiaFullPrediction(x_pred=np.array([0.5]).reshape(1,1), samples=psamps,
                                        model=model, storeMuSigma=True)
         pass

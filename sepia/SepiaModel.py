@@ -590,70 +590,66 @@ class SepiaModel:
             p.val=p.mcmc.draws[samp]
         self.logLik()
 
-    def get_samples(self, nburn=0, sampleset=False, numsamples=False, flat=True, includelogpost=True, effectivesamples=False):
+    def get_samples(self, numsamples=None, nburn=0, sampleset=None, flat=True, includelogpost=True, effectivesamples=False):
         """
         Extract MCMC samples into dictionary format. By default, all samples are returned, or samples can be
         subset using in various ways using the optional input arguments.
 
-        :param int nburn: number of samples to discard at beginning of chain
-        :param list sampleset: list of indices of samples to include
-        :param int numsamples: number of samples to include, evenly spaced from first to last
+        :param int/NoneType numsamples: number of samples to include, evenly spaced from first to last
+        :param int nburn: number of samples to discard at beginning of chain (default = 0)
+        :param list/NoneType sampleset: list of indices of samples to include; if given, numsamples and nburn are ignored.
         :param bool flat: flatten the resulting arrays (for parameters stored as matrices)?
         :param bool includelogpost: include logPost values?
-        :param bool effectivesamples: use effective sample size of thetas to subset samples?
+        :param bool effectivesamples: use effective sample size of thetas to subset samples? If True, numsamples and sampleset are ignored.
         :return: dict -- array of samples for each parameter, keyed by parameter name
         :raises: TypeError if no samples exist or nburn inconsistent with number of draws
 
         .. note:: If `theta` is in the model, will also add key `theta_native` with `theta` rescaled to original range.
 
         """
-        if self.num.sim_only and effectivesamples:
-            print('Emulator only - returning all samples')
         total_samples = self.get_num_samples()
         if total_samples == 0:
             raise TypeError('No MCMC samples; call do_mcmc() first.')
-
-        if numsamples and sampleset:
-            print("warning: set both numsamples and sampleset, defaulting to use sampleset.")
-
-        # By default, use all samples
-        ss = np.arange(total_samples)
-
-        # Parse sampleset/numsamples
-        if numsamples is not False:
-            if numsamples >= total_samples:
-                print('numsamples larger than number of draws; truncating to number of draws (%d).' % total_samples)
-            else:
-                ss = [int(ii) for ii in np.linspace(0, total_samples-1, numsamples)]
-                
-        if sampleset is not False:
+        if sampleset is not None and numsamples is not None:
+            print("Warning: set both numsamples and sampleset, defaulting to use sampleset.")
+        if sampleset is None:
+            if numsamples is None:
+                numsamples = total_samples - nburn
+            elif (numsamples + nburn) >= total_samples:
+                print('numsamples + nburn larger than number of draws; truncating numsamples to number of draws - nburn (%d).' % (total_samples - nburn))
+                numsamples = total_samples - nburn
+            sampleset = [int(ii) for ii in np.linspace(nburn, total_samples-1, numsamples)]
+        else:
             if max(sampleset) > total_samples:
                 print('sampleset includes indices larger than number of draws; truncating to valid draws.')
-            ss = [ii for ii in sampleset if ii < total_samples and ii >= 0]
-        elif not self.num.sim_only and effectivesamples is not False:
-            # get max theta ess
-            for p in self.params.mcmcList:
-                if p.name == 'theta': 
-                    theta = p.mcmc_to_array(trim=nburn, flat=flat).T
-            ess_max = 0
-            for i in range(theta.shape[0]):
-                # Skip if categorical
-                if self.data.t_cat_ind[i] > 0:
-                    continue
-                tmp = self.ESS(theta[i,:])
-                if tmp > ess_max: ess_max = tmp
-            # set ss to grab ess number of samples
-            ss = np.linspace(0,theta.shape[1],ess_max,dtype=int,endpoint=False)
-            print("Max effective sample size over thetas: {}".format(ess_max))
-            print("Total samples: {}".format(theta.shape[1]))
-        plist = self.params.mcmcList
-        samples = {p.name: p.mcmc_to_array(trim=nburn, sampleset=ss, flat=flat, untransform_theta=False)
-                   for p in plist}
+                sampleset = [ii for ii in sampleset if ii < total_samples and ii >= 0]
+
+        if effectivesamples:
+            if self.num.sim_only:
+                print('Emulator only - ignoring effectivesamples (needs thetas).')
+            else:
+                # get max theta ess
+                for p in self.params.mcmcList:
+                    if p.name == 'theta':
+                        theta = p.mcmc_to_array(flat=flat).T
+                ess_max = 0
+                for i in range(theta.shape[0]):
+                    # Skip if categorical
+                    if self.data.t_cat_ind[i] > 0:
+                        continue
+                    tmp = self.ESS(theta[i,nburn:])
+                    if tmp > ess_max: ess_max = tmp
+                # set ss to grab ess number of samples
+                sampleset = np.linspace(nburn, theta.shape[1], ess_max, dtype=int, endpoint=False)
+                print("Max effective sample size over thetas: {}".format(ess_max))
+                print("Total samples: {}".format(theta.shape[1]))
+
+        samples = {p.name: p.mcmc_to_array(sampleset=sampleset, flat=flat, untransform_theta=False) for p in self.params.mcmcList}
         if includelogpost:
-            samples['logPost'] = self.params.lp.mcmc_to_array(trim=nburn, sampleset=ss, flat=flat, untransform_theta=False)
+            samples['logPost'] = self.params.lp.mcmc_to_array(sampleset=sampleset, flat=flat, untransform_theta=False)
         # Add theta in native space as new key
         if 'theta' in samples.keys():
-            samples['theta_native'] = self.params.theta.mcmc_to_array(trim=nburn, sampleset=ss, flat=flat, untransform_theta=True)
+            samples['theta_native'] = self.params.theta.mcmc_to_array(sampleset=sampleset, flat=flat, untransform_theta=True)
         return samples
 
     def tune_step_sizes(self, n_burn, n_levels, prog=True, diagnostics=False, update_vals=True, verbose=True):

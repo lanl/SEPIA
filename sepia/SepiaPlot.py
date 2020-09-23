@@ -207,7 +207,7 @@ def rho_box_plots(model,labels=None):
     :param list/NoneType labels: optional labels to use for box plot
     :return: matplotlib figure
     """
-    samples_dict = {p.name: p.mcmc_to_array(trim=1000) for p in model.params.mcmcList}
+    samples_dict = {p.name: p.mcmc_to_array() for p in model.params.mcmcList}
     p = model.num.p
     q = model.num.q
     pu = model.num.pu
@@ -246,7 +246,7 @@ def plot_acf(model,nlags,nburn=0,alpha=.05,save=None):
     # get theta chains
     for p in model.params.mcmcList:
         if p.name == 'theta': 
-            chain = p.mcmc_to_array(trim=nburn, flat=True).T
+            chain = p.mcmc_to_array(flat=True).T
     
     acf = model.acf(chain,nlags,plot=True,alpha=alpha)
     if save is not None: 

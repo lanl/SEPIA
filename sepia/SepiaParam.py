@@ -80,21 +80,20 @@ class SepiaParam:
         """
         return len(self.mcmc.draws)
 
-    def mcmc_to_array(self, trim=0, sampleset=False, flat=True, untransform_theta=False):
+    def mcmc_to_array(self, sampleset=None, flat=True, untransform_theta=False):
         """
         Convert internal representation of MCMC draws to an array.
 
-        :param int trim: number of samples to trim from beginning of chain
-        :param list sampleset: indices of samples to use
+        :param int/list/NoneType sampleset: indices of samples to use or integer for a single index
         :param bool flat: flatten array shape of parameter?
         :param bool untransform_theta: untransform theta to original scale? (no effect on other parameters)
         :return: MCMC draws as np.ndarray
         """
         if type(sampleset) is int: sampleset=[sampleset] # it has to be a list
-        if sampleset is not False:
+        if sampleset is not None:
             draws = np.array(self.mcmc.draws)[sampleset, :, :]  # (nsamp, p+q, pu)
         else:
-            draws = np.array(self.mcmc.draws)[trim:, :, :] # (nsamp, p+q, pu)
+            draws = np.array(self.mcmc.draws) # (nsamp, p+q, pu)
         if untransform_theta:
             draws = self.untransform_theta(draws)
         if flat:

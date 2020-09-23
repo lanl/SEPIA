@@ -86,7 +86,7 @@ class SepiaHierarchicalThetaModels:
                     self.model_list[j].params.theta.prior.params[0][0, r[j]] = hier_mu[i].val.copy()
                     self.model_list[j].params.theta.prior.params[1][0, r[j]] = np.sqrt(1./hier_lambda[i].val.copy())
 
-    def get_samples(self, nburn=0, sampleset=False, numsamples=False, flat=True):
+    def get_samples(self, nburn=0, sampleset=False, numsamples=False, flat=True): # TODO modify to use nburn similar to sepiaModel
         """
         Extract MCMC samples into dictionary format for each model in self.model_list.
         By default, all samples are returned, or samples can be
@@ -126,13 +126,13 @@ class SepiaHierarchicalThetaModels:
             ss = [ii for ii in sampleset if ii < total_samples and ii >= 0]
         # get Hier mu
         for i, hm in enumerate(self.hier_mu):
-            result['hier_mu%d' % i] = hm.mcmc_to_array(trim=nburn, sampleset=ss, flat=flat)
+            result['hier_mu%d' % i] = hm.mcmc_to_array(sampleset=ss, flat=flat)
         # get Hier lambda
         for i, hm in enumerate(self.hier_lambda):
-            result['hier_lambda%d' % i] = hm.mcmc_to_array(trim=nburn, sampleset=ss, flat=flat)
+            result['hier_lambda%d' % i] = hm.mcmc_to_array(sampleset=ss, flat=flat)
         # get Hier delta
         for i, hm in enumerate(self.hier_delta):
-            result['hier_delta%d' % i] = hm.mcmc_to_array(trim=nburn, sampleset=ss, flat=flat)
+            result['hier_delta%d' % i] = hm.mcmc_to_array(sampleset=ss, flat=flat)
         return result
 
     def do_mcmc(self, nsamp, do_propMH=True, prog=True, do_lockstep=True):
