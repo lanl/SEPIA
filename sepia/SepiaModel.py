@@ -590,7 +590,7 @@ class SepiaModel:
             p.val=p.mcmc.draws[samp]
         self.logLik()
 
-    def get_samples(self, numsamples=None, nburn=0, sampleset=None, flat=True, includelogpost=True, effectivesamples=False):
+    def get_samples(self, numsamples=None, nburn=0, sampleset=None, flat=True, includelogpost=True, effectivesamples=False, return_sampleset=False):
         """
         Extract MCMC samples into dictionary format. By default, all samples are returned, or samples can be
         subset using in various ways using the optional input arguments.
@@ -601,7 +601,8 @@ class SepiaModel:
         :param bool flat: flatten the resulting arrays (for parameters stored as matrices)?
         :param bool includelogpost: include logPost values?
         :param bool effectivesamples: use effective sample size of thetas to subset samples? If True, numsamples and sampleset are ignored.
-        :return: dict -- array of samples for each parameter, keyed by parameter name
+        :param bool return_sampleset: whether to return the sampleset indices (default False)
+        :return: dict -- array of samples for each parameter, keyed by parameter name; optionally, also return sampleset (list)
         :raises: TypeError if no samples exist or nburn inconsistent with number of draws
 
         .. note:: If `theta` is in the model, will also add key `theta_native` with `theta` rescaled to original range.
@@ -650,7 +651,10 @@ class SepiaModel:
         # Add theta in native space as new key
         if 'theta' in samples.keys():
             samples['theta_native'] = self.params.theta.mcmc_to_array(sampleset=sampleset, flat=flat, untransform_theta=True)
-        return samples
+        if return_sampleset:
+            return samples, sampleset
+        else:
+            return samples
 
     def tune_step_sizes(self, n_burn, n_levels, prog=True, diagnostics=False, update_vals=True, verbose=True):
         """
