@@ -532,19 +532,23 @@ class SepiaModel:
     def get_num_samples(self):
         """
         Return the number of samples recorded in the model
+
         :return: number of samples
         """
         return self.params.lp.get_num_samples()
     def get_last_sample_ind(self):
         """
         Return index of the last sample = the number of samples - 1
+
         :return: number of samples - 1
         """
         return self.get_num_samples() - 1
+
     def add_samples(self,sdict=None):
         """
-        Add samples from the samples_dict to the model
+        Add samples from the samples_dict to the model.
         Will be particularly useful in parallel chains, to re-integrate samples.
+
         :param dict sdict: samples dict, as obtained from get_samples()
         :return: no return value; model object will be modified
         """
@@ -571,6 +575,7 @@ class SepiaModel:
         """
         Add samples from the samples_dict to the model
         Will be particularly useful in parallel chains, to re-integrate samples.
+
         :param int samp: sample index to set model to. Default will be final stored sample.
         :return: no return value; model object will be modified
         """

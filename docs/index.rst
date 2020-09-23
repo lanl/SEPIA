@@ -96,7 +96,6 @@ API
     prior
     mcmc
     model_internals
-    optim
     predict
     plot
     sens
