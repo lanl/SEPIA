@@ -47,6 +47,10 @@ The `-e` flag signals developer mode, meaning that if you update the code from G
 take those changes into account without requiring re-installation.
 Some other essential packages used in SEPIA may be installed if they do not exist in your system or environment.
 
+If you encounter problems with the above install method, you may try to install dependencies manually before installing SEPIA.
+First, ensure you have a recent version of Python (greater than 3.5).
+Then, install packages `numpy`, `scipy`, `pandas`, `matplotlib`, `seaborn`, `statsmodels`, and `tqdm`.
+
 Resources for new users
 =======================
 
