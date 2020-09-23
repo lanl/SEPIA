@@ -370,6 +370,10 @@ class SepiaData(object):
                 print('Scalar output, no basis used.')
                 return
         if K is not None:
+            if not isinstance(K,np.ndarray):
+                raise TypeError('create_K_basis: K specified must be a numpy ndarray')
+            if len(K.shape)!=2 or K.shape[1]!=self.sim_data.y.shape[1]:
+                raise ValueError('create_K_basis: must be 2D, and K and y_sim must have the same second dimension')
             self.sim_data.K = K
         else:
             self.compute_sim_PCA_basis(n_pc)
