@@ -26,14 +26,21 @@ The documentation contains a workflow guide that is helpful for new users to rea
 Basic usage is demonstrated in the Examples directory. 
 After looking at the documentation, check out the examples.
 
-### Install package locally
-We recommend doing this inside a python conda environment.
-The packages installed in the development environment are listed in `environment.yml`.
-Use `conda env create -f environment.yml` to create the environment, then activate as `source activate sepia` before installing sepia.
+### Install package 
+For cleaner package management and to avoid conflicts between different versions of packages,
+we recommend installing inside an Anaconda or pip environment.
+However, this is not required.
 
-Then use the following command from this directory to install sepia locally.
+First, pull down the current source code from either by downloading a zip file or using `git clone`.
 
-`pip install -e .[sepia]`
+From the command line, while in the main SEPIA directory, use the following command to install sepia::
+
+        pip install -e .[sepia]
+
+The `-e` flag signals developer mode, meaning that if you update the code from Github, your installation will automatically
+take those changes into account without requiring re-installation.
+Some other essential packages used in SEPIA may be installed if they do not exist in your system or environment.
+
 
 ### Citing Sepia
 Using Sepia in your work? Cite as:
