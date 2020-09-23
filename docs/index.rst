@@ -31,21 +31,21 @@ multivariate calibration, visualization and diagnostics, predictions) is complet
 
 Installation
 ============
+For cleaner package management and to avoid conflicts between different versions of packages,
+we recommend installing inside an Anaconda or pip environment (see `Conda docs`_ for details on Anaconda environments).
+However, this is not required.
 
-First, pull down the source code from `GitHub`_ either by downloading a zip file or using `git clone`.
-We recommend installing inside an Anaconda environment. The packages installed in the development environment
-are listed in `environment.yml`. To create the environment, use::
+.. _Conda docs: https://docs.conda.io/projects/conda/en/latest/user-guide/index.html
 
-        conda env create -f environment.yml
+First, pull down the current source code from `GitHub`_ either by downloading a zip file or using `git clone`.
 
-Activate the environment before installing sepia::
-
-        source activate sepia
-
-Then use the following command to install sepia::
+From the command line, while in the main SEPIA directory, use the following command to install sepia::
 
         pip install -e .[sepia]
 
+The `-e` flag signals developer mode, meaning that if you update the code from Github, your installation will automatically
+take those changes into account without requiring re-installation.
+Some other essential packages used in SEPIA may be installed if they do not exist in your system or environment.
 
 Resources for new users
 =======================
