@@ -1,3 +1,4 @@
+import setuptools
 from setuptools import setup
 
 setup(name='sepia',
@@ -7,10 +8,12 @@ setup(name='sepia',
       author='James Gattiker, Natalie Klein, Grant Hutchings, Earl Lawrence',
       author_email='',
       license='BSD',
-      packages=['sepia'],
+      packages=setuptools.find_packages(),
       zip_safe=False,
+      python_requires='>=3.6',
       install_requires=[
             'numpy',
+            'pandas',
             'matplotlib',
             'scipy',
             'seaborn',
