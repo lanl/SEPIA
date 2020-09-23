@@ -86,7 +86,7 @@ class SepiaHierarchicalThetaModels:
                     self.model_list[j].params.theta.prior.params[0][0, r[j]] = hier_mu[i].val.copy()
                     self.model_list[j].params.theta.prior.params[1][0, r[j]] = np.sqrt(1./hier_lambda[i].val.copy())
 
-    def get_samples(self, nburn=0, sampleset=False, numsamples=False, flat=True): # TODO modify to use nburn similar to sepiaModel
+    def get_samples(self, nburn=0, sampleset=None, numsamples=None, flat=True):
         """
         Extract MCMC samples into dictionary format for each model in self.model_list.
         By default, all samples are returned, or samples can be
@@ -104,27 +104,8 @@ class SepiaHierarchicalThetaModels:
         """
         result = {}
         for i, model in enumerate(self.model_list):
-            result['model%d' % i] = model.get_samples(nburn=nburn, sampleset=sampleset, numsamples=numsamples, flat=flat, includelogpost=False)
+            result['model%d' % i], ss = model.get_samples(nburn=nburn, sampleset=sampleset, numsamples=numsamples, flat=flat, includelogpost=False, return_sampleset=True)
             # TODO double check why includelogpost=True causes errors
-        # Calculate sample set
-        total_samples = len(self.hier_mu[0].mcmc.draws)
-        if total_samples == 0:
-            raise TypeError('No MCMC samples; call do_mcmc() first.')
-        if numsamples and sampleset:
-            print("warning: set both numsamples and sampleset, defaulting to use sampleset.")
-        # By default, use all samples
-        ss = np.arange(total_samples)
-        # Parse sampleset/numsamples
-        if numsamples is not False:
-            if numsamples >= total_samples:
-                print('numsamples larger than number of draws; truncating to number of draws (%d).' % total_samples)
-            else:
-                ss = [int(ii) for ii in np.linspace(0, total_samples - 1, numsamples)]
-        if sampleset is not False:
-            if max(sampleset) > total_samples:
-                print('sampleset includes indices larger than number of draws; truncating to valid draws.')
-            ss = [ii for ii in sampleset if ii < total_samples and ii >= 0]
-        # get Hier mu
         for i, hm in enumerate(self.hier_mu):
             result['hier_mu%d' % i] = hm.mcmc_to_array(sampleset=ss, flat=flat)
         # get Hier lambda

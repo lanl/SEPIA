@@ -64,7 +64,7 @@ class SepiaSharedThetaModels:
         self.to_sample = to_sample
         self.to_update = to_update
 
-    def get_samples(self, nburn=0, sampleset=False, numsamples=False, flat=True, includelogpost=True):
+    def get_samples(self, nburn=0, sampleset=None, numsamples=None, flat=True, includelogpost=True):
         """
         Extract MCMC samples into dictionary format for each model in self.model_list.
         By default, all samples are returned, or samples can be
