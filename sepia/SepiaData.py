@@ -316,8 +316,10 @@ class SepiaData(object):
                 self.sim_data.orig_y_sd = np.std(y_dm, ddof=1)
             elif scale == 'columnwise':
                 self.sim_data.orig_y_sd = np.std(y_dm, ddof=1, axis=0)
-            else:
+            elif scale is False:
                 self.sim_data.orig_y_sd = 1.
+            else:
+                raise ValueError('standardize_y: invalid value for scale parameter, allowed are {''scalar'',''columnwise'',False}')
         self.sim_data.y_std = y_dm/self.sim_data.orig_y_sd
         if not self.sim_only:
             if not self.scalar_out and not np.isscalar(self.sim_data.orig_y_mean):
