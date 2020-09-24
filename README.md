@@ -3,9 +3,9 @@
 Simulation-Enabled Prediction, Inference, and Analysis: physics-informed statistical learning.
 This is a Python adaptation of [GPMSA](https://github.com/lanl/gpmsa).
 
-<a href="https://doi.org/10.5281/zenodo.3979585"><img src="https://zenodo.org/badge/DOI/10.5281/zenodo.3979585.svg" align="right" alt="DOI"></a>
+<a href="https://zenodo.org/badge/latestdoi/267692609"><img src="https://zenodo.org/badge/267692609.svg" alt="DOI"></a>
 
-<img src="docs/sepia.png" alt="sepia cuttlefish logo" width="150"/>
+<img src="docs/sepia.png" alt="sepia cuttlefish logo by Natalie Klein" width="150"/>
 
 ### What to Expect
 SEPIA is intended to be a tool that enhances the collaboration between statisticians
@@ -49,7 +49,7 @@ Then, install packages `numpy`, `scipy`, `pandas`, `matplotlib`, `seaborn`, `sta
 Using Sepia in your work? Cite as:
 
 James Gattiker, Natalie Klein, Earl Lawrence, & Grant Hutchings.
-lanl/SEPIA. Zenodo. https://doi.org/10.5281/zenodo.3979584
+lanl/SEPIA. Zenodo. https://doi.org/10.5281/zenodo.4048801 
 
 
 ---

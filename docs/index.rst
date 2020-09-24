@@ -9,7 +9,8 @@ Welcome to SEPIA!
     :width: 160px
     :alt: Cuttlefish logo by Natalie Klein.
 
-
+.. image:: https://zenodo.org/badge/267692609.svg
+   :target: https://zenodo.org/badge/latestdoi/267692609
 
 What is SEPIA?
 ==============
@@ -38,6 +39,7 @@ However, this is not required.
 .. _Conda docs: https://docs.conda.io/projects/conda/en/latest/user-guide/index.html
 
 First, pull down the current source code from `GitHub`_ either by downloading a zip file or using `git clone`.
+If you prefer, you can download the latest stable release instead of the master branch.
 
 From the command line, while in the main SEPIA directory, use the following command to install sepia::
 
@@ -61,13 +63,6 @@ If you are familiar with the general workflow but need a quick reference for com
 
 If you are a `GPMSA`_ user, we suggest reading :ref:`sepia-for-gpmsa-users`.
 
-Recent changes
-==============
-
-    * 9/10/20: users can pass custom theta constraint function `theta_fcon` to `SepiaModel` that evaluates True if theta follows the constraint
-      and False otherwise. Must also pass in `theta_init` that satisfies the constraint.
-    * 8/27/2020: predictions now expect `x` and `t` to be passed in the native (untransformed) space.
-    * 8/25/2020: use `SepiaModel(data)` to set up model (no more `setup_model` function).
 
 Citing Sepia
 ============
