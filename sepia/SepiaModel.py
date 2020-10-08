@@ -157,7 +157,7 @@ class SepiaModel:
                 tlen=dele.shape[1]
                 self.num.ztSepDist.append(SepiaDistCov(dele,cat_ind=cat_ind[tind:tind+tlen]))
                 tind=tind+tlen
-            self.num.ztDist = SepiaDistCov(data.zt, cat_ind=np.concatenate([data.x_cat_ind, data.t_cat_ind]))
+            #self.num.ztDist = SepiaDistCov(data.zt, cat_ind=np.concatenate([data.x_cat_ind, data.t_cat_ind]))
         else:
             self.num.ztDist = SepiaDistCov(data.zt, cat_ind=np.concatenate([data.x_cat_ind, data.t_cat_ind]))
 

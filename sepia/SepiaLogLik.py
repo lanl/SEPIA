@@ -128,7 +128,8 @@ def compute_log_lik(g, cvar='all', cindex=None):
 
         lamUz_val = g.params.lamUz.val
         betaU_val = g.params.betaU.val
-        ztDistCov = num.ztDist.compute_cov_mat
+        if ztSep==False:
+            ztDistCov = num.ztDist.compute_cov_mat
         LamSim = num.LamSim
         lamWOs_val = g.params.lamWOs.val
         lamWs_val = g.params.lamWs.val
