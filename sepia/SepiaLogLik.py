@@ -8,7 +8,7 @@ from sepia.SepiaDistCov import SepiaDistCov
 
 def compute_log_lik(g, cvar='all', cindex=None):
     """
-    Compute log likelihood. Returns value and also stores in num.logLik of model object.
+    Compute log likelihood for model g. Returns value and also stores it in g.num.logLik.
 
     :param sepia.SepiaModel g: instantiated `sepia.SepiaModel` object
     :param string cvar: name of changed parameter (used to avoid recomputing things that won't have changed since last call), or 'all'
@@ -35,7 +35,7 @@ def compute_log_lik(g, cvar='all', cindex=None):
         L = -logDet - 0.5 * np.sum(p1 * w)
         return L
 
-        # calculate the equivalent quadratic form of kron separable data
+    # calculate the equivalent quadratic form of kron separable data
     def sepQuadFormCalc(V,zp):
         # calculate right side of the kronecker quadratic form solve
         dlen,mlen=zp.shape
@@ -93,7 +93,6 @@ def compute_log_lik(g, cvar='all', cindex=None):
 
     # These are both related to recalculating x dists, whether with theta or not
     if num.sim_only and cvar == 'all': # calculating everything
-        #num.xDist = SepiaDistCov(g.data.x, cat_ind=g.data.x_cat_ind)
         num.xDist = SepiaDistCov(g.data.x, cat_ind=[])
     elif do_theta:  # calculating everything involving theta [note this includes the case 'all']
         xt_tmp = np.concatenate((g.data.x, np.tile(g.params.theta.val, (n, 1))), axis=1)
@@ -129,7 +128,8 @@ def compute_log_lik(g, cvar='all', cindex=None):
 
         lamUz_val = g.params.lamUz.val
         betaU_val = g.params.betaU.val
-        ztDistCov = num.ztDist.compute_cov_mat
+        if ztSep==False:
+            ztDistCov = num.ztDist.compute_cov_mat
         LamSim = num.LamSim
         lamWOs_val = g.params.lamWOs.val
         lamWs_val = g.params.lamWs.val

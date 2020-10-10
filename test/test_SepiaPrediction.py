@@ -16,7 +16,7 @@ class SepiaPredictionTestCase(unittest.TestCase):
                                                                    sig_n=sig_n, seed=seed)
         univ_data_dict = generate_data.generate_univ_sim_and_obs(m=m, n=n, sig_n=sig_n, seed=seed)
 
-        d = SepiaData(t_sim=univ_data_dict['t_sim'], y_sim=univ_data_dict['y_sim'])
+        d = SepiaData(x_sim=univ_data_dict['t_sim'], y_sim=univ_data_dict['y_sim'])
         d.transform_xt()
         d.standardize_y()
         self.univ_sim_only_model = SepiaModel(d)
@@ -26,7 +26,7 @@ class SepiaPredictionTestCase(unittest.TestCase):
         d.standardize_y()
         self.univ_sim_and_obs_model = SepiaModel(d)
 
-        d = SepiaData(t_sim=multi_data_dict['t_sim'], y_sim=multi_data_dict['y_sim'],
+        d = SepiaData(x_sim=multi_data_dict['t_sim'], y_sim=multi_data_dict['y_sim'],
                       y_ind_sim=multi_data_dict['y_ind_sim'])
         d.transform_xt()
         d.standardize_y()
@@ -82,7 +82,7 @@ class SepiaPredictionTestCase(unittest.TestCase):
 
         model.do_mcmc(50)
         samples = model.get_samples(numsamples=5)
-        pred = SepiaEmulatorPrediction(x_pred=model.data.sim_data.x, t_pred=model.data.sim_data.t,
+        pred = SepiaEmulatorPrediction( t_pred=model.data.sim_data.t,
                                        samples=samples, model=model)
         pred.get_w()
         pred.get_y()
@@ -90,7 +90,7 @@ class SepiaPredictionTestCase(unittest.TestCase):
         cvpred.get_w()
         cvpred.get_y()
 
-        pred = SepiaFullPrediction(x_pred=model.data.sim_data.x, t_pred=model.data.sim_data.t,
+        pred = SepiaFullPrediction( t_pred=model.data.sim_data.t,
                                        samples=samples, model=model)
         pred.get_u_v()
         pred.get_ysim()
@@ -126,7 +126,7 @@ class SepiaPredictionTestCase(unittest.TestCase):
 
         model.do_mcmc(50)
         samples = model.get_samples(numsamples=5)
-        pred = SepiaEmulatorPrediction(x_pred=model.data.sim_data.x, t_pred=model.data.sim_data.t,
+        pred = SepiaEmulatorPrediction( t_pred=model.data.sim_data.t,
                                        samples=samples, model=model)
         pred.get_w()
         pred.get_y()
@@ -134,7 +134,7 @@ class SepiaPredictionTestCase(unittest.TestCase):
         cvpred.get_w()
         cvpred.get_y()
 
-        pred = SepiaFullPrediction(x_pred=model.data.sim_data.x, t_pred=model.data.sim_data.t,
+        pred = SepiaFullPrediction( t_pred=model.data.sim_data.t,
                                        samples=samples, model=model)
         pred.get_u_v()
         pred.get_ysim()
@@ -151,7 +151,7 @@ class SepiaPredictionTestCase(unittest.TestCase):
 
         model.do_mcmc(50)
         samples = model.get_samples(numsamples=5)
-        pred = SepiaEmulatorPrediction(x_pred=model.data.sim_data.x, t_pred=model.data.sim_data.t,
+        pred = SepiaEmulatorPrediction( t_pred=model.data.sim_data.t,
                                        samples=samples, model=model)
         pred.get_w()
         pred.get_y()
@@ -159,7 +159,7 @@ class SepiaPredictionTestCase(unittest.TestCase):
         cvpred.get_w()
         cvpred.get_y()
 
-        pred = SepiaFullPrediction(x_pred=model.data.sim_data.x, t_pred=model.data.sim_data.t,
+        pred = SepiaFullPrediction( t_pred=model.data.sim_data.t,
                                        samples=samples, model=model)
         pred.get_u_v()
         pred.get_ysim()

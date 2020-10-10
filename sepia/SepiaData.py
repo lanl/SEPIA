@@ -48,14 +48,16 @@ class SepiaData(object):
         :param numpy.ndarray/list/NoneType y_ind_obs: vector of indices for multivariate y, shape (l_obs, ), or list length m of 1D arrays (for ragged y_ind_obs), or None
         :param numpy.ndarray/list/NoneType x_cat_ind: indices of x that are categorical (0 = not cat, int > 0 = how many categories), or None
         :param numpy.ndarray/list/NoneType t_cat_ind: indices of t that are categorical (0 = not cat, int > 0 = how many categories), or None
-        :param numpy.ndarray/list/NoneType xt_sim_sep: for separable design, list of kronecker composable matrices
+        :param numpy.ndarray/list/NoneType xt_sim_sep: for separable design, list of kronecker composable matrices; it is a list of 2 or
+                                                       more design components that, through Kronecker expansion, produce the full input space (`x` and `t`) for the simulations.
         :raises: TypeError if shapes not conformal or required data missing.
 
         .. note: At least one of x_sim and t_sim must be provided, and y_sim must always be provided.
 
         """
         self.sep_design = xt_sim_sep is not None
-        self.dummy_x = x_sim is None and not self.sep_design
+        self.dummy_x = (not self.sep_design and x_sim is None) or \
+                       (self.sep_design and y_obs is not None and x_obs is None)
         self.sim_only = y_obs is None
 
         # Initial Checks
@@ -172,7 +174,7 @@ class SepiaData(object):
                     else:
                         res += 'pv = %5d (transformed discrepancy dimension)\n' % self.obs_data.D.shape[0]
                 else:
-                    res += 'pv NOT SET (transformed discrepancy dimension); call method create_D_basis\n'
+                    res += 'pv not set, indicating (unusual case of) no discrepancy; call method create_D_basis to fix \n'
         # Info on separable design, if that's in place.
         if self.sep_design:
             res += 'This is a separable simulation design with components: \n'
@@ -314,8 +316,10 @@ class SepiaData(object):
                 self.sim_data.orig_y_sd = np.std(y_dm, ddof=1)
             elif scale == 'columnwise':
                 self.sim_data.orig_y_sd = np.std(y_dm, ddof=1, axis=0)
-            else:
+            elif scale is False:
                 self.sim_data.orig_y_sd = 1.
+            else:
+                raise ValueError('standardize_y: invalid value for scale parameter, allowed are {''scalar'',''columnwise'',False}')
         self.sim_data.y_std = y_dm/self.sim_data.orig_y_sd
         if not self.sim_only:
             if not self.scalar_out and not np.isscalar(self.sim_data.orig_y_mean):
@@ -368,6 +372,10 @@ class SepiaData(object):
                 print('Scalar output, no basis used.')
                 return
         if K is not None:
+            if not isinstance(K,np.ndarray):
+                raise TypeError('create_K_basis: K specified must be a numpy ndarray')
+            if len(K.shape)!=2 or K.shape[1]!=self.sim_data.y.shape[1]:
+                raise ValueError('create_K_basis: must be 2D, and K and y_sim must have the same second dimension')
             self.sim_data.K = K
         else:
             self.compute_sim_PCA_basis(n_pc)

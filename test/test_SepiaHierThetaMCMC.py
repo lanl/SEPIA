@@ -61,6 +61,7 @@ class SepiaHierThetaMCMCTestCase(unittest.TestCase):
         model = SepiaHierarchicalThetaModels(model_list=self.multi_model_list, hier_theta_inds=self.hier_idx)
 
         model.do_mcmc(100)
+        model.get_samples()
 
 
 

@@ -64,6 +64,28 @@ class SepiaSharedThetaModels:
         self.to_sample = to_sample
         self.to_update = to_update
 
+    def get_samples(self, nburn=0, sampleset=None, numsamples=None, flat=True, includelogpost=True):
+        """
+        Extract MCMC samples into dictionary format for each model in self.model_list.
+        By default, all samples are returned, or samples can be
+        subset using in various ways using the optional input arguments.
+
+        :param int nburn: number of samples to discard at beginning of chain
+        :param list sampleset: list of indices of samples to include
+        :param int numsamples: number of samples to include, evenly spaced from first to last
+        :param bool flat: flatten the resulting arrays (for parameters stored as matrices)?
+        :param bool includelogpost: include logPost values?
+        :return: dict of dict -- one dict per model, each dict is array of samples for each parameter, keyed by parameter name
+        :raises: TypeError if no samples exist or nburn inconsistent with number of draws
+
+        .. note:: Adds key `theta_native` with `theta` rescaled to original range.
+
+        """
+        result = {}
+        for i, model in enumerate(self.model_list):
+            result['model%d' % i] = model.get_samples(nburn=nburn, sampleset=sampleset, numsamples=numsamples, flat=flat, includelogpost=includelogpost)
+        return result
+
     def do_mcmc(self, nsamp, do_propMH=True, prog=True):
         """
         Do MCMC for shared theta model.
@@ -115,7 +137,8 @@ class SepiaSharedThetaModels:
                                 if inb:
                                     # Get current logpost: only evaluate theta prior on this model!
                                     other_mod_loglik = sum([self.model_list[i].logLik(prm.name) for i in other_model_inds])
-                                    lp = model.logPost(prm.name, ind) + other_mod_loglik
+                                    lp = model.params.lp.val + other_mod_loglik
+                                    #lp = model.logPost(prm.name, ind) + other_mod_loglik
                                     # Set candidate into models to get new lp
                                     prm.val[arr_ind] = cand
                                     for omi in other_model_inds:
@@ -150,7 +173,8 @@ class SepiaSharedThetaModels:
                             # Make reference copies in this model in case we reject
                             prm.refVal = prm.val.copy()
                             model.refNum = model.num.ref_copy(prm.name)
-                            lp = model.logPost(prm.name, ind)
+                            lp = model.params.lp.val
+                            #lp = model.logPost(prm.name, ind)
                             # Usual sampling for non shared params
                             # Draw candidate
                             cand = prm.mcmc.draw_candidate(arr_ind, do_propMH)

@@ -3,7 +3,7 @@
 General workflow guide
 ======================
 
-The general workflow in Sepia is summarized by:
+The general workflow in SEPIA is summarized by:
 
     1. Instantiate :ref:`sepiadata` object with all data relevant to the problem.
     2. Use :ref:`sepiadata` methods to do data transformations/rescaling and create basis matrices for multivariate-output data.
@@ -21,7 +21,7 @@ Specifics of the model (whether or not the model is emulator-only, whether there
 whether or not there are controllable/experimental condition inputs) are inferred from the data structure, so it is
 important to get it set up correctly. The data structure also handles various transformations and sets up basis
 functions, so that users are not required to recreate these steps by hand. (That is, raw data can be passed in
-without doing any transformations, and we recommend this so that downstream methods can handle untransforming data.)
+without doing any transformations, and we recommend this so that downstream methods can untransform data as needed.)
 
 The basic constructor call looks like::
 
@@ -29,26 +29,41 @@ The basic constructor call looks like::
 
 The inputs given depend on the type of model and problem setup. Possible inputs are described in the table:
 
-====================  ================================================  =================
-   Possible inputs     Description                                       Shape
-====================  ================================================  =================
-x_sim                 Controllable simulation inputs.                   (n, p)
-t_sim                 Other simulation inputs.                          (n, q)
-y_sim                 Simulation outputs.                               (n, ell_sim)
-y_ind_sim             Indices for multivariate sim outupts.             (ell_sim, )
-x_obs                 Controllable observed data inputs.                (m, p)
-y_obs                 Observation outputs.                              (m, ell_obs)
-y_ind_obs             Indices for multivariate observation outputs.     (ell_obs, )
-x_cat_ind             List to indicate categorical x inputs.            length p
-t_cat_ind             List to indicate categorical t inputs.            length q
-====================  ================================================  =================
+====================  =======================================================  =========================
+   Possible inputs     Description                                              Shape
+====================  =======================================================  =========================
+x_sim                 Controllable simulation inputs.                           (n, p)
+t_sim                 Other simulation inputs.                                  (n, q)
+y_sim                 Simulation outputs.                                       (n, ell_sim)
+y_ind_sim             Indices for multivariate sim outupts.                     (ell_sim, )
+x_obs                 Controllable observed data inputs.                        (m, p)
+y_obs                 Observation outputs.                                      (m, ell_obs)
+y_ind_obs             Indices for multivariate observation outputs.             (ell_obs, )
+x_cat_ind             List to indicate categorical x inputs.                    length p
+t_cat_ind             List to indicate categorical t inputs.                    length q
+xt_sim_sep            List of design matrices for Kronecker-separable design.   length depends on design
+====================  =======================================================  =========================
 
 In the table, `n` is the number of simulation runs, `m` is the number of observed data instances, and `ell` are the
-multivariate output dimensions (if applicable). For observed data, we also accept ragged observations in which the
-indices for the multivariate outputs differ for each observation. In this case, `y_obs` and `y_ind_obs` are given as
-lists (length `m`) of 1D arrays.
+multivariate output dimensions (if applicable). Unless indicated otherwise, all inputs are `numpy` arrays.
 
-See :ref:`helpful-code-snippets` for examples of different types of data setup, including an example using `x_cat_ind`.
+We emphasize that depending on the problem type, many of these inputs may not be used. For instance, if there is only
+simulation data (an emulator-only model), none of `x_obs`, `y_obs`, or `y_ind_obs` will be used.
+See :ref:`helpful-code-snippets` for examples of different types of data setup.
+
+Notes:
+    * For observed data, we also accept ragged observations in which the
+      indices for the multivariate outputs differ for each observation. In this case, `y_obs` and `y_ind_obs` are given as
+      lists (length `m`) of 1D `numpy` arrays.
+    * For simulation-only (emulator) models, the distinction between `x` and `t` is not important, but it becomes important
+      when observed data is included as only `t` variables will be calibrated (`x` are assumed known). Also note that
+      for any model, if `x_sim` is not provided, a "dummy" `x` is set up with all values equal to 0.5. This does not affect
+      the model and is generally not accessed by the user, but it facilitates unified treatment of different model types.
+    * `xt_sim_sep` is only used in the special case of separable Kronecker-product input designs; it is a list of 2 or
+      more design components that, through Kronecker expansion, produce the full input space (`x` and `t`) for the simulations.
+    * The `SepiaData` constructor does some error-checking of the inputs, but it is still incumbent on the user to verify
+      that the setup correctly reflects the problem of interest. Use `print(data)` on an instantiated `SepiaData` object
+      to see printed information about the model that can be useful for checking.
 
 Transformations
 ^^^^^^^^^^^^^^^
@@ -60,15 +75,15 @@ methods::
     data.transform_xt()
     data.standardize_y()
 
-See :ref:`sepiadata` documentation for optional arguments, though the defaults should generally work well.
+See :ref:`sepiadata` documentation for optional arguments used to customize the transformations.
 
 
 Basis setup
 ^^^^^^^^^^^
 
-For multivariate outputs, Sepia uses basis functions to reduce the problem dimensionality. Basis function matrices must be
-set up to represent the `y` values (done by principal components analysis, or PCA). Optionally, a second set of basis
-functions may be set up to represent model discrepancy (systematic difference between simulation and observation data).
+For multivariate outputs, SEPIA uses basis functions to reduce the problem dimensionality. Basis function matrices must be
+set up to represent the `y` values (done using principal components analysis, or PCA, on the simulation `y` values).
+Optionally, a second set of basis functions may be set up to represent model discrepancy (systematic difference between simulation and observation data).
 
 Basis matrices may be set up as follows::
 
@@ -91,13 +106,18 @@ To check that your data structure is set up correctly::
 
     print(data)
 
-Also, use plotting methods in the :ref:`sepiadata` class to visualize the data (see class documentation for options)::
+Also, for certain model types, the plotting methods in the :ref:`sepiadata` class may be helpful (see class documentation for options)::
 
-    data.plot_data()        # Plot data - only for multivariate-output models with both simulation and observed outputs
-    data.plot_K_basis()     # Show K basis functions - only for multivariate-output models
-    data.plot_K_weights()   # Show histograms of projections of data onto K basis functions - only for multivariate-output models
-    data.plot_u_w_pairs()   # Show pairs plots of projections of data onto K basis functions - only for multivariate-output models
-    data.plot_K_residuals() # Show residuals after projection onto K basis - only for multivariate-output models
+    # Plot data - only for multivariate-output models with both simulation and observed outputs
+    data.plot_data()
+    # K basis functions - only for multivariate-output models
+    data.plot_K_basis()
+    # Histograms of projections of data onto K basis functions - only for multivariate-output models
+    data.plot_K_weights()
+    # Pairs plots of projections of data onto K basis functions - only for multivariate-output models
+    data.plot_u_w_pairs()
+    # Residuals after projection onto K basis - only for multivariate-output models
+    data.plot_K_residuals()
 
 Model setup
 -----------
@@ -112,22 +132,25 @@ MCMC
 
 The inference on model parameters is done using MCMC sampling to approximate the posterior distribution of the model
 parameters. The default model setup uses priors, initial values, and MCMC step sizes that have been selected to be
-reasonable for scaled/transformed data. All of these are stored as object attributes and can be edited by the user if
+reasonable for a variety of scaled/transformed data. All of these are stored as object attributes and can be edited by the user as
 needed.
+
+Checking priors, start values, and MCMC tuning parameters
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Helper functions in the :ref:`sepiamodel` class print out the default setup::
 
     model.print_prior_info()  # Print information about the priors
     model.print_value_info()  # Print information about the starting parameter values for MCMC
-    model.print_mcmc_info()   # Print information about the MCMC step types and step sizes for each parameter
+    model.print_mcmc_info()   # Print information about the MCMC step types and step sizes
 
-A peek into the code for the three print methods will show you how to access the attributes if you desire to modify them.
+A peek into the source code for the three print methods will show you how to access the attributes if you desire to modify them.
 
 For example, to modify the start values directly, you can use::
 
-    # Single scalar applies to all thetas
+    # Single scalar value: applies to all thetas
     model.params.theta.set_val(0.7)
-    # Or pass an array of shape model.params.theta.val_shape
+    # Or: pass an array of shape model.params.theta.val_shape
     model.params.theta.set_val(np.array([[0.7, 0.5, 0.1]]))
 
 Step size tuning
@@ -140,58 +163,24 @@ meant to adjust the step sizes to achieve better acceptance rates::
 
 Note that automatic step size tuning is not guaranteed to produce good MCMC sampling, as it uses a heuristic and may be
 affected by the number of levels chosen for each step parameter (`n_levels`) and the number of samples taken at each
-level (`n_burn`). After MCMC sampling, we strongly recommend checking the output using trace plots or other diagnostics to ensure
+level (`n_burn`). After MCMC sampling, we strongly recommend checking the output using trace plots and other diagnostics to ensure
 automatic step size tuning has produced reasonable results.
-
-Optimization for start values
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-The start values for MCMC are shown by the `model.print_value_info()` method and may be modified directly if needed.
-Step size tuning will also reset the start values based on the samples collected during step size tuning, and will
-hopefully start the sampling in a higher-posterior region than the default start values.
-
-If desired, you can also try to optimize the log posterior to get point estimates of the parameters which could be
-even better start values. `SepiaOptim` implements two gradient-free optimizers: Nelder-Mead and particle swarm.
-
-The first step is to instantiate a `SepiaOptim` object using the model::
-
-    optimizer = SepiaOptim(model)
-
-Then call one of the optimization routines; here is Nelder-Mead::
-
-    nm_opt_result = optimizer.nelder_mead(log_transform=['betaU','betaV','lamVz','lamWs','lamWOs','lamOs'])
-
-The `log_transform` argument lists variables that should have a log transform applied inside the optimizer; this
-generally applies to parameters that should be positive (such as betas and lams).
-
-You can then inspect the optimized values, and if desired, set them into the model using::
-
-    nm_opt_param = nm_opt_result[2]          # Optimized params, untransformed
-    optimizer.set_model_params(nm_opt_param) # Sets into model parameter values
-
-Particle swarm works similarly::
-
-    pso_opt_result = optimizer.particle_swarm(log_transform=['betaU','betaV','lamVz','lamWs','lamWOs','lamOs'])
-    pso_opt_param = pso_opt_result[5]
-    optimizer.set_model_params(pso_opt_param)
-
-The optimizers have many other options; see :ref:`sepiaoptim` for details.
 
 Sampling
 ^^^^^^^^
 
-Whether or not step size tuning or MAP optimization has been done first, MCMC sampling is another one-liner::
+Whether or not step size tuning has been done first, MCMC sampling is another one-liner::
 
     model.do_mcmc(nsamp)
 
-To continue sampling (append more samples), you can just call `do_mcmc()` again::
+To continue sampling (append more samples to existing samples), you can just call `do_mcmc()` again::
 
     model.do_mcmc(1000) # When finished, will have nsamp + 1000 total samples
 
 To extract samples into a friendly dictionary format (see :ref:`sepiamodel` documentation for full options)::
 
     samples = model.get_samples()                       # Default: returns all samples
-    samples = model.get_samples(effectivesamples=True)  # Returns only a set of "effective samples" determined by effective sample size
+    samples = model.get_samples(effectivesamples=True)  # Returns a set of "effective samples"
     samples = model.get_samples(numsamples=100)         # Returns 100 evenly-spaced samples
 
 When the model contains `theta`, the samples dictionary will contain both `theta` (in [0, 1])
@@ -208,18 +197,19 @@ To save a samples dictionary, you can pickle the samples dictionary::
 Or you could save each array in the dictionary separately::
 
     import numpy as np
-    np.save('mysamples_theta.npy', samples['theta'])
+    for k in samples.keys():
+        np.save('mysamples_%s.npy' % k, samples[k])
 
 Save and restore model state
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-We do not recommend pickling the `SepiaModel` object itself at this time as any changes to the class definitions
-or package namespace could lead to problems loading the saved model in the future.
+We do not recommend pickling the `SepiaModel` object itself  as any changes to the class definitions
+or package namespace could lead to problems when you try to load the saved model in the future.
 
 Instead, we offer methods that save important information from the model in a simple dictionary format and restore
-this information into a new `SepiaModel` object. This does require you to create the new `SepiaModel` object using the same
-data as the original model, but is otherwise automatic::
+this information into a new `SepiaModel` object. This requires you to create the new `SepiaModel` object using the same
+data as the original model before restoring the saved information, but is otherwise automatic::
 
-        # Set up original model and do stuff
+        # Set up original model and do MCMC
         model = SepiaModel(data)
         model.tune_step_sizes(50, 10)
         model.do_mcmc(100)
@@ -227,7 +217,7 @@ data as the original model, but is otherwise automatic::
         # Save model info
         model.save_model_info(file_name='my_model_state')
 
-        # Set up new model using same data (or SepiaData object constructed from same original data)
+        # Set up new model using same data (or a new SepiaData object constructed from same original inputs)
         new_model = SepiaModel(data)
 
         # Restore model info into the new model
@@ -271,6 +261,11 @@ A pairs plot of the `theta` values is shown using::
     fig = theta_pairs(samples)
     plt.show()
 
+Parallel sampling
+^^^^^^^^^^^^^^^^^
+
+With a little extra work, you can run multiple chains in parallel and aggregate the samples.
+See `link <http://www.github.com/lanl/SEPIA/tree/master/examples/Ball_Drop/ball_drop_1_parallelchains.py>`_ for an example.
 
 Predictions
 -----------
@@ -393,8 +388,16 @@ The posterior mean vector and sigma matrix of the process for each sample are ob
 
 Sensitivity analysis
 --------------------
-Coming soon (TODO)
 
+Sensitivity analysis in SEPIA is based on `Sobol indices <https://en.wikipedia.org/wiki/Variance-based_sensitivity_analysis>`_.
+
+The syntax is::
+
+    model.do_mcmc(1000)
+    samples = model.get_samples(20)
+    sens = sensitivity(model, samples)
+
+For additional options, see :ref:`sepiasens`.
 
 Hierarchical or shared theta models
 -----------------------------------

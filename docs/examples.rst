@@ -67,7 +67,7 @@ Example 5: Al-5083 flyer plate
 This example features real data that was analyzed previously via Bayesian model calibration in `Walters et al (2018) <https://aip.scitation.org/doi/abs/10.1063/1.5051442>`_.
 The simulation design is over 11 inputs and the response is a time-indexed velocity of the Al-5083 aluminum alloy after impact from which
 important feature points have been extracted for each curve.
-The pairs plot of the calibration parameter posterior distrubtions is consistent with the 2018 paper.
+The pairs plot of the calibration parameter posterior distributions is consistent with the 2018 paper.
 
 `Notebook link <https://nbviewer.jupyter.org/github/lanl/SEPIA/blob/master/examples/Al_5083/Al_5083_calibration.ipynb>`_
 
@@ -77,5 +77,6 @@ Other examples
 The remaining examples show more advanced or customized usages of Sepia.
 
 * Categorical input variables: `link <https://nbviewer.jupyter.org/github/lanl/SEPIA/blob/master/examples/Synthetic_toy_examples/univariate_example_categorical_variable.ipynb>`_
-* Neddermeyer with separate groups of parameters for different disrepancy basis elements: `link <https://nbviewer.jupyter.org/github/lanl/SEPIA/blob/master/examples/Neddermeyer/neddermeyer_lamVzGroup.ipynb>`_
-* Neddermeyer with a study of log posterior optimization and its effect on MCMC sampling: `link <https://nbviewer.jupyter.org/github/lanl/SEPIA/blob/master/examples/Neddermeyer/neddermeyer_optimstudy.ipynb>`_
+* Neddermeyer with separate groups of parameters for different discrepancy basis elements: `link <https://nbviewer.jupyter.org/github/lanl/SEPIA/blob/master/examples/Neddermeyer/neddermeyer_lamVzGroup.ipynb>`_
+* Neddermeyer used to demo shared and hierarchical theta models: `link <https://nbviewer.jupyter.org/github/lanl/SEPIA/blob/master/examples/Neddermeyer/neddermeyer_shared_hierarchical.ipynb>`_
+* Tower with parallel chain sampling (not a notebook): `link <http://www.github.com/lanl/SEPIA/tree/master/examples/Ball_Drop/ball_drop_1_parallelchains.py>`_

@@ -42,7 +42,7 @@ function res = setup_neddermeyer(seed,n_mcmc,sens,n_burn,n_lev)
     % Do sensitivity analysis
     % For now will just compare smePm, stePm to check against sepia
     if sens == 1
-        sa = gSens(mcmc);
+        sa = gSens(mcmc,'option','mean');
         smePm = sa.smePm;
         stePm = sa.stePm;
     else

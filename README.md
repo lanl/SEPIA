@@ -3,9 +3,9 @@
 Simulation-Enabled Prediction, Inference, and Analysis: physics-informed statistical learning.
 This is a Python adaptation of [GPMSA](https://github.com/lanl/gpmsa).
 
-<a href="https://doi.org/10.5281/zenodo.3979585"><img src="https://zenodo.org/badge/DOI/10.5281/zenodo.3979585.svg" align="right" alt="DOI"></a>
+<a href="https://zenodo.org/badge/latestdoi/267692609"><img src="https://zenodo.org/badge/267692609.svg" alt="DOI"></a>
 
-<img src="docs/sepia.png" alt="sepia cuttlefish logo" width="150"/>
+<img src="docs/sepia.png" alt="sepia cuttlefish logo by Natalie Klein" width="150"/>
 
 ### What to Expect
 SEPIA is intended to be a tool that enhances the collaboration between statisticians
@@ -26,20 +26,30 @@ The documentation contains a workflow guide that is helpful for new users to rea
 Basic usage is demonstrated in the Examples directory. 
 After looking at the documentation, check out the examples.
 
-### Install package locally
-We recommend doing this inside a python conda environment.
-The packages installed in the development environment are listed in `environment.yml`.
-Use `conda env create -f environment.yml` to create the environment, then activate as `source activate sepia` before installing sepia.
+### Install package 
+For cleaner package management and to avoid conflicts between different versions of packages,
+we recommend installing inside an Anaconda or pip environment.
+However, this is not required.
 
-Then use the following command from this directory to install sepia locally.
+First, pull down the current source code from either by downloading a zip file or using `git clone`.
 
-`pip install -e .[sepia]`
+From the command line, while in the main SEPIA directory, use the following command to install sepia::
+
+        pip install -e .[sepia]
+
+The `-e` flag signals developer mode, meaning that if you update the code from Github, your installation will automatically
+take those changes into account without requiring re-installation.
+Some other essential packages used in SEPIA may be installed if they do not exist in your system or environment.
+
+If you encounter problems with the above install method, you may try to install dependencies manually before installing SEPIA.
+First, ensure you have a recent version of Python (greater than 3.5).
+Then, install packages `numpy`, `scipy`, `pandas`, `matplotlib`, `seaborn`, `statsmodels`, and `tqdm`.        
 
 ### Citing Sepia
 Using Sepia in your work? Cite as:
 
 James Gattiker, Natalie Klein, Earl Lawrence, & Grant Hutchings.
-lanl/SEPIA. Zenodo. https://doi.org/10.5281/zenodo.3979584
+lanl/SEPIA. Zenodo. https://doi.org/10.5281/zenodo.4048801 
 
 
 ---

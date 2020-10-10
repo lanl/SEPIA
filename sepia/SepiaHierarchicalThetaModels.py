@@ -86,6 +86,36 @@ class SepiaHierarchicalThetaModels:
                     self.model_list[j].params.theta.prior.params[0][0, r[j]] = hier_mu[i].val.copy()
                     self.model_list[j].params.theta.prior.params[1][0, r[j]] = np.sqrt(1./hier_lambda[i].val.copy())
 
+    def get_samples(self, nburn=0, sampleset=None, numsamples=None, flat=True):
+        """
+        Extract MCMC samples into dictionary format for each model in self.model_list.
+        By default, all samples are returned, or samples can be
+        subset using in various ways using the optional input arguments.
+
+        :param int nburn: number of samples to discard at beginning of chain
+        :param list sampleset: list of indices of samples to include
+        :param int numsamples: number of samples to include, evenly spaced from first to last
+        :param bool flat: flatten the resulting arrays (for parameters stored as matrices)?
+        :return: dict of dict -- one dict per model, each dict is array of samples for each parameter, keyed by parameter name
+        :raises: TypeError if no samples exist or nburn inconsistent with number of draws
+
+        .. note:: Adds key `theta_native` with `theta` rescaled to original range.
+
+        """
+        result = {}
+        for i, model in enumerate(self.model_list):
+            result['model%d' % i], ss = model.get_samples(nburn=nburn, sampleset=sampleset, numsamples=numsamples, flat=flat, includelogpost=False, return_sampleset=True)
+            # TODO double check why includelogpost=True causes errors
+        for i, hm in enumerate(self.hier_mu):
+            result['hier_mu%d' % i] = hm.mcmc_to_array(sampleset=ss, flat=flat)
+        # get Hier lambda
+        for i, hm in enumerate(self.hier_lambda):
+            result['hier_lambda%d' % i] = hm.mcmc_to_array(sampleset=ss, flat=flat)
+        # get Hier delta
+        for i, hm in enumerate(self.hier_delta):
+            result['hier_delta%d' % i] = hm.mcmc_to_array(sampleset=ss, flat=flat)
+        return result
+
     def do_mcmc(self, nsamp, do_propMH=True, prog=True, do_lockstep=True):
         """
         Does MCMC for hierarchical model.

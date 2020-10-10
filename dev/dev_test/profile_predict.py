@@ -66,7 +66,7 @@ if lamWOs_init > 0:
 
 model.do_mcmc(nburn + nsamp)
 np.random.seed(seed)
-psamps = model.get_samples(0, sampleset=range(50), flat=True)
+psamps = model.get_samples(sampleset=range(50), flat=True)
 
 @timeit
 def do_wPred():

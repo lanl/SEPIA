@@ -6,7 +6,7 @@ class SepiaMCMC:
     """
     MCMC object to store step type, step parameters, draw candidates, accept/reject, and record draws.
 
-    :var string stepType: MCMC step type in 'PropMH', 'Uniform', 'BetaRho', 'Recorder'
+    :var string stepType: MCMC step type in ['PropMH', 'Uniform', 'BetaRho', 'Recorder']
     :var numpy.ndarray/NoneType stepParam: step size params with shape param.val_shape, or None if using 'Recorder'
     :var sepia.SepiaParam parent: instantiated sepia.SepiaParam parameter object that this MCMC object corresponds to
     :var list draws: list of MCMC draws (typically list of arrays, each of shape param.val_shape)
@@ -21,7 +21,7 @@ class SepiaMCMC:
         :param string stepType: MCMC step type in 'PropMH', 'Uniform', 'BetaRho', 'Recorder'
         :param numpy.ndarray/NoneType stepParam: step size params with shape param.val_shape, or None if using 'Recorder'
 
-        .. note:: Typically not directly instantiated, but created when `sepia.SepiaModel` object created.
+        .. note:: Typically not directly instantiated, but created by `sepia.SepiaModel` constructor.
         """
         self.stepType = stepType
         self.parent = parent

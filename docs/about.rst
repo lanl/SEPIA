@@ -1,6 +1,6 @@
 .. _aboutsepia:
 
-About Sepia
+About SEPIA
 ===========
 
 The general motivation for this project is the analysis of computer models, and the analysis of systems that have both
@@ -18,13 +18,19 @@ observation response is relatively fast and includes uncertainty. Examination an
 can be used for calibration, screening, and analysis of model properties. The emulator may be further used for
 sensitivity analysis, and other system diagnostics.
 
-Before using the Sepia package, the analysis problem will have been defined, including: collecting system observations;
+Before using the SEPIA package, the analysis problem will have been defined, including: collecting system observations;
 determining uncertain simulation parameters; establishing a design over the simulation parameters and running an
 ensemble of simulations; considering an appropriate model for dimension reduction of the observation and simulation
 response; considering an appropriate model for the discrepancy between simulation and observation; and considering
 prior model parameter settings related to these issues.
 
-The Sepia code is developed and maintained by the CCS-6 group at Los Alamos National Laboratory.
+The SEPIA code is developed and maintained by the CCS-6 group at Los Alamos National Laboratory.
+
+.. topic:: How should one pronounce Sepia?
+
+    This is a topic of some debate. `This`_ video suggests "see-pee-uh".
+
+.. _This: https://www.youtube.com/watch?v=qUi1F254t6M
 
 -----------
 

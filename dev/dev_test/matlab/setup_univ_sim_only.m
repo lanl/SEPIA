@@ -83,7 +83,7 @@ function res = setup_univ_sim_only(m, seed, n_lik, n_mcmc, n_pred, n_lev, n_burn
     % Do sensitivity analysis
     % For now will just compare smePm, stePm to check against sepia
     if sens == 1
-        sa = gSens(mcmc);
+        sa = gSens(mcmc,'option','mean');
         smePm = sa.smePm;
         stePm = sa.stePm;
     else

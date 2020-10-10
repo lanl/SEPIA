@@ -80,8 +80,8 @@ class SepiaModel:
                         if data.sim_data.K.shape[0] != data.obs_data.K.shape[0]:
                             raise ValueError('Sim and obs K shapes not conformal.')
             if not data.sim_only and data.obs_data.D is None:
-                print('Warning: you did not set up a D basis!')
-                print('To use one, call data.create_D_basis on your SepiaData object.')
+                print('Warning: No D basis, proceeding with a no-discrepancy model.')
+                print('To use a D basis (normally recommended), call data.create_D_basis on your SepiaData object.')
 
         # Local references to data for initialization of model
         sim_data = data.sim_data
@@ -157,7 +157,7 @@ class SepiaModel:
                 tlen=dele.shape[1]
                 self.num.ztSepDist.append(SepiaDistCov(dele,cat_ind=cat_ind[tind:tind+tlen]))
                 tind=tind+tlen
-            self.num.ztDist = SepiaDistCov(data.zt, cat_ind=np.concatenate([data.x_cat_ind, data.t_cat_ind]))
+            #self.num.ztDist = SepiaDistCov(data.zt, cat_ind=np.concatenate([data.x_cat_ind, data.t_cat_ind]))
         else:
             self.num.ztDist = SepiaDistCov(data.zt, cat_ind=np.concatenate([data.x_cat_ind, data.t_cat_ind]))
 
@@ -220,6 +220,7 @@ class SepiaModel:
 
         if self.num.scalar_out:
             self.num.uw = np.concatenate((self.num.u, self.num.w), axis=0)
+            self.num.vu = self.num.u
         else:
             self.num.vuw = np.concatenate((self.num.v, self.num.u, self.num.w), axis=0)
             self.num.vu = np.concatenate((self.num.v, self.num.u), axis=0)
@@ -519,89 +520,161 @@ class SepiaModel:
         for _ in tqdm(range(nsamp), desc='MCMC sampling', mininterval=0.5, disable=not(prog)):
             self.mcmc_step(do_propMH)
 
-    def get_samples(self, nburn=0, sampleset=False, numsamples=False, flat=True, includelogpost=True, effectivesamples=False):
+    def clear_samples(self):
+        """
+        clear the mcmc samples in the model
+        :return: no returned value
+        """
+        for p in self.params.mcmcList:
+            p.mcmc.draws=[]
+        self.params.lp.mcmc.draws=[]
+
+    def get_num_samples(self):
+        """
+        Return the number of samples recorded in the model
+
+        :return: number of samples
+        """
+        return self.params.lp.get_num_samples()
+    def get_last_sample_ind(self):
+        """
+        Return index of the last sample = the number of samples - 1
+
+        :return: number of samples - 1
+        """
+        return self.get_num_samples() - 1
+
+    def add_samples(self,sdict=None):
+        """
+        Add samples from the samples_dict to the model.
+        Will be particularly useful in parallel chains, to re-integrate samples.
+
+        :param dict sdict: samples dict, as obtained from get_samples()
+        :return: no return value; model object will be modified
+        """
+        if not isinstance(sdict,dict):
+            raise TypeError('add_samples: requires a samples dict as input')
+
+        if not ( set(sdict.keys()) - set(['theta_native']) ) == set([p.name for p in self.params.mcmcList]+['logPost']):
+            print(( set(sdict.keys()) - set(['theta_native']) ))
+            print(set([p.name for p in self.params.mcmcList]+['logPost']))
+            raise ValueError('add_samples: samples dict must match fields in model')
+        for k in sdict.keys():
+            if len(sdict[k])!=len(sdict['logPost']):
+                raise ValueError('add_samples: samples dictionary keys passed in have mismatched sample lengths')
+
+        nsamp=len(sdict['logPost'])
+        for pf in self.params.mcmcList:
+            for ii in range(nsamp):
+                pf.mcmc.draws.append(sdict[pf.name][ii,:].reshape(pf.val_shape, order='F'))
+        for ii in range(nsamp):
+            self.params.lp.mcmc.draws.append(sdict['logPost'][ii,:].reshape((1,1)))
+        self.logLik()
+
+    def set_model_to_sample(self,samp=None):
+        """
+        Add samples from the samples_dict to the model
+        Will be particularly useful in parallel chains, to re-integrate samples.
+
+        :param int samp: sample index to set model to. Default will be final stored sample.
+        :return: no return value; model object will be modified
+        """
+        if samp is None:
+            samp=self.get_last_sample_ind()
+        elif isinstance(samp,int):
+            if samp>self.get_last_sample_ind() or samp<0:
+                raise ValueError('set_model_to_sample: samp parameter outside of valid sample indices')
+        else:
+            raise ValueError('set_model_to_sample: samp parameter must be an integer index')
+        for p in self.params.mcmcList:
+            p.val=p.mcmc.draws[samp]
+        self.logLik()
+
+    def get_samples(self, numsamples=None, nburn=0, sampleset=None, flat=True, includelogpost=True, effectivesamples=False, return_sampleset=False):
         """
         Extract MCMC samples into dictionary format. By default, all samples are returned, or samples can be
         subset using in various ways using the optional input arguments.
 
-        :param int nburn: number of samples to discard at beginning of chain
-        :param list sampleset: list of indices of samples to include
-        :param int numsamples: number of samples to include, evenly spaced from first to last
+        :param int/NoneType numsamples: number of samples to include, evenly spaced from first to last
+        :param int nburn: number of samples to discard at beginning of chain (default = 0)
+        :param list/NoneType sampleset: list of indices of samples to include; if given, numsamples and nburn are ignored.
         :param bool flat: flatten the resulting arrays (for parameters stored as matrices)?
         :param bool includelogpost: include logPost values?
-        :param bool effectivesamples: use effective sample size of thetas to subset samples?
-        :return: dict -- array of samples for each parameter, keyed by parameter name
+        :param bool effectivesamples: use effective sample size of thetas to subset samples? If True, numsamples and sampleset are ignored.
+        :param bool return_sampleset: whether to return the sampleset indices (default False)
+        :return: dict -- array of samples for each parameter, keyed by parameter name; optionally, also return sampleset (list)
         :raises: TypeError if no samples exist or nburn inconsistent with number of draws
 
         .. note:: If `theta` is in the model, will also add key `theta_native` with `theta` rescaled to original range.
 
         """
-        if self.num.sim_only and effectivesamples:
-            print('Emulator only - returning all samples')
-        total_samples = self.params.lp.get_num_samples()
+        total_samples = self.get_num_samples()
         if total_samples == 0:
             raise TypeError('No MCMC samples; call do_mcmc() first.')
-
-        if numsamples and sampleset:
-            print("warning: set both numsamples and sampleset, defaulting to use sampleset.")
-
-        # By default, use all samples
-        ss = np.arange(total_samples)
-
-        # Parse sampleset/numsamples
-        if numsamples is not False:
-            if numsamples >= total_samples:
-                print('numsamples larger than number of draws; truncating to number of draws (%d).' % total_samples)
-            else:
-                ss = [int(ii) for ii in np.linspace(0, total_samples-1, numsamples)]
-                
-        if sampleset is not False:
+        if sampleset is not None and numsamples is not None:
+            print("Warning: set both numsamples and sampleset, defaulting to use sampleset.")
+        if sampleset is None:
+            if numsamples is None:
+                numsamples = total_samples - nburn
+            elif (numsamples + nburn) >= total_samples:
+                print('numsamples + nburn larger than number of draws; truncating numsamples to number of draws - nburn (%d).' % (total_samples - nburn))
+                numsamples = total_samples - nburn
+            sampleset = [int(ii) for ii in np.linspace(nburn, total_samples-1, numsamples)]
+        else:
             if max(sampleset) > total_samples:
                 print('sampleset includes indices larger than number of draws; truncating to valid draws.')
-            ss = [ii for ii in sampleset if ii < total_samples and ii >= 0]
-        elif not self.num.sim_only and effectivesamples is not False:
-            # get max theta ess
-            for p in self.params.mcmcList:
-                if p.name == 'theta': 
-                    theta = p.mcmc_to_array(trim=nburn, flat=flat).T
-            ess_max = 0
-            for i in range(theta.shape[0]):
-                # Skip if categorical
-                if self.data.t_cat_ind[i] > 0:
-                    continue
-                tmp = self.ESS(theta[i,:])
-                if tmp > ess_max: ess_max = tmp
-            # set ss to grab ess number of samples
-            ss = np.linspace(0,theta.shape[1],ess_max,dtype=int,endpoint=False)
-            print("Max effective sample size over thetas: {}".format(ess_max))
-            print("Total samples: {}".format(theta.shape[1]))
-        plist = self.params.mcmcList
-        samples = {p.name: p.mcmc_to_array(trim=nburn, sampleset=ss, flat=flat, untransform_theta=False)
-                   for p in plist}
+                sampleset = [ii for ii in sampleset if ii < total_samples and ii >= 0]
+
+        if effectivesamples:
+            if self.num.sim_only:
+                print('Emulator only - ignoring effectivesamples (needs thetas).')
+            else:
+                # get max theta ess
+                for p in self.params.mcmcList:
+                    if p.name == 'theta':
+                        theta = p.mcmc_to_array(flat=flat).T
+                ess_max = 0
+                for i in range(theta.shape[0]):
+                    # Skip if categorical
+                    if self.data.t_cat_ind[i] > 0:
+                        continue
+                    tmp = self.ESS(theta[i,nburn:])
+                    if tmp > ess_max: ess_max = tmp
+                # set ss to grab ess number of samples
+                sampleset = np.linspace(nburn, theta.shape[1], ess_max, dtype=int, endpoint=False)
+                print("Max effective sample size over thetas: {}".format(ess_max))
+                print("Total samples: {}".format(theta.shape[1]))
+
+        samples = {p.name: p.mcmc_to_array(sampleset=sampleset, flat=flat, untransform_theta=False) for p in self.params.mcmcList}
         if includelogpost:
-            samples['logPost'] = self.params.lp.mcmc_to_array(trim=nburn, sampleset=ss, flat=flat, untransform_theta=False)
+            samples['logPost'] = self.params.lp.mcmc_to_array(sampleset=sampleset, flat=flat, untransform_theta=False)
         # Add theta in native space as new key
         if 'theta' in samples.keys():
-            samples['theta_native'] = self.params.theta.mcmc_to_array(trim=nburn, sampleset=ss, flat=flat, untransform_theta=True)
-        return samples
+            samples['theta_native'] = self.params.theta.mcmc_to_array(sampleset=sampleset, flat=flat, untransform_theta=True)
+        if return_sampleset:
+            return samples, sampleset
+        else:
+            return samples
 
-    def tune_step_sizes(self, n_burn, n_levels, prog=True, diagnostics=False, update_vals=True):
+    def tune_step_sizes(self, n_burn, n_levels, prog=True, diagnostics=False, update_vals=True, verbose=True):
         """
         Auto-tune step size based on acceptance rate with YADAS approach.
 
         :param int n_burn: number of samples to draw for each proposed step size
         :param int n_levels: number of levels to propose for each step size
         :param bool prog: show progress bar?
+        :param bool verbose: Print before and after info to console, default True
         :param bool diagnostics: return some information on acceptance rates used inside step size tuning?
 
         .. note:: Does not work for hierarchical or shared theta models.
 
         """
-        print('Starting tune_step_sizes...')
-        print('Default step sizes:')
-        for param in self.params.mcmcList:
-            print('%s' % param.name)
-            print(param.mcmc.stepParam)
+        if verbose:
+            print('Starting tune_step_sizes...')
+            print('Default step sizes:')
+            for param in self.params.mcmcList:
+                print('%s' % param.name)
+                print(param.mcmc.stepParam)
         self.num.auto_stepsize = True
         import copy
         # Set up ranges, step sizes
@@ -661,11 +734,12 @@ class SepiaModel:
             p.mcmc.stepParam = new_ss.copy()
             if update_vals:
                 p.val = mod_tmp.params.mcmcList[pi].val.copy()
-        print('Done with tune_step_size.')
-        print('Selected step sizes:')
-        for param in self.params.mcmcList:
-            print('%s' % param.name)
-            print(param.mcmc.stepParam)
+        if verbose:
+            print('Done with tune_step_size.')
+            print('Selected step sizes:')
+            for param in self.params.mcmcList:
+                print('%s' % param.name)
+                print(param.mcmc.stepParam)
         if diagnostics:
             return step_sizes, acc, mod_tmp
 
@@ -902,30 +976,37 @@ class ModelContainer():
     """
     Internally used to contain numeric elements computed for the model/likelihood evaluations.
 
-    :var bool scalar_out: is y a scalar output?
-    :var bool sim_only: is it simulation-only?
-    :var numpy.ndarray x: unit hypercube inputs corresponding to observed data
-    :var numpy.ndarray theta:
-    :var numpy.ndarray zt: unite hypercube inputs corresponding to simulated data
-    :var numpy.ndarray LamSim:
-    :var numpy.ndarray LamObs:
-    :var numpy.ndarray SigObs:
-    :var int n: number of observed data observations
+    :var bool auto_stepsize: was step size tuning used?
+    :var Dki2: for separable input calculations
+    :var np.ndarray LamSim: simulation noise precision diagonal entries, length pu
+    :var list lamVzGroup: list size pv giving group assignments for each discrepancy basis element; default is [0]*pv
+    :var int lamVzGnum: number of groups for discrepancy basis elements (separate lamVz/betaV per group); default is 1
     :var int m: number of simulation data observations
+    :var int n: number of observed data observations
+    :var int p: number of controllable inputs (known in principle for both sim and obs data)
     :var int pu: number of PC components
     :var int pv: number of discrepancy basis components
-    :var int p: number of controllable inputs (known in principle for both sim and obs data)
     :var int q: number of non-controllable inputs (known in principle only for sim data)
-    :var lamVzGroup:
-    :var lamVzGnum:
-    :var numpy.ndarray SigV:
-    :var numpy.ndarray SigU:
-    :var numpy.ndarray SigWl:
-    :var numpy.ndarray SigWi:
-    :var numpy.ndarray SigUW:
-    :var bool auto_stepsize: was auto step size tuning done?
-
-    .. note:: Need to finish documenting, check that we got everything in num. TODO
+    :var bool scalar_out: is y a scalar output?
+    :var np.ndarray SigObs: observation noise variance matrix, size (pu+pv, pu+pv)
+    :var numpy.ndarray SigV: part of likelihood calculation
+    :var numpy.ndarray SigU: part of likelihood calculation
+    :var numpy.ndarray SigWl: part of likelihood calculation
+    :var numpy.ndarray SigWi: part of likelihood calculation
+    :var numpy.ndarray SigUW: part of likelihood calculation
+    :var bool sim_only: is it simulation-only?
+    :var np.ndarray u: projection of observations onto K, size (pu, n)
+    :var np.ndarray v: projection of observations onto D, size (pv, n)
+    :var list V: for separable design calculations
+    :var np.ndarray vu: concatenation of u and v reordered for model usage, size (pu+pv, n)
+    :var np.ndarray vuw: concatenation/reordering/reshaping of v, u, and w, size (pu*m + pu*n + pv*n)
+    :var np.ndarray w: projection of simulations onto K, size (pu*m, 1)
+    :var np.ndarray x: unit hypercube inputs corresponding to observed data
+    :var sepia.SepiaDistCov x0Dist: sepia.SepiaDistCov for data.x (obs controllable inputs)
+    :var sepia.SepiaDistCov xzDist: sepia.SepiaDistCov for x/z (sim and obs controllable inputs)
+    :var zt: unit hypercube inputs corresponding to simulated data
+    :var sepia.SepiaDistCov ztDist: sepia.SepiaDistCov for z/t (sim controllable/noncontrollable inputs)
+    :var sepia.SepiaDistCov ztSepDist: for separable designs
 
     """
 

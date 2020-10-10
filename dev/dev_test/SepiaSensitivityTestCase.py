@@ -67,15 +67,12 @@ class SepiaSensitivityTestCase(unittest.TestCase):
         np.random.seed(int(seed))
         model.do_mcmc(n_mcmc)
 
-        sme_mat = np.array(matlab_output['smePm'])
-        ste_mat = np.array(matlab_output['stePm'])
+        # TODO check other quantities
+        sa = sensitivity(model)
+        self.assertTrue(np.allclose(matlab_output['smePm'], sa['smePm']))
+        self.assertTrue(np.allclose(matlab_output['stePm'], sa['stePm']))
 
-        # TODO sensitivity fails due to no K
-        # sa = sensitivity(model)
-        # sme_py = sa.sme
-        # ste_py = sa.ste
-
-    def test_sens_multi_sim_only(self):
+    def test_basic_sens_multi_sim_only(self):
         print('starting test_sens_multi_sim_only', flush=True)
 
         # Matlab debug call: setup_multi_sim_only(20, 20, 5, 10, 42., 0, 30, 0, 1)
@@ -95,15 +92,16 @@ class SepiaSensitivityTestCase(unittest.TestCase):
         np.random.seed(int(seed))
         model.do_mcmc(n_mcmc)
 
-        sme_mat = np.array(matlab_output['smePm'])
-        ste_mat = np.array(matlab_output['stePm'])
-
         sa = sensitivity(model)
-        sme_py = sa['smePm']
-        ste_py = sa['stePm']
 
-        self.assertTrue(np.allclose(sme_py, sme_mat))
-        self.assertTrue(np.allclose(ste_py, ste_mat))
+        self.assertTrue(np.allclose(matlab_output['smePm'], sa['smePm']))
+        self.assertTrue(np.allclose(matlab_output['stePm'], sa['stePm']))
+        self.assertTrue(np.allclose(matlab_output['mef']['m'], sa['mef_m']))
+        self.assertTrue(np.allclose(matlab_output['mef']['sd'], sa['mef_sd']))
+        self.assertTrue(np.allclose(matlab_output['tmef']['m'], sa['tmef_m']))
+        self.assertTrue(np.allclose(matlab_output['tmef']['sd'], sa['tmef_sd']))
+        self.assertTrue(np.allclose(np.array(matlab_output['totalMean']).squeeze(), sa['totalMean']))
+        self.assertTrue(np.allclose(matlab_output['totalVar'], sa['totalVar']))
 
 
 

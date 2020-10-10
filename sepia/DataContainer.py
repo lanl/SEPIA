@@ -3,19 +3,19 @@ import numpy as np
 
 class DataContainer(object):
     """
-    DataContainer serves to contain all data structures for a single data source (either simulation or observation data).
+    DataContainer serves to contain all data structures for a single data source (simulation or observation data).
 
     :var numpy.ndarray/NoneType x: x values, controllable inputs/experimental variables, shape (n, p)
     :var numpy.ndarray/NoneType y: y values, shape (n, ell)
     :var numpy.ndarray/NoneType t: t values, non-controllable inputs, shape (n, q)
     :var numpy.ndarray/NoneType y_ind: indices for multivariate y outputs, shape (ell, )
-    :var numpy.ndarray/list/NoneType K: PCA basis, shape (pu, ell), or list of K matrices for each observation for ragged observations
-    :var numpy.ndarray/list/NoneType D: discrepancy basis, shape (pv, ell), or list of D matrices for ragged observations
-    :var numpy.ndarray/float/NoneType orig_y_sd: standard deviation of original y values (may be scalar or array size ell)
-    :var numpy.ndarray/float/NoneType orig_y_mean: mean of original y values (may be scalar or array size ell)
+    :var numpy.ndarray/list/NoneType K: PCA basis, shape (pu, ell), or list of K matrices for each observation (for ragged observations)
+    :var numpy.ndarray/list/NoneType D: discrepancy basis, shape (pv, ell), or list of D matrices (for ragged observations)
+    :var numpy.ndarray/float/NoneType orig_y_sd: standard deviation of original simulation y values (may be scalar or array, length ell)
+    :var numpy.ndarray/float/NoneType orig_y_mean: mean of original simulation y values (may be scalar or array, length ell)
     :var numpy.ndarray/NoneType y_std: standardized y values, shape (n, ell)
-    :var numpy.ndarray/NoneType x_trans: x values translated to unit hypercube, shape (n, p)
-    :var numpy.ndarray/NoneType t_trans: t values translated to unit hypercube, shape (n, q)
+    :var numpy.ndarray/NoneType x_trans: x values transformed to unit hypercube, shape (n, p)
+    :var numpy.ndarray/NoneType t_trans: t values transformed to unit hypercube, shape (n, q)
     :var numpy.ndarray/NoneType orig_t_min: minimum values (columnwise) of original t values
     :var numpy.ndarray/NoneType orig_t_max: maximum values (columnwise) of original t values
     :var numpy.ndarray/NoneType orig_x_min: minimum values (columnwise) of original x values

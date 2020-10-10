@@ -374,7 +374,7 @@ pred_samples=model.get_samples(nburn=0,effectivesamples=True)
 pred=SepiaEmulatorPrediction(x_pred=x_obs, samples=pred_samples, model=model)
 
 
-# Predicted emulator principle component weights for each of the three experimental inputs x
+# Predicted emulator principal component weights for each of the three experimental inputs x
 
 # In[19]:
 

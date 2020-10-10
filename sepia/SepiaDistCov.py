@@ -3,11 +3,11 @@ import numpy as np
 
 class SepiaDistCov(object):
     """
-    Class for computing/storing distances and covariance matrix, typically not called directly by user but used in model.
+    Class for computing/storing distances and covariance matrix, typically not called directly by users.
 
-    :var int type: 1: self-distance for single input data, 2: cross-distance for two input data
+    :var int type: if type == 1, store self-distance for single input data, if type == 2, store cross-distance for two input data sets
     :var int n: number of observations in data set 1
-    :var intn m: number of observations in data set 2
+    :var int m: number of observations in data set 2
     :var numpy.ndarray ind: indices into matrix upper triangle
     :var numpy.ndarray sqdist: squared distances for upper triangle
 
@@ -16,14 +16,14 @@ class SepiaDistCov(object):
     def __init__(self, data, data2=None, cat_ind=None):
         """
         Instantiate SepiaDistCov.
-        If only one data set is given, the auto-distance is computed, else computes distance between data and data2.
+        If only one data set is given, the self-distance is computed; otherwise computes distance between data and data2.
 
-        :param numpy.ndarray data: input data, shape (n_samples, <varies>)
-        :param numpy.ndarray/None data2: optional second data set to compute distances with data, shape (n_samples2, <varies>)
-        :param numpy.ndarray/list cat_ind: categorical indices of columns
+        :param numpy.ndarray data: input data, shape (n_samples, <dimension varies>)
+        :param numpy.ndarray/None data2: optional second data set to compute distances with data, shape (n_samples2, <dimension varies>)
+        :param numpy.ndarray/list cat_ind: categorical indices of columns of data/data2
         :raises ValueError: if column shape of data and data2 differ
 
-        .. note:: Not typically instantiated directly but used in model calculations.
+        .. note:: Not typically instantiated directly, but used in model calculations.
 
         """
         if data2 is None:
@@ -66,7 +66,7 @@ class SepiaDistCov(object):
 
     def compute_cov_mat(self, beta, lamz, lams=None, verbose=False):
         """
-        Computes GP covariance matrix using precomputed distances.
+        Computes squared exponential GP covariance matrix plus noise terms using precomputed distances.
 
         :param numpy.ndarray beta: GP lengthscale parameters
         :param numpy.ndarray lamz: GP marginal precision parameters
