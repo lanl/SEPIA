@@ -29,6 +29,7 @@ function res = setup_neddermeyer(seed,n_mcmc,sens,n_burn,n_lev)
     rng(seed,'twister');
     if n_mcmc > 0
         mcmc = gpmmcmc(paramout, n_mcmc);
+        mcmc_out.theta = [mcmc.pvals.theta]';
         mcmc_out.betaU = [mcmc.pvals.betaU]';
         mcmc_out.lamUz = [mcmc.pvals.lamUz]';
         mcmc_out.lamWs = [mcmc.pvals.lamWs]';
