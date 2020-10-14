@@ -285,9 +285,10 @@ class SepiaData(object):
                 sep_min = self.sim_data.orig_x_min
                 sep_max = self.sim_data.orig_x_max
             tind=0
-            for dele in self.sim_data.xt_sep_design:
+            for ii,dele in enumerate(self.sim_data.xt_sep_design):
                 dlen = dele.shape[1]
-                dele = (dele - sep_min[0,tind:tind+dlen]) / (sep_max[0,tind:tind+dlen] - sep_min[0,tind:tind+dlen])
+                self.sim_data.xt_sep_design[ii] = \
+                    (dele - sep_min[0,tind:tind+dlen]) / (sep_max[0,tind:tind+dlen] - sep_min[0,tind:tind+dlen])
                 tind = tind + dlen
 
         return x_trans, t_trans
