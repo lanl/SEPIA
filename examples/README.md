@@ -19,3 +19,11 @@ Demonstrates custom code for 2D outputs.
 #### `Synthetic_toy_examples/`
 Synthetic data toy examples. Used to explain basic ideas and show syntax, but results not particularly meaningful.
 
+#### `linear_response_example/`
+Discussion of why a linear emulator is a special case, and how to set up a case when the simulations are known to be linear in response.
+
+#### `observation_error_example/`
+Demonstration of including observation error in a simple case, discussion of observation error scaling in sepia.
+
+
+
