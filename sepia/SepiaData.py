@@ -33,7 +33,7 @@ class SepiaData(object):
     :var bool sep_design: is there a Kronecker separable design?
     """
 
-    def __init__(self, x_sim=None, t_sim=None, y_sim=None, y_ind_sim=None, x_obs=None, y_obs=None, y_ind_obs=None,
+    def __init__(self, x_sim=None, t_sim=None, y_sim=None, y_ind_sim=None, x_obs=None, y_obs=None, Sigy=None, y_ind_obs=None,
                  x_cat_ind=None, t_cat_ind=None, xt_sim_sep=None):
         """
         Create SepiaData object. Many arguments are optional depending on the type of model.
@@ -46,6 +46,7 @@ class SepiaData(object):
         :param numpy.ndarray/NoneType x_obs: controllable inputs for observation data, shape (m, p) or None
         :param numpy.ndarray/list/NoneType y_obs: observed outputs, shape (m, ell_obs), or list length m of 1D arrays (for ragged y_ind_obs), or None
         :param numpy.ndarray/list/NoneType y_ind_obs: vector of indices for multivariate y, shape (l_obs, ), or list length m of 1D arrays (for ragged y_ind_obs), or None
+        :param numpy.ndarray/NoneType Sigy: optional observation covariance matrix (default is identity)
         :param numpy.ndarray/list/NoneType x_cat_ind: indices of x that are categorical (0 = not cat, int > 0 = how many categories), or None
         :param numpy.ndarray/list/NoneType t_cat_ind: indices of t that are categorical (0 = not cat, int > 0 = how many categories), or None
         :param numpy.ndarray/list/NoneType xt_sim_sep: for separable design, list of kronecker composable matrices; it is a list of 2 or
@@ -107,9 +108,19 @@ class SepiaData(object):
         else:
             if x_sim.shape[1] != x_obs.shape[1]:
                 raise TypeError('x_sim and x_obs do not contain the same number of variables/columns.')
-            self.obs_data = DataContainer(x=x_obs, y=y_obs, y_ind=y_ind_obs)
+            self.obs_data = DataContainer(x=x_obs, y=y_obs, y_ind=y_ind_obs, Sigy=Sigy)
             self.sim_only = False
             self.ragged_obs = isinstance(y_obs, list)
+
+        # Set up Sigy
+        if not self.sim_only:
+            if self.obs_data.Sigy is None:
+                if self.ragged_obs:
+                    ell_obs = [self.obs_data.y[i].shape for i in range(len(self.obs_data.y))]
+                    self.obs_data.Sigy = [np.atleast_2d(np.diag(np.ones(ell_obs[i]))) for i in range(len(ell_obs))]
+                else:
+                    ell_obs = self.obs_data.y.shape[1]
+                    self.obs_data.Sigy = np.diag(np.ones(ell_obs))
 
         # Process categorical indices
         if x_cat_ind is not None:
@@ -349,10 +360,21 @@ class SepiaData(object):
                     self.obs_data.orig_y_sd = [self.sim_data.orig_y_sd for i in range(len(self.obs_data.y))]
                 else:
                     self.obs_data.orig_y_sd = self.sim_data.orig_y_sd
+            def cov_norm(ysd):
+                if np.isscalar(ysd):
+                    return ysd**2
+                ysd=ysd.reshape((1,-1))
+                return(ysd.T @ ysd)
             if self.ragged_obs:
-                self.obs_data.y_std = [(self.obs_data.y[i] - self.obs_data.orig_y_mean[i]) / self.obs_data.orig_y_sd[i] for i in range(len(self.obs_data.y))]
+                ty_std=[]; tSigy_std=[]
+                for i in range(len(self.obs_data.y)):
+                    ty_std.append( [(self.obs_data.y[i] - self.obs_data.orig_y_mean[i]) / self.obs_data.orig_y_sd[i]] )
+                    tSigy_std.append(self.obs_data.Sigy[i] / cov_norm(self.obs_data.orig_y_sd[i]) )
             else:
-                self.obs_data.y_std = (self.obs_data.y - self.obs_data.orig_y_mean) / self.obs_data.orig_y_sd
+                ty_std = (self.obs_data.y - self.obs_data.orig_y_mean) / self.obs_data.orig_y_sd
+                tSigy_std = self.obs_data.Sigy / cov_norm(self.obs_data.orig_y_sd)
+            self.obs_data.y_std = ty_std
+            self.obs_data.Sigy_std=tSigy_std
 
     def create_K_basis(self, n_pc=0.995, K=None):
         """
@@ -481,6 +503,8 @@ class SepiaData(object):
         """
         Plots K basis elements for both sim and obs indices (if applicable). Only applies to multivariate-output models.
 
+        TODO: Lamy should be 1/Sigy_std
+
         :param int max_plots: maximum number of principal components to plot
         :return: tuple containing matplotlib figure objects: (fig_sim, fig_obs) or just fig_sim if no observed data is present
         """
@@ -542,6 +566,8 @@ class SepiaData(object):
     def plot_K_weights(self, max_u_plot=5):
         """
         Plots K basis weights for both sim and obs data (if applicable). Only applies to multivariate-output models.
+
+        TODO: Lamy should be 1/Sigy_std
 
         :param int max_u_plot: max number of u's for which to plot vertical line over histogram of w's
         :return: tuple containing matplotlib figure objects: (fig_uw, fig_v) or just fig_uw if no discrepancy is specified

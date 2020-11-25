@@ -23,12 +23,11 @@ class SepiaModel:
     :var bool verbose: print verbose output for this model?
     """
 
-    def __init__(self, data, Sigy=None, lamVzGroup=None, theta_fcon=None, theta_init=None, LamSim=None):
+    def __init__(self, data, lamVzGroup=None, theta_fcon=None, theta_init=None, LamSim=None):
         """
         Sets up `SepiaModel` object based on instantiated `SepiaData` object.
 
         :param sepia.SepiaData data: instantiated `sepia.SepiaData` object with all transformations and basis creation done
-        :param numpy.ndarray/NoneType Sigy: optional observation covariance matrix (default is identity)
         :param numpy.ndarray/list lamVzGroup: indicate groups for lamVz (otherwise single lamVz for all D basis functions)
         :param function/NoneType theta_fcon: constraint function for thetas; should take entire theta array and return True/False for constraint satisfied
         :param numpy.ndarray/NoneType theta_init: if using theta_fcon, should provide theta_init array that satisfies constraints
@@ -120,21 +119,6 @@ class SepiaModel:
             self.num.n = 0
             self.num.pv = 0
 
-        # Set up Sigy/Lamy
-        if not data.sim_only:
-            if Sigy is None:
-                if data.ragged_obs:
-                    Sigy = [np.atleast_2d(np.diag(np.ones(ell_obs[i]))) for i in range(len(ell_obs))]
-                else:
-                    Sigy = np.diag(np.ones(ell_obs))
-            if data.scalar_out:
-                Lamy = 1 / Sigy
-            else:
-                if data.ragged_obs:
-                    Lamy = [np.linalg.inv(Sigy[i]) for i in range(len(Sigy))]
-                else:
-                    Lamy = np.linalg.inv(Sigy)
-
         # Set up GP inputs/DistCov objects
         if not data.sim_only:
             data.x = obs_data.x_trans
@@ -176,6 +160,12 @@ class SepiaModel:
 
         # Transform obs data using D, Kobs -> v, u
         if not data.sim_only:
+            # Data observation error precision Lamy will be used for setup
+            if data.ragged_obs:
+                Lamy = [np.linalg.inv(obs_data.Sigy_std[i]) for i in range(len(obs_data.Sigy_std))]
+            else:
+                Lamy = np.linalg.inv(obs_data.Sigy_std)
+
             if data.scalar_out:
                 u = obs_data.y_std
                 v = np.array([], dtype=float)
