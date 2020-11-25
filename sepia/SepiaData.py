@@ -368,7 +368,7 @@ class SepiaData(object):
             if self.ragged_obs:
                 ty_std=[]; tSigy_std=[]
                 for i in range(len(self.obs_data.y)):
-                    ty_std.append( [(self.obs_data.y[i] - self.obs_data.orig_y_mean[i]) / self.obs_data.orig_y_sd[i]] )
+                    ty_std.append( (self.obs_data.y[i] - self.obs_data.orig_y_mean[i]) / self.obs_data.orig_y_sd[i] )
                     tSigy_std.append(self.obs_data.Sigy[i] / cov_norm(self.obs_data.orig_y_sd[i]) )
             else:
                 ty_std = (self.obs_data.y - self.obs_data.orig_y_mean) / self.obs_data.orig_y_sd
