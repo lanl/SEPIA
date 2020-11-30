@@ -878,7 +878,7 @@ def uvPredSep(pred):
                                       xzDist.compute_cov_mat(betaU[:, jj], lamUz[0, jj]),
                                       np.zeros(((pu-jj-1)*n,m)) ) )
 
-        # TODO: needs to be augmented for separable...
+        # augmented for separable...
         #if num.scalar_out:
         #    #SigData=[ SigU+SigV +SigObs/lamOs    SigUW; ...
         #    #          SigUW'                     SigW ];
@@ -942,7 +942,7 @@ def uvPredSep(pred):
                                       zxpredDist.compute_cov_mat(betaU[:, jj], lamUz[0, jj]).T,
                                       np.zeros(((pu-jj-1)*npred,m)) ) )
 
-        # TODO needs to be augmented for separable
+        #  augmented for separable
         #if num.scalar_out:
         #    if not no_D:
         #        #SigCross=[SigVVx                 SigUUx; ...

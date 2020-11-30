@@ -24,7 +24,7 @@ class DataContainer(object):
 
     """
 
-    def __init__(self, x, y, t=None, y_ind=None, xt_sep_design=None):
+    def __init__(self, x, y, t=None, y_ind=None, xt_sep_design=None, Sigy=None):
         """
         Initialize DataContainer object.
 
@@ -42,6 +42,7 @@ class DataContainer(object):
         self.t = t
         self.xt_sep_design = xt_sep_design
         self.y_ind = y_ind
+        self.Sigy=Sigy
 
         if isinstance(self.y, list):
             self.y = [yel.squeeze() for yel in  self.y] # squeeze extra dims if provided
@@ -66,12 +67,29 @@ class DataContainer(object):
         if self.xt_sep_design is not None:
             if not isinstance(self.xt_sep_design,list):
                 raise ValueError('xt_sep_design must be a list of kronecker composable designs')
-            # This can't be done here, looks like - needs to know about dummy_x
-            #num_des_vars = self.x.shape[1] + (0 if t is None else self.t.shape[1])
-            #if num_des_vars != sum([g.shape[1] for g in self.xt_sep_design]):
-            #    raise ValueError('xt_sep_design columns must sum to x and t columns')
             if len(self.y) != np.prod([len(g) for g in self.xt_sep_design]):
                 raise ValueError('Number of observations in kron-composed-x and y must be the same size.')
+
+        def val_Sigy(mat,ell_obs):
+            if mat.shape[0] != mat.shape[1]:
+                raise ValueError('Sigy must be square - covariance of observed data')
+            try:
+                np.linalg.cholesky(mat)
+            except:
+                raise ValueError('Sigy seems to not be a valid covariance matrix')
+            if len(self.Sigy) != ell_obs:
+                raise ValueError('Sigy must be the same size as the number of observations')
+        if self.Sigy is not None:
+            if isinstance(self.y,list):
+                if not isinstance(self.Sigy,list) or (len(self.Sigy)!=len(self.y)):
+                    raise ValueError('for ragged obs Sigy must also be a list of same len')
+                for ii in range(len(self.Sigy)):
+                    self.Sigy[ii]=np.atleast_2d(self.Sigy[ii])
+                    val_Sigy(self.Sigy[ii],self.y.shape[1])
+            else:
+                self.Sigy = np.atleast_2d(self.Sigy)
+                val_Sigy(self.Sigy, self.y.shape[1])
+
         # Validation complete
 
         # Basis and transform stuff initialized to None
@@ -80,6 +98,7 @@ class DataContainer(object):
         self.orig_y_sd = None
         self.orig_y_mean = None
         self.y_std = None
+        self.Sigy_std = None
         self.x_trans = None
         self.t_trans = None
         self.orig_t_min = None

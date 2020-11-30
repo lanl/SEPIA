@@ -39,7 +39,7 @@ plt.show()
 #%%
 
 data.transform_xt()
-data.standardize_y('columnwise')
+data.standardize_y(scale='columnwise')
 data.create_K_basis(5)
 data.create_D_basis(type='linear')
 
