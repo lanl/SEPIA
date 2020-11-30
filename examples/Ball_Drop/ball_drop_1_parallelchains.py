@@ -86,6 +86,8 @@ model.clear_samples()                           # reset the model's sample set, 
 # Multiprocessing
 #
 import multiprocessing as mp
+print('Note that the multiprocessing library is developing quickly, and may require a recent python version')
+print('This example was created in v3.8')
 
 tref0=time() # timing checkpoint
 
