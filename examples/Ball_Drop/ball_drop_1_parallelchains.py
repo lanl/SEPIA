@@ -112,6 +112,13 @@ manager=mp.Manager()
 # and a shared list to take the results
 resList=manager.list()
 
+# It's not necessary to have the original datasets for sampling; and it could
+# be a problem to have them if they're large. So, remove them from model (temporarily)
+sim_data_ref=model.data.sim_data
+model.data.sim_data=[]
+obs_data_ref=model.data.obs_data
+model.data.obs_data=[]
+
 # Run the mcmc worker processes [could be more compact with listcomprehensions]
 # First, define the processes as ptasks number of workers with appropriate arguments
 procs=[]
@@ -132,6 +139,9 @@ for r in resList:
     model.add_samples(r)
 # Set the model state to the last sample inserted
 model.set_model_to_sample()
+
+model.data.sim_data=sim_data_ref
+model.data.obs_data=obs_data_ref
 
 tref3=time()
 
