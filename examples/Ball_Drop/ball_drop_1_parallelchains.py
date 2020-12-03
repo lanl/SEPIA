@@ -15,7 +15,7 @@ from sepia.SepiaModel import SepiaModel
 from sepia.SepiaData import SepiaData
 import sepia.SepiaPlot as SepiaPlot
 from sepia.SepiaPredict import SepiaEmulatorPrediction
-from time import time
+from time import time, sleep
 
 #
 # Set up ball-drop-1 example dataset
@@ -72,22 +72,24 @@ model_ref.do_mcmc(10, prog=False)
 model_ref.clear_samples()
 tref=time() # timing start
 model_ref.do_mcmc(nmcmc)
-print('Single-process mcmc took %f s'%(time()-tref), flush=True)
+
+sleep(0.1) # This is strictly for output formatting - tqdm seems to need time to recover.
+print('\nSingle-process mcmc took %f s \n'%(time()-tref), flush=True)
 
 #
-# Perform the same operation with parallel mcmc chains
+# Multiprocessing - perform the same operations with parallel chains
+#
+import multiprocessing as mp
+print('Note that the multiprocessing library is developing quickly, and may require a recent python version')
+print('This example was created in v3.8')
+
+#
+# identical model setup
 #
 model = SepiaModel(data)                        # new model instance
 model.tune_step_sizes(50, 20, verbose=False)    # optimize step sizes
 model.do_mcmc(10, prog=False)                   # The same burn-in process
 model.clear_samples()                           # reset the model's sample set, leaving the model state
-
-#
-# Multiprocessing
-#
-import multiprocessing as mp
-print('Note that the multiprocessing library is developing quickly, and may require a recent python version')
-print('This example was created in v3.8')
 
 tref0=time() # timing checkpoint
 
@@ -112,6 +114,13 @@ manager=mp.Manager()
 # and a shared list to take the results
 resList=manager.list()
 
+# It's not necessary to have the original datasets for sampling; and it could
+# be a problem to have them if they're large. So, remove them from model (temporarily)
+sim_data_ref=model.data.sim_data
+model.data.sim_data=[]
+obs_data_ref=model.data.obs_data
+model.data.obs_data=[]
+
 # Run the mcmc worker processes [could be more compact with listcomprehensions]
 # First, define the processes as ptasks number of workers with appropriate arguments
 procs=[]
@@ -132,6 +141,9 @@ for r in resList:
     model.add_samples(r)
 # Set the model state to the last sample inserted
 model.set_model_to_sample()
+
+model.data.sim_data=sim_data_ref
+model.data.obs_data=obs_data_ref
 
 tref3=time()
 
