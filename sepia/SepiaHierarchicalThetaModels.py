@@ -32,7 +32,7 @@ class SepiaHierarchicalThetaModels:
         .. note:: In `hier_theta_inds`, each row corresponds to one group of hierarchically modeled thetas, and each
                   column gives the index of the theta within a particular model, with -1 used to indicate no theta
                   from a particular model is part of the hierarchical group.
-                  Example: hier_theta_inds = np.array([(1, 1, 1), (2, -1, 4)) for 3 models, theta index 1 hierarchical across all models,
+                  Example: hier_theta_inds = np.array([[1, 1, 1], [2, -1, 4]]) for 3 models, theta index 1 hierarchical across all models,
                   theta indices 2/4 hierarchical across models 1 and 3 but no corresponding theta in model 2.
 
         """
