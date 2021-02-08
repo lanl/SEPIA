@@ -267,7 +267,7 @@ for k in range(n):
 # compute the basis functions for the discrepancy function.
 Dsim  = np.zeros((phi.shape[0], pphiknots))
 for k in range(pphiknots):
-    Ddelt[:,k] = dnorm(dist2pi(phi_obs,phiknots[k]*np.ones(phi_obs.shape[0])),0,np.pi/8).T;
+    Ddelt[:,k] = dnorm(dist2pi(phi_obs,phiknots[k]*np.ones(phi_obs.shape[0])),0,np.pi/8).T
     x = dist2pi(phi,phiknots[k]*np.ones(phi.shape[0])).flatten()
     Dsim[:,k] = dnorm(x=x,mu=0,scale=np.pi/8)
 
@@ -282,9 +282,11 @@ for k in range(n):
     Dobs = np.zeros((data.obs_data.y_std[k].shape[0], pv))
     if k == 0: Dsim = np.zeros((data.sim_data.y_std.shape[1], pv))
     for j in range(pv):
-        Dobs[:,j] = dnorm(y_ind_obs[k][:,0],knotlocstime[j],.25*1e-4)*            dnorm(dist2pi(y_ind_obs[k][:,1],knotlocsphi[j]*np.ones(y_ind_obs[k][:,1].shape[0])),0,np.pi/8)
+        Dobs[:,j] = dnorm(y_ind_obs[k][:,0],knotlocstime[j],.25*1e-4) *            \
+                    dnorm(dist2pi(y_ind_obs[k][:,1],knotlocsphi[j]*np.ones(y_ind_obs[k][:,1].shape[0])),0,np.pi/8)
         if k == 0:
-            Dsim[:,j] = dnorm(timemat.flatten('F'),knotlocstime[j],.25*1e-4)*                dnorm(dist2pi(phimat.flatten('F'),knotlocsphi[j]*np.ones(len(phimat.flatten()))),0,np.pi/8)
+            Dsim[:,j] = dnorm(timemat.flatten('F'),knotlocstime[j],.25*1e-4) *                \
+                        dnorm(dist2pi(phimat.flatten('F'),knotlocsphi[j]*np.ones(len(phimat.flatten()))),0,np.pi/8)
     if k == 0: data.sim_data.D = Dsim
     data.obs_data.D.append(Dobs.T)
 # now normalize Dobs and Dsim so that it gives a var=1 process
@@ -345,7 +347,7 @@ model = SepiaModel(data)
 # In[125]:
 
 
-opt_prm = model.optim_logPost(theta_only=False,maxiter=1000,xatol=1500,fatol=1500)
+#opt_prm = model.optim_logPost(theta_only=False,maxiter=1000,xatol=1500,fatol=1500)
 
 
 # In[58]:
