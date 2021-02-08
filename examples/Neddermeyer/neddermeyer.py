@@ -197,7 +197,8 @@ y_ind_obs = [np.column_stack( ( np.concatenate((np.ones(phi_obs.shape[0])*time_o
 # In[6]:
 
 
-data = SepiaData(x_sim = x_sim, t_sim = t_sim, y_sim = y_sim, y_ind_sim = y_sim_ind_time_phi,                 x_obs = x_obs, y_obs = y_obs, y_ind_obs = y_ind_obs)
+data = SepiaData(x_sim = x_sim, t_sim = t_sim, y_sim = y_sim, y_ind_sim = y_sim_ind_time_phi,
+                 x_obs = x_obs, y_obs = y_obs, y_ind_obs = y_ind_obs)
 data.transform_xt()
 
 
@@ -205,6 +206,9 @@ data.transform_xt()
 
 # In[7]:
 
+#
+# todo: update to use inbuilt standardization methods (this implementation was pre-dev)
+#
 
 # sim
 ysimmean = np.mean(y_sim,0)
@@ -233,8 +237,12 @@ for k in range(n):
 
 # now compute the centered, scaled observed arrival times yStd
 data.obs_data.y_std = []
+data.obs_data.Sigy_std = []
 for k in range(n):
     data.obs_data.y_std.append((data.obs_data.y[k] - data.obs_data.orig_y_mean[k])/data.sim_data.orig_y_sd)
+
+# for now, hack this in - if it used the inbuilt methods it would happen automatically
+data.obs_data.Sigy_std = data.obs_data.Sigy
 
 data.obs_data.K = []
 for k in range(n):
