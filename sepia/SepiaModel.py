@@ -457,6 +457,20 @@ class SepiaModel:
                     print('prior param %d' % i)
                     print(p.prior.params[i])
 
+    def print_priors_for_mcmc(self):
+        """
+        Print some information about the parameter priors that are defined for mcmc
+        """
+        for pm in self.params.mcmcList:
+            print(pm.name,':')
+            print('    Dist: ',pm.prior.dist)
+            for ii in range(pm.val_shape[0]):
+                for jj in range(pm.val_shape[1]):
+                    print('   Bounds: ', '(', pm.prior.bounds[0][ii, jj], ',' , pm.prior.bounds[1][ii, jj], ')')
+            for ii in range(pm.val_shape[0]):
+                for jj in range(pm.val_shape[1]):
+                    print('   Params: ','(',pm.prior.params[0][ii,jj], ',' , pm.prior.params[1][ii,jj], ')')
+
     def print_value_info(self, pnames=None):
         """
         Print some information about the parameter values. (Shows initial values if called before MCMC)
