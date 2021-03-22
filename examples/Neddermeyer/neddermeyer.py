@@ -237,7 +237,6 @@ for k in range(n):
 
 # now compute the centered, scaled observed arrival times yStd
 data.obs_data.y_std = []
-data.obs_data.Sigy_std = []
 for k in range(n):
     data.obs_data.y_std.append((data.obs_data.y[k] - data.obs_data.orig_y_mean[k])/data.sim_data.orig_y_sd)
 
@@ -265,35 +264,32 @@ for k in range(n):
 
 
 # compute the basis functions for the discrepancy function.
+Dobs = []
 Dsim  = np.zeros((phi.shape[0], pphiknots))
 for k in range(pphiknots):
     Ddelt[:,k] = dnorm(dist2pi(phi_obs,phiknots[k]*np.ones(phi_obs.shape[0])),0,np.pi/8).T
     x = dist2pi(phi,phiknots[k]*np.ones(phi.shape[0])).flatten()
     Dsim[:,k] = dnorm(x=x,mu=0,scale=np.pi/8)
 
-simdelt = np.matmul(Dsim,dknots)
-timeknots = np.linspace(0,.5,3)*1e-4
-ptimeknots=len(timeknots)
-data.obs_data.D = []
+simdelt = np.matmul(Dsim, dknots)
+timeknots = np.linspace(0, .5, 3) * 1e-4
+ptimeknots = len(timeknots)
 for k in range(n):
-    knotlocstime = np.reshape(np.repeat(timeknots,pphiknots),(ptimeknots*pphiknots, 1))
-    knotlocsphi = np.expand_dims(np.tile(phiknots,ptimeknots),1)
+    knotlocstime = np.reshape(np.repeat(timeknots, pphiknots), (ptimeknots * pphiknots, 1))
+    knotlocsphi = np.expand_dims(np.tile(phiknots, ptimeknots), 1)
     pv = knotlocstime.shape[0]
-    Dobs = np.zeros((data.obs_data.y_std[k].shape[0], pv))
-    if k == 0: Dsim = np.zeros((data.sim_data.y_std.shape[1], pv))
+    Dobs.append(np.zeros((pv, data.obs_data.y_std[k].shape[0])))
+    if k == 0: Dsim = np.zeros((pv, data.sim_data.y_std.shape[1]))
     for j in range(pv):
-        Dobs[:,j] = dnorm(y_ind_obs[k][:,0],knotlocstime[j],.25*1e-4) *            \
-                    dnorm(dist2pi(y_ind_obs[k][:,1],knotlocsphi[j]*np.ones(y_ind_obs[k][:,1].shape[0])),0,np.pi/8)
+        Dobs[-1][j, :] = dnorm(y_ind_obs[k][:, 0], knotlocstime[j], .25 * 1e-4) * \
+                         dnorm(dist2pi(y_ind_obs[k][:, 1], knotlocsphi[j] * np.ones(y_ind_obs[k][:, 1].shape[0])), 0,
+                               np.pi / 8)
         if k == 0:
-            Dsim[:,j] = dnorm(timemat.flatten('F'),knotlocstime[j],.25*1e-4) *                \
-                        dnorm(dist2pi(phimat.flatten('F'),knotlocsphi[j]*np.ones(len(phimat.flatten()))),0,np.pi/8)
-    if k == 0: data.sim_data.D = Dsim
-    data.obs_data.D.append(Dobs.T)
-# now normalize Dobs and Dsim so that it gives a var=1 process
-dmax = np.amax(np.amax(np.matmul(data.sim_data.D,data.sim_data.D.T)))
-for k in range(n):
-    data.obs_data.D[k] /= np.sqrt(dmax)
-data.sim_data.D /= np.sqrt(dmax)
+            Dsim[j, :] = dnorm(timemat.flatten('F'), knotlocstime[j], .25 * 1e-4) * \
+                         dnorm(dist2pi(phimat.flatten('F'), knotlocsphi[j] * np.ones(len(phimat.flatten()))), 0,
+                               np.pi / 8)
+
+data.create_D_basis(D_obs=Dobs, D_sim=Dsim)
 
 
 # In[10]:
@@ -323,7 +319,7 @@ for i in range(3):
 fig, axs = plt.subplots(3,8,figsize=[16,6],sharex=True,sharey=True)
 x,y = np.meshgrid(phi,time)
 for i,ax in enumerate(axs.flatten()):
-    ax.pcolormesh(x, y, data.sim_data.D[:,i].reshape((22,26),order='F'),cmap='seismic')
+    ax.pcolormesh(x, y, data.sim_data.D[i,:].reshape((22,26),order='F'),cmap='seismic')
     ax.axes.xaxis.set_visible(False)
     ax.axes.yaxis.set_visible(False)
 plt.xlabel(r"angle \phi")
