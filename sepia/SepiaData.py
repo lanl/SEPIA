@@ -207,7 +207,7 @@ class SepiaData(object):
                     res += 't index %d with %d categories\n' % (i, ci)
         return res
 
-    def transform_xt(self, x_notrans=None, t_notrans=None, x=None, t=None):
+    def transform_xt(self, x_notrans=None, t_notrans=None, x_range=None, t_range=None, x=None, t=None):
         """
         Transforms sim_data x and t and obs_data x to lie in [0, 1], columnwise, or applies
         same transformation to new x and t.
@@ -216,6 +216,8 @@ class SepiaData(object):
         :param list/NoneType t_notrans: column indices of t that should not be transformed or None
         :param numpy.ndarray/NoneType x: new x values to transform to [0, 1] using same rules as original x data or None
         :param numpy.ndarray/NoneType t: new t values to transform to [0, 1] using same rules as original t data or None
+        :param numpy.ndarray/NoneType x_range: user specified data ranges, first row is min, second row is max for each variable
+        :param numpy.ndarray/NoneType t_range: user specified data ranges, first row is min, second row is max for each variable
         :returns: tuple of x_trans, t_trans if x and t arguments provided; otherwise returns (None, None)
 
         .. note:: A column is not transformed if min/max of the column values are equal, if the column is categorical,
@@ -234,14 +236,22 @@ class SepiaData(object):
         # making notes to transform the separable design elements, if needed
         transform_sep = False
 
-        # Transform x to unit hypercube
+        # Transform x to unit hypercube or user-specified ranges
         # if not computed, compute orig x min and orig x max, accounting for notrans_x, all equal x, and categorical x
         if self.sim_data.orig_x_min is None or self.sim_data.orig_x_max is None or self.sim_data.x_trans is None:
             if self.sep_design:
                 transform_sep=True
             nx = self.sim_data.x.shape[1]
-            orig_x_min = np.min(self.sim_data.x, 0, keepdims=True)
-            orig_x_max = np.max(self.sim_data.x, 0, keepdims=True)
+            if x_range is None:
+                orig_x_min = np.min(self.sim_data.x, 0, keepdims=True)
+                orig_x_max = np.max(self.sim_data.x, 0, keepdims=True)
+            else:
+                if x_range.shape[0] !=2:
+                    raise ValueError('user-specified ranges are first row min, second row max')
+                if x_range.shape[1] != nx:
+                    raise ValueError('user-specified ranges must be given for every x variable')
+                orig_x_min = x_range[0,:]
+                orig_x_max = x_range[1,:]
             # If any xmin/xmax are equal, don't transform
             xmm = orig_x_max - orig_x_min
             x_notrans = list(set(x_notrans) | set([i for i in range(nx) if xmm[:, i] == 0]))
@@ -257,18 +267,28 @@ class SepiaData(object):
                 self.obs_data.orig_x_min = orig_x_min
                 self.obs_data.orig_x_max = orig_x_max
                 self.obs_data.x_trans = (self.obs_data.x - orig_x_min) / (orig_x_max - orig_x_min)
+
         # If a new x was passed in, transform it
         if x is not None:
             x_trans = (x - self.sim_data.orig_x_min) / (self.sim_data.orig_x_max - self.sim_data.orig_x_min)
-        # Transform t to unit hypercube
+
+        # Transform t to unit hypercube or user-specified ranges
         if self.sim_data.t is not None:
             if t_notrans is True:
                 t_notrans = np.arange(self.sim_data.t.shape[1])
             # if not computed, compute orig t min and orig t max, accounting for notrans_t, all equal t, and categorical t
             if self.sim_data.orig_t_min is None or self.sim_data.orig_t_max is None or self.sim_data.t_trans is None:
                 nt = self.sim_data.t.shape[1]
-                orig_t_min = np.min(self.sim_data.t, 0, keepdims=True)
-                orig_t_max = np.max(self.sim_data.t, 0, keepdims=True)
+                if t_range is None:
+                    orig_t_min = np.min(self.sim_data.t, 0, keepdims=True)
+                    orig_t_max = np.max(self.sim_data.t, 0, keepdims=True)
+                else:
+                    if t_range.shape[0] != 2:
+                        raise ValueError('user-specified ranges are first row min, second row max')
+                    if t_range.shape[1] != nt:
+                        raise ValueError('user-specified ranges must be given for every t variable')
+                    orig_t_min = t_range[0, :]
+                    orig_t_max = t_range[1, :]
                 # If any tmin/tmax are equal, don't transform
                 tmm = orig_t_max - orig_t_min
                 t_notrans = list(set(t_notrans) | set([i for i in range(nt) if tmm[:, i] == 0]))
