@@ -91,12 +91,13 @@ class SepiaParam:
         """
         if type(sampleset) is int: sampleset=[sampleset] # it has to be a list
         if sampleset is not None:
-            draws = np.array(self.mcmc.draws)[sampleset, :, :]  # (nsamp, p+q, pu)
+            draws = np.array([ self.mcmc.draws[ii] for ii in sampleset]) # (nsamp, p+q, pu)
         else:
             draws = np.array(self.mcmc.draws) # (nsamp, p+q, pu)
         if untransform_theta:
             draws = self.untransform_theta(draws)
         if flat:
+            # pythonic way to do this in-place? 
             draws_flat = np.zeros((draws.shape[0], draws.shape[1]*draws.shape[2]))
             for samp in range(draws.shape[0]):
                 draws_flat[samp, :] = np.ndarray.flatten(draws[samp, :, :], order='F')

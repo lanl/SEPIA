@@ -13,3 +13,4 @@ sepia/dev_test/data/
 sepia.egg-info/
 build/
 dist/
+.spyproject/*
