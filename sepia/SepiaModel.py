@@ -747,6 +747,47 @@ class SepiaModel:
         if diagnostics:
             return step_sizes, acc, mod_tmp
 
+    def set_param(self, pname, val=None, fix=None, bounds=None, prior_dist=None, prior_params=None):
+        if pname not in dir(self.params):
+            raise ValueError('Model.set_param: parameter not in model list:'+pname )
+        prm=getattr(self.params,pname)
+        if bounds is not None:
+            if len(bounds)!=2:
+                raise ValueError('Model.set_param: bounds must be a list of length 2')
+            if not ( ( isinstance(bounds[0],np.ndarray) and isinstance(bounds[1],np.ndarray) ) and \
+                (bounds[0].shape==bounds[1].shape and bounds[0].shape==prm.val_shape) ) :
+                raise ValueError('Model.set_param: bounds must conform to shape of parameter value: ' + 
+                                     str(prm.val_shape) )
+            prm.prior.bounds=bounds
+        if prior_dist is not None:
+            if not isinstance(prior_dist,str):
+                raise ValueError('Model.set_param: dist is a name string')
+            prm.prior.dist=prior_dist
+        if prior_params is not None:
+            for pp in prior_params:
+                if not ( isinstance(pp,np.ndarray) and pp.shape==prm.val_shape ):
+                    raise ValueError('Model.set_param: dist params must conform to shape of parameter value: ' + 
+                                     str(prm.val_shape) )
+            prm.prior.params=prior_params
+        if val is not None:
+            if not ( isinstance(val,np.ndarray) and fix.shape==prm.val_shape ):
+                    raise ValueError('Model.set_param: val assignment must conform to shape of parameter value ' + 
+                                     str(prm.val_shape) )
+            prm.val=val
+            prm.refVal=val
+        if fix is not None:
+            prm.fixed[:]=True
+            prm.prior.bounds[0][:] = -np.inf
+            prm.prior.bounds[1][:] = +np.inf
+            if isinstance(fix,(float,int)):
+                prm.val[:]=fix
+            else:
+                if not ( isinstance(fix,np.ndarray) and fix.shape==prm.val_shape ):
+                        raise ValueError('Model.set_param: fix (value) must conform to shape of parameter value' + 
+                                         str(prm.val_shape) )
+                prm.val=fix
+            prm.refVal=prm.val
+
     def set_params_sim_only(self, lamWOs_a_corr=0, lamWOs_b_corr=0):
         #
         # Set up parameters and priors for simulation-only model.
