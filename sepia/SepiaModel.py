@@ -747,7 +747,17 @@ class SepiaModel:
         if diagnostics:
             return step_sizes, acc, mod_tmp
 
-    def set_param(self, pname, val=None, fix=None, bounds=None, prior_dist=None, prior_params=None):
+    def set_param(self, pname, fix=None, val=None, bounds=None, prior_dist=None, prior_params=None):
+        #
+        # Set up parameter properties and.or priors
+        #
+        # :param pname: pparameter name (required)
+        # :param fix: set value to this and fix (no sampling). Can be scalar or val_shape shaped
+        # :param val: set value to this. Must be val_shape shaped
+        # :param bounds: set bounds to this. Must be list of two val_shape shaped arrays
+        # :param prior_dist: set distribution. String
+        # :param prior_params: array of distribution parameters
+        #
         if pname not in dir(self.params):
             raise ValueError('Model.set_param: parameter not in model list:'+pname )
         prm=getattr(self.params,pname)
