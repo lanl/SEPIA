@@ -48,6 +48,7 @@ class SepiaModel:
         self.num = ModelContainer() # num for numeric state
         self.num.scalar_out = data.scalar_out
         self.num.sim_only = data.sim_only
+        self.num.mean_basis = data.mean_basis
 
         # Check if things transformed, do a default thing, but give warning if not done by user
         if data.sim_data.y_std is None:
@@ -307,6 +308,9 @@ class SepiaModel:
             self.set_params_noD(lamOs_a_corr, lamOs_b_corr, lamWOs_a_corr, lamWOs_b_corr, theta_fcon)
         else:
             self.set_params_full(lamOs_a_corr, lamOs_b_corr, lamWOs_a_corr, lamWOs_b_corr, theta_fcon)
+
+        if self.num.mean_basis:
+            self.set_params_mean_basis()
 
         # theta constraints function
         if theta_fcon is not None:
@@ -798,6 +802,13 @@ class SepiaModel:
                 prm.val=fix
             prm.refVal=prm.val
 
+    def set_params_mean_basis(self):
+        # set up the gamma parameters for the mean basis multiplier
+        self.params.gamma = SepiaParam(val=0, name='gamma', val_shape=self.num.m, dist='Uniform',
+                                       params=[],bounds=[-np.inf,np.inf],
+                                       mcmcStepParam=0.1, mcmcStepType='PropMH')
+        self.params.mcmcList.extend(self.params.gamma)
+
     def set_params_sim_only(self, lamWOs_a_corr=0, lamWOs_b_corr=0):
         #
         # Set up parameters and priors for simulation-only model.
@@ -1066,7 +1077,7 @@ class ModelContainer():
     """
 
     def __init__(self):
-        self.scalar_out = self.sim_only = None  # Useful flags
+        self.scalar_out = self.sim_only = = self.mean_basis = None  # Useful flags
         self.x = self.theta = self.zt = None  # GP inputs
         self.u = self.v = self.w = None  # GP outputs
         self.LamSim = self.LamObs = self.SigObs = None  # Precomputed cov stuff

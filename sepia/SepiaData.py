@@ -414,7 +414,6 @@ class SepiaData(object):
         self.mean_basis=True
         self.sim_data.H = H
 
-
     def create_K_basis(self, n_pc=0.995, K=None):
         """
         Creates `K_sim` and `K_obs` basis functions using PCA on sim_data.y_std, or using given `K_sim` matrix.
