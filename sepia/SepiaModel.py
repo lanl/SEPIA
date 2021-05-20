@@ -23,7 +23,7 @@ class SepiaModel:
     :var bool verbose: print verbose output for this model?
     """
 
-    def __init__(self, data, lamVzGroup=None, theta_fcon=None, theta_init=None, LamSim=None):
+    def __init__(self, data, lamVzGroup=None, theta_fcon=None, theta_init=None, LamSim=None, mean_basis=None):
         """
         Sets up `SepiaModel` object based on instantiated `SepiaData` object.
 
@@ -81,6 +81,12 @@ class SepiaModel:
             if not data.sim_only and data.obs_data.D is None:
                 print('Warning: No D basis, proceeding with a no-discrepancy model.')
                 print('To use a D basis (normally recommended), call data.create_D_basis on your SepiaData object.')
+
+        if mean_basis is not None:
+            if not data.scalar_out:
+                raise ValueError('Cannot specify a mean basis unless model is scalar output \n'+ 
+                                 '(which is based on y passed to SepiaData having y.shape[1]==1')
+        self.mean_basis=mean_basis
 
         # Local references to data for initialization of model
         sim_data = data.sim_data

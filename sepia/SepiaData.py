@@ -103,6 +103,8 @@ class SepiaData(object):
 
         self.scalar_out = (self.sim_data.y.shape[1] == 1)
 
+        self.mean_basis = None
+
         if self.sim_only:
             self.obs_data = None
         else:
@@ -395,6 +397,25 @@ class SepiaData(object):
                 tSigy_std = self.obs_data.Sigy / cov_norm(self.obs_data.orig_y_sd)
             self.obs_data.y_std = ty_std
             self.obs_data.Sigy_std=tSigy_std
+
+    def set_mean_basis(self, mean_basis):
+        """
+        Creates `K_sim` and `K_obs` basis functions using PCA on sim_data.y_std, or using given `K_sim` matrix.
+
+        :param float/int n_pc: proportion in [0, 1] of variance, or an integer number of components
+        :param numpy.ndarray/None K: a basis matrix on sim indices of shape (n_basis_elements, ell_sim) or None
+
+        .. note:: if standardize_y() method has not been called first, it will be called automatically by this method.
+        """
+        if not self.scalar_out:
+            raise ValueError('Cannot specify an emulator mean basis unless model is scalar output \n'+ 
+                             '(which is based on y passed to SepiaData having y.shape[1]==1')
+        if (len(mean_basis.shape)!=2):
+            raise ValueError('Mean basis must have shape 2, with shape[0] the same as m '+
+                             '(where m is the number of simulations being emulated)')
+        self.mean_basis=True
+        self.sim_data.H = mean_basis
+
 
     def create_K_basis(self, n_pc=0.995, K=None):
         """
