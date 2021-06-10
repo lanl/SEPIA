@@ -21,11 +21,11 @@ def call_data_methods(data, discrep=True):
     data.create_K_basis(2)
     if discrep:
         data.create_D_basis('linear')
-    data.plot_K_basis()
-    data.plot_K_weights()
-    data.plot_u_w_pairs()
-    data.plot_K_residuals()
-    data.plot_data()
+    plot_K_basis(data)
+    plot_K_weights(data)
+    plot_u_w_pairs(data)
+    plot_K_residuals(data)
+    plot_data(data)
 
 def call_model_methods(model):
     model.log_prior()
