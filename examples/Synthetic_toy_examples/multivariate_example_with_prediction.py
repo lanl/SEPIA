@@ -41,7 +41,7 @@ plt.show()
 data.transform_xt()
 data.standardize_y(scale='columnwise')
 data.create_K_basis(5)
-data.create_D_basis(type='linear')
+data.create_D_basis(D_type='linear')
 
 print(data)
 
