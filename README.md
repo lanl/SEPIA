@@ -1,4 +1,5 @@
 # SEPIA
+[![SEPIA-CI Status][ci-status-img]](https://github.com/lanl/SEPIA/actions)
 
 Simulation-Enabled Prediction, Inference, and Analysis: physics-informed statistical learning.
 This is a Python adaptation of [GPMSA](https://github.com/lanl/gpmsa).
@@ -89,3 +90,4 @@ WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
 OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+[ci-status-img]: https://github.com/lanl/SEPIA/workflows/SEPIA-CI/badge.svg
