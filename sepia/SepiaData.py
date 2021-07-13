@@ -249,8 +249,8 @@ class SepiaData(object):
                     raise ValueError('user-specified ranges are first row min, second row max')
                 if x_range.shape[1] != nx:
                     raise ValueError('user-specified ranges must be given for every x variable')
-                orig_x_min = x_range[0,:]
-                orig_x_max = x_range[1,:]
+                orig_x_min = x_range[[0],:]
+                orig_x_max = x_range[[1],:]
             # If any xmin/xmax are equal, don't transform
             xmm = orig_x_max - orig_x_min
             x_notrans = list(set(x_notrans) | set([i for i in range(nx) if xmm[:, i] == 0]))
