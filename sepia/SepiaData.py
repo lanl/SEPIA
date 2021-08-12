@@ -114,14 +114,6 @@ class SepiaData(object):
             self.ragged_obs = isinstance(y_obs, list)
 
         # Set up Sigy - now done in scaling code
-        #if not self.sim_only:
-        #    if self.obs_data.Sigy is None:
-        #        if self.ragged_obs:
-        #            ell_obs = [self.obs_data.y[i].shape for i in range(len(self.obs_data.y))]
-        #            self.obs_data.Sigy = [np.atleast_2d(np.diag(np.ones(ell_obs[i]))) for i in range(len(ell_obs))]
-        #        else:
-        #            ell_obs = self.obs_data.y.shape[1]
-        #            self.obs_data.Sigy = np.diag(np.ones(ell_obs))
 
         # Process categorical indices
         if x_cat_ind is not None:
