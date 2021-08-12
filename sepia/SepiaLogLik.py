@@ -88,6 +88,7 @@ def compute_log_lik(g, cvar='all', cindex=None):
     elif cvar == 'lamWs': do_lamWs = True
     elif cvar == 'lamWOs': do_lamWOs = True
     elif cvar == 'lamOs': pass
+    elif cvar == 'gamma': pass
     else:
         raise ValueError('Invalid computeLogLik input cvar')
 

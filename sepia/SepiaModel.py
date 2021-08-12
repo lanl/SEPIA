@@ -804,10 +804,10 @@ class SepiaModel:
 
     def set_params_mean_basis(self):
         # set up the gamma parameters for the mean basis multiplier
-        self.params.gamma = SepiaParam(val=0, name='gamma', val_shape=self.num.m, dist='Uniform',
-                                       params=[],bounds=[-np.inf,np.inf],
+        self.params.gamma = SepiaParam(val=0, name='gamma', val_shape=self.data.sim_data.H.shape[1], 
+                                       dist='Uniform', params=[],bounds=[-np.inf,np.inf],
                                        mcmcStepParam=0.1, mcmcStepType='PropMH')
-        self.params.mcmcList.extend(self.params.gamma)
+        self.params.mcmcList.append(self.params.gamma)
 
     def set_params_sim_only(self, lamWOs_a_corr=0, lamWOs_b_corr=0):
         #
@@ -1077,7 +1077,7 @@ class ModelContainer():
     """
 
     def __init__(self):
-        self.scalar_out = self.sim_only = = self.mean_basis = None  # Useful flags
+        self.scalar_out = self.sim_only = self.mean_basis = None  # Useful flags
         self.x = self.theta = self.zt = None  # GP inputs
         self.u = self.v = self.w = None  # GP outputs
         self.LamSim = self.LamObs = self.SigObs = None  # Precomputed cov stuff

@@ -10,8 +10,8 @@ from generate_data import generate_multi_sim_and_obs
 from sepia.SepiaModel import SepiaModel
 from sepia.SepiaData import SepiaData
 
-#%load_ext autoreload
-#%autoreload 2
+# #%load_ext autoreload
+# #%autoreload 2
 
 #%%
 
