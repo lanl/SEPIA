@@ -107,18 +107,6 @@ If the outputs are multivariate, we want to set up a principal component (PC) ba
     data.create_D_basis(D_type='linear')  # Default linear discrepancy
     data.create_D_basis(D=D)              # Pass in custom D basis
 
-Plotting
-^^^^^^^^
-
-Plot data and basis function diagnostics (some model types are not covered by these functions)::
-
-    data.plot_data()        # Plot data
-    data.plot_K_basis()     # Show K basis functions
-    data.plot_K_weights()   # Show histograms of projections of data onto K basis functions
-    data.plot_u_w_pairs()   # Show pairs plots of projections of data onto K basis functions
-    data.plot_K_residuals() # Show residuals after projection onto K basis
-
-
 Set up model
 ------------
 

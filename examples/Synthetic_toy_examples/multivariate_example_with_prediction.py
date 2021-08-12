@@ -41,7 +41,7 @@ plt.show()
 data.transform_xt()
 data.standardize_y(scale='columnwise')
 data.create_K_basis(5)
-data.create_D_basis(type='linear')
+data.create_D_basis(D_type='linear')
 
 print(data)
 
@@ -91,11 +91,10 @@ for i, k in enumerate(samples_dict.keys()):
 model.verbose=True
 
 from sepia.SepiaPredict import SepiaEmulatorPrediction
-x_pred=np.linspace(0,1,9).reshape((9,1))
 # make t_pred most like the calibrated thetas for comparison to below
 t_pred=np.tile(np.array([1,0,1]).reshape(1,3),(9,1)) 
 pred_samples=model.get_samples(numsamples=7)
-pred=SepiaEmulatorPrediction(x_pred=x_pred, samples=pred_samples, model=model, t_pred=t_pred)
+pred=SepiaEmulatorPrediction(samples=pred_samples, model=model, t_pred=t_pred)
 
 predw=pred.get_w()
 plt.figure()
@@ -131,9 +130,8 @@ plt.show()
 #%% Full model predictions
 
 from sepia.SepiaPredict import SepiaFullPrediction
-x_pred=np.linspace(0,1,9).reshape(9,1)
 pred_samples=model.get_samples(numsamples=7)
-pred=SepiaFullPrediction(x_pred, pred_samples, model)
+pred=SepiaFullPrediction(samples=pred_samples, model=model, t_pred=t_pred)
 
 plt.figure()
 predu, predv = pred.get_u_v()
@@ -215,12 +213,10 @@ model2.do_mcmc(100)
 model2.verbose=True
 
 from sepia.SepiaPredict import SepiaEmulatorPrediction
-x_pred=np.linspace(0,1,9).reshape(9,1)
-#t_pred=0.5*np.ones((9,3))
 # make t_pred most like the calibrated thetas for comparison to below
 t_pred=np.tile(np.array([1,0,1]).reshape(1,3),(9,1))
 pred_samples=model.get_samples(numsamples=7)
-pred2=SepiaEmulatorPrediction(x_pred=x_pred, samples=pred_samples, model=model2, t_pred=t_pred)
+pred2=SepiaEmulatorPrediction(samples=pred_samples, model=model2, t_pred=t_pred)
 
 predw=pred2.get_w()
 plt.figure()

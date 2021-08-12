@@ -295,7 +295,7 @@ data.create_D_basis(D_obs=Dobs, D_sim=Dsim)
 # In[10]:
 
 
-data.plot_K_weights()
+SepiaPlot.plot_K_weights(data)
 
 
 # In[11]:
@@ -330,7 +330,7 @@ plt.show()
 # In[13]:
 
 
-data.plot_u_w_pairs()
+SepiaPlot.plot_u_w_pairs(data)
 
 
 # In[124]:
@@ -338,12 +338,6 @@ data.plot_u_w_pairs()
 
 print(data)
 model = SepiaModel(data)
-
-
-# In[125]:
-
-
-#opt_prm = model.optim_logPost(theta_only=False,maxiter=1000,xatol=1500,fatol=1500)
 
 
 # In[58]:

@@ -106,18 +106,18 @@ To check that your data structure is set up correctly::
 
     print(data)
 
-Also, for certain model types, the plotting methods in the :ref:`sepiadata` class may be helpful (see class documentation for options)::
+Also, for certain model types, the plotting methods in the :ref:`sepiaplot` class may be helpful (see class documentation for options)::
 
     # Plot data - only for multivariate-output models with both simulation and observed outputs
-    data.plot_data()
+    SepiaPlot.plot_data(data)
     # K basis functions - only for multivariate-output models
-    data.plot_K_basis()
+    SepiaPlot.plot_K_basis(data)
     # Histograms of projections of data onto K basis functions - only for multivariate-output models
-    data.plot_K_weights()
+    SepiaPlot.plot_K_weights(data)
     # Pairs plots of projections of data onto K basis functions - only for multivariate-output models
-    data.plot_u_w_pairs()
+    SepiaPlot.plot_u_w_pairs(data)
     # Residuals after projection onto K basis - only for multivariate-output models
-    data.plot_K_residuals()
+    SepiaPlot.plot_K_residuals(data)
 
 Model setup
 -----------
