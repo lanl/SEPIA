@@ -113,15 +113,15 @@ class SepiaData(object):
             self.sim_only = False
             self.ragged_obs = isinstance(y_obs, list)
 
-        # Set up Sigy
-        if not self.sim_only:
-            if self.obs_data.Sigy is None:
-                if self.ragged_obs:
-                    ell_obs = [self.obs_data.y[i].shape for i in range(len(self.obs_data.y))]
-                    self.obs_data.Sigy = [np.atleast_2d(np.diag(np.ones(ell_obs[i]))) for i in range(len(ell_obs))]
-                else:
-                    ell_obs = self.obs_data.y.shape[1]
-                    self.obs_data.Sigy = np.diag(np.ones(ell_obs))
+        # Set up Sigy - now done in scaling code
+        #if not self.sim_only:
+        #    if self.obs_data.Sigy is None:
+        #        if self.ragged_obs:
+        #            ell_obs = [self.obs_data.y[i].shape for i in range(len(self.obs_data.y))]
+        #            self.obs_data.Sigy = [np.atleast_2d(np.diag(np.ones(ell_obs[i]))) for i in range(len(ell_obs))]
+        #        else:
+        #            ell_obs = self.obs_data.y.shape[1]
+        #            self.obs_data.Sigy = np.diag(np.ones(ell_obs))
 
         # Process categorical indices
         if x_cat_ind is not None:
@@ -390,10 +390,16 @@ class SepiaData(object):
                 ty_std=[]; tSigy_std=[]
                 for i in range(len(self.obs_data.y)):
                     ty_std.append( (self.obs_data.y[i] - self.obs_data.orig_y_mean[i]) / self.obs_data.orig_y_sd[i] )
-                    tSigy_std.append(self.obs_data.Sigy[i] / cov_norm(self.obs_data.orig_y_sd[i]) )
+                    if self.obs_data.Sigy is None:
+                        tSigy_std.append(np.atleast_2d(np.diag(np.ones(self.obs_data.y[i].shape))))
+                    else:
+                        tSigy_std.append(self.obs_data.Sigy[i] / cov_norm(self.obs_data.orig_y_sd[i]) )
             else:
                 ty_std = (self.obs_data.y - self.obs_data.orig_y_mean) / self.obs_data.orig_y_sd
-                tSigy_std = self.obs_data.Sigy / cov_norm(self.obs_data.orig_y_sd)
+                if self.obs_data.Sigy is None:
+                    tSigy_std = np.diag(np.ones(self.obs_data.y.shape[1]))
+                else:
+                    tSigy_std = self.obs_data.Sigy / cov_norm(self.obs_data.orig_y_sd)
             self.obs_data.y_std = ty_std
             self.obs_data.Sigy_std=tSigy_std
 
