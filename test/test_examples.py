@@ -1,6 +1,5 @@
 import sys
-sys.path.append('../examples/Neddermeyer/')
-from neddermeyer import neddermeyer_example
+import examples.Neddermeyer.neddermeyer as neddermeyer
 #sys.path.append('../examples/Ball_Drop/')
 #from ball_drop_1 import ball_drop_1_example
 #from ball_drop_2 import ball_drop_2_example
@@ -14,4 +13,5 @@ np.random.seed(42)
 #   ball_drop_1_example(test=1)
     
 class SepiaNeddermeyerTestCase(unittest.TestCase):
-    neddermeyer_example(test=1)
+	def test_neddermeyer(self):
+		neddermeyer.neddermeyer_example(test=1)

@@ -13,7 +13,7 @@ import numpy as np
 import sepia.SepiaPlot as SepiaPlot
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
-from nedderimp import nedderimp
+from examples.Neddermeyer.nedderimp import nedderimp
 from scipy.interpolate import interp2d
 from copy import deepcopy
 
@@ -37,7 +37,7 @@ def dnorm(x,mu,scale):
 def neddermeyer_example(test=0):
 
     if test:
-        print('Running Neddermeyer example in test mode \n')
+        print('Testing Neddermeyer example \n')
     else:
         print('Running Neddermeyer example \n')
     # simulation design
