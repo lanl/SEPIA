@@ -348,7 +348,7 @@ class SepiaFullPrediction(SepiaPrediction):
                     D = self.model.data.obs_data.D
                     return np.tensordot(self.v,D,axes=[[2],[0]]) 
             else:
-                return np.tensordot(self.v,self.model.data.sim_data.D,axes=[[2],[0]]) # D was D.T, but removed to get rid of error
+                return np.tensordot(self.v,self.model.data.sim_data.D,axes=[[2],[0]])
         else:
             ysd_inpredshape,_ = self.calc_obs_standardizations_inpredshape(obs_ref=obs_ref)
             if as_obs:  
@@ -359,7 +359,7 @@ class SepiaFullPrediction(SepiaPrediction):
                     D = self.model.data.obs_data.D
                     return np.tensordot(self.v,D,axes=[[2],[0]])*ysd_inpredshape
             else:
-                return np.tensordot(self.v,self.model.data.sim_data.D,axes=[[2],[0]])*ysd_inpredshape # D was D.T, but removed to get rid of error
+                return np.tensordot(self.v,self.model.data.sim_data.D,axes=[[2],[0]])*ysd_inpredshape
 
     def get_yobs(self, as_obs=False, std=False, obs_ref=0):
         """

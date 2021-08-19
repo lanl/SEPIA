@@ -1,17 +1,30 @@
 import sys
-import examples.Neddermeyer.neddermeyer as neddermeyer
-#sys.path.append('../examples/Ball_Drop/')
-#from ball_drop_1 import ball_drop_1_example
-#from ball_drop_2 import ball_drop_2_example
-
+from examples.run_nb import run_notebook
 import unittest
 import numpy as np
 np.random.seed(42)
 
-#class SepiaBallDropTestCase(unittest.TestCase):
-#   ball_drop_2_example(test=1,datadir='/../examples/Ball_Drop/data/data_ball_drop_2/')
-#   ball_drop_1_example(test=1)
-    
+class SepiaBallDropTestCase(unittest.TestCase):
+    def test_ball_drop_1(self):
+        run_notebook(notebook_filename='examples/Ball_Drop/ball_drop_1.ipynb',
+                        execute_path='examples/Ball_Drop/',html=0)
+        run_notebook(notebook_filename='examples/Ball_Drop/ball_drop_1_noD.ipynb',
+                execute_path='examples/Ball_Drop/',html=0)
+        run_notebook(notebook_filename='examples/Ball_Drop/ball_drop_1_ragged.ipynb',
+                execute_path='examples/Ball_Drop/',html=0)
+        run_notebook(notebook_filename='examples/Ball_Drop/ball_drop_1_parallelchains.ipynb',
+                execute_path='examples/Ball_Drop/',html=0)
+    def test_ball_drop_2(self):
+        run_notebook(notebook_filename='examples/Ball_Drop/ball_drop_2.ipynb',
+                    execute_path='examples/Ball_Drop/',html=0)
+        run_notebook(notebook_filename='examples/Ball_Drop/ball_drop_2_ragged.ipynb',
+                    execute_path='examples/Ball_Drop/',html=0)
+   
 class SepiaNeddermeyerTestCase(unittest.TestCase):
-	def test_neddermeyer(self):
-		neddermeyer.neddermeyer_example(test=1)
+    def test_neddermeyer(self):
+        run_notebook(notebook_filename='examples/Neddermeyer/neddermeyer.ipynb',
+                    execute_path='examples/Neddermeyer/',html=0)
+        run_notebook(notebook_filename='examples/Neddermeyer/neddermeyer_shared_hierarchical.ipynb',
+                    execute_path='examples/Neddermeyer/',html=0)
+        run_notebook(notebook_filename='examples/Neddermeyer/neddermeyer_lamVzGroup.ipynb',
+                    execute_path='examples/Neddermeyer/',html=0)
