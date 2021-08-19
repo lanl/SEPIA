@@ -13,7 +13,7 @@ import numpy as np
 import sepia.SepiaPlot as SepiaPlot
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
-from examples.Neddermeyer.nedderimp import nedderimp
+from nedderimp import nedderimp
 from scipy.interpolate import interp2d
 from copy import deepcopy
 
