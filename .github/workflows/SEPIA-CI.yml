@@ -5,6 +5,7 @@ on: [push]
 jobs:
   build:
     runs-on: ${{ matrix.os }}
+    continue-on-error: ${{ matrix.os == 'windows-latest' }}
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
