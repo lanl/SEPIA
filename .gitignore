@@ -14,3 +14,4 @@ sepia.egg-info/
 build/
 dist/
 .spyproject/*
+.ipynb_checkpoints/
