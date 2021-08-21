@@ -480,6 +480,28 @@ class SepiaDataTestCase(unittest.TestCase):
         self.assertEqual(np.min(d.sim_data.t_trans[:, 2]), 1)
         self.assertEqual(np.max(d.sim_data.t_trans[:, 2]), 4)
 
-
-
-
+    def test_native_transform(self):
+        """
+        Test transforming x,t from standardized scale back to native scale
+        """
+        x = np.atleast_2d(np.linspace(0,10,10)).T
+        t = np.atleast_2d(np.linspace(5,15,10)).T
+        y = np.atleast_2d(np.random.normal(0,1,10)).T
+        d = SepiaData(x_sim=x,t_sim=t,y_sim=y)
+        
+        print('Testing native x,t transform SepiaData...')
+        print(d)
+        
+        d.transform_xt()
+        
+        # test that t_trans returns to native t
+        native_xt = d.transform_xt(x=d.sim_data.x_trans,t=d.sim_data.t_trans,native=True)
+        self.assertTrue(np.allclose(np.array(native_xt),np.array([x,t])))
+        # test that 0 goes to native x_min,t_min and 1 goes to x_max,t_max
+        self.assertEqual(d.transform_xt(x=0,native=True)[0].flatten(),d.sim_data.orig_x_min.flatten()) 
+        self.assertEqual(d.transform_xt(x=1,native=True)[0].flatten(),d.sim_data.orig_x_max.flatten())
+        self.assertEqual(d.transform_xt(t=0,native=True)[1].flatten(),d.sim_data.orig_t_min.flatten()) 
+        self.assertEqual(d.transform_xt(t=1,native=True)[1].flatten(),d.sim_data.orig_t_max.flatten())
+        
+        
+        
