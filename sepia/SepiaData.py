@@ -211,6 +211,7 @@ class SepiaData(object):
         :param numpy.ndarray/NoneType t: new t values to transform to [0, 1] using same rules as original t data or None
         :param numpy.ndarray/NoneType x_range: user specified data ranges, first row is min, second row is max for each variable
         :param numpy.ndarray/NoneType t_range: user specified data ranges, first row is min, second row is max for each variable
+        :param bool native: boolean for reverse transformation on x,t from [0, 1] to native scale
         :returns: tuple of x_trans, t_trans if x and t arguments provided; otherwise returns (None, None)
 
         .. note:: A column is not transformed if min/max of the column values are equal, if the column is categorical,
