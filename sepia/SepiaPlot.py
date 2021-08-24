@@ -17,7 +17,7 @@ def theta_pairs(samples_dict,design_names=None,native=False,lims=None,theta_ref=
     :param list/NoneType design_names: list of string names for thetas, optional (None will use default names)
     :param bool native: put theta on native scale? (note: you likely want to pass lims in this case)
     :param list lims: list of tuples, limits for each theta value for plotting; defaults to [0, 1] if native=False
-    :param list theta_ref: scalar reference values to plot as vlines on distplots and as red dots on bivariate plots
+    :param list theta_ref: scalar reference values to plot as vlines on histplots and as red dots on bivariate plots
     :param str save: file name to save plot
     :returns: matplotlib figure
     """
@@ -42,8 +42,8 @@ def theta_pairs(samples_dict,design_names=None,native=False,lims=None,theta_ref=
     if theta_df.shape[1]>2:
         g = sns.PairGrid(theta_df.loc[:, theta_df.columns != 'idx'], diag_sharey=False);
         g.map_upper(sns.scatterplot, palette = 'coolwarm', hue=theta_df['idx'], legend=False);
-        g.map_lower(sns.kdeplot, cmap="viridis", shade=True, shade_lowest=False);
-        g.map_diag(sns.distplot, hist=True);
+        g.map_lower(sns.kdeplot, cmap="viridis", fill=True, thresh=0.05);
+        g.map_diag(sns.histplot, kde=True);
         if lims is not None:
             # Undo sharing of axes
             for i in range(n_theta):
@@ -75,7 +75,8 @@ def theta_pairs(samples_dict,design_names=None,native=False,lims=None,theta_ref=
         return g.fig
     else:
         fig,ax=plt.subplots()
-        sns.distplot(theta_df.loc[:, theta_df.columns != 'idx'],hist=True,axlabel=design_names[0],ax=ax)
+        ax.set_xlabel(design_names[0])
+        sns.histplot(theta_df.loc[:, theta_df.columns != 'idx'],kde=True,ax=ax)
         if save is not None: 
             plt.tight_layout()
             plt.savefig(save,dpi=300,bbox_inches='tight')
@@ -531,7 +532,7 @@ def plot_u_w_pairs(data, max_plots=5, save=False):
             lims = max(np.maximum(np.max(np.abs(w),axis=0),np.max(np.abs(u),axis=0))*1.1)
             with sns.plotting_context("notebook", font_scale=1):
                 g = sns.PairGrid(w_df)
-                g.map_diag(sns.distplot)
+                g.map_diag(sns.histplot, kde=True)
                 g.map_offdiag(sns.scatterplot)
                 for i in range(g.axes.shape[1]): # rows
                     for j in range(g.axes.shape[0]): # columns
