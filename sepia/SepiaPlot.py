@@ -6,6 +6,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec
 import numpy as np
+import scipy as sp
 
 sns.set(style="ticks")
 
@@ -730,6 +731,76 @@ def plot_data(data,which_x=None,x_min=None,x_max=None,y_min=None,y_max=None,n_ne
         if save is not None: fig.savefig(save,dpi=300,bbox_inches='tight')
         return fig
 
+def pca_projected_data(data):
+    
+    # 2 dimensional y_ind will require much more consideration to make a generalized plotting routine
+    if data.ragged_obs and min(np.atleast_2d(data.obs_data.y_ind[0]).shape)>1:
+        pass
+    elif (not data.ragged_obs) and min(np.atleast_2d(data.obs_data.y_ind).shape)>1:
+        pass
+    # 1 dimensional y_ind
+    else:
+        plt.figure(figsize=(10,10))
+        if not data.ragged_obs: # not ragged so everything is in an array, not a list
+            # show data - observation and simulations
+            plt.subplot(2,2,1)
+            n_obs_lines = data.obs_data.y.T.shape[1]
+            plt.plot(data.sim_data.y_ind,data.sim_data.y.T)
+            plt.plot(data.obs_data.y_ind,data.obs_data.y.T,'k',linewidth=2,label=['observation']+['_']*(n_obs_lines-1) if n_obs_lines>1 else 'observation')
+            plt.legend()
+            plt.title('Data: sims, obs')
 
+            # show obs and reconstructed obs alone
+            plt.subplot(2,2,2)
+            plt.plot(data.obs_data.y_ind,data.obs_data.y.T,'k',linewidth=2,label=['observation']+['_']*(n_obs_lines-1) if n_obs_lines>1 else 'observation')
+            plt.plot(data.obs_data.y_ind,((sp.linalg.lstsq(data.obs_data.K.T,data.obs_data.y_std.T)[0].T@data.obs_data.K)*
+                      data.obs_data.orig_y_sd + data.obs_data.orig_y_mean).T,'r--',linewidth=2,
+                     label=['PCA modeled observation']+['_']*(n_obs_lines-1) if n_obs_lines>1 else 'PCA modeled observation')
+            plt.legend()
+            plt.title('PCA truncation effect on observation')
 
+            # show data projected and reconstructed through K basis
+            # (this is the problem being solved given PCA truncation)
+            plt.subplot(2,2,3)
+            # add the obs projected and reconstructed through the K basis
+            plt.plot(data.sim_data.y_ind,((sp.linalg.lstsq(data.sim_data.K.T,data.sim_data.y_std.T)[0].T@data.sim_data.K)*
+                      data.sim_data.orig_y_sd + data.sim_data.orig_y_mean).T)
+            plt.plot(data.obs_data.y_ind,((sp.linalg.lstsq(data.obs_data.K.T,data.obs_data.y_std.T)[0].T@data.obs_data.K)*
+                      data.obs_data.orig_y_sd + data.obs_data.orig_y_mean).T,'k',linewidth=2,
+                    label=['observation']+['_']*(n_obs_lines-1) if n_obs_lines>1 else 'observation')
+            plt.legend()
+            plt.title('K projected: sims, obs')
+            plt.show()
+        else: #ragged
+            # show data - observation and simulations
+            plt.subplot(2,2,1)
+            plt.plot(data.sim_data.y_ind,data.sim_data.y.T)
+            n_y_obs = len(data.obs_data.y)
+            for i in range(n_y_obs):
+                plt.plot(data.obs_data.y_ind[i],data.obs_data.y[i].T,'k',linewidth=2,label='observation' if i==1 else '_')
+            plt.legend()
+            plt.title('Data: sims, obs')
 
+            # show obs and reconstructed obs alone
+            plt.subplot(2,2,2)
+            for i in range(n_y_obs):
+                plt.plot(data.obs_data.y_ind[i],data.obs_data.y[i].T,'k',linewidth=2,label='observation' if i==1 else '_')
+                plt.plot(data.obs_data.y_ind[i],((sp.linalg.lstsq(data.obs_data.K[i].T,data.obs_data.y_std[i].T)[0].T@data.obs_data.K[i])*
+                          data.obs_data.orig_y_sd[i] + data.obs_data.orig_y_mean[i]).T,'r--',linewidth=2,
+                         label='PCA modeled observation' if i==1 else '_')
+            plt.legend()
+            plt.title('PCA truncation effect on observation')
+
+            # show data projected and reconstructed through K basis
+            # (this is the problem being solved given PCA truncation)
+            plt.subplot(2,2,3)
+            # add the obs projected and reconstructed through the K basis
+            plt.plot(data.sim_data.y_ind,((sp.linalg.lstsq(data.sim_data.K.T,data.sim_data.y_std.T)[0].T@data.sim_data.K)*
+                      data.sim_data.orig_y_sd + data.sim_data.orig_y_mean).T)
+            for i in range(n_y_obs):
+                plt.plot(data.obs_data.y_ind[i],((sp.linalg.lstsq(data.obs_data.K[i].T,data.obs_data.y_std[i].T)[0].T@data.obs_data.K[i])*
+                          data.obs_data.orig_y_sd[i] + data.obs_data.orig_y_mean[i]).T,'k',linewidth=2,
+                            label='observation' if i==1 else '_')
+            plt.legend()
+            plt.title('K projected: sims, obs')
+            plt.show()
