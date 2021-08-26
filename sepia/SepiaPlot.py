@@ -262,6 +262,7 @@ def plot_K_basis(data, max_plots=4, obs=True):
 
         TODO: Lamy should be 1/Sigy_std
 
+        :param SepiaData data: SepiaData object
         :param int max_plots: maximum number of principal components to plot
         :return: tuple containing matplotlib figure objects: (fig_sim, fig_obs) or just fig_sim if no observed data is present
         """
@@ -326,6 +327,7 @@ def plot_K_weights(data, max_u_plot=5):
 
         TODO: Lamy should be 1/Sigy_std
 
+        :param SepiaData data: SepiaData object
         :param int max_u_plot: max number of u's for which to plot vertical line over histogram of w's
         :return: tuple containing matplotlib figure objects: (fig_uw, fig_v) or just fig_uw if no discrepancy is specified
         """
@@ -455,6 +457,7 @@ def plot_u_w_pairs(data, max_plots=5, save=False):
         """
         Plots principal component basis weights for both sim and obs data (if applicable). Only applies to multivariate-output models.
 
+        :param SepiaData data: SepiaData object
         :param int max_plots: max number of principal components to plot
         :return: matplotlib figure fig_g: seaborn pairs figure
         """
@@ -551,6 +554,8 @@ def plot_u_w_pairs(data, max_plots=5, save=False):
 def plot_K_residuals(data):
         """
         Plots residuals after projection to K basis. Only applies to multivariate-output models.
+        
+        :param SepiaData data: SepiaData object
         :return: tuple containing matplotlib figure objects: (fig_u, fig_v) or just fig_noD if no discrepancy is specified
         """
         # Return early if scalar out or basis not set up
@@ -623,6 +628,7 @@ def plot_data(data,which_x=None,x_min=None,x_max=None,y_min=None,y_max=None,n_ne
         Plots observed data and simulation runs on the same axis with n_neighbors nearest simulations
         in x-space. Only applies to multivariate-output models with both simulation and observed data.
         
+        :param SepiaData data: SepiaData object
         :param list/NoneType which_x: optionally sets which x_obs indices to plot
         :param float x_min: sets x lower limit on plot
         :param float x_max: sets x upper limit on plot
@@ -732,7 +738,11 @@ def plot_data(data,which_x=None,x_min=None,x_max=None,y_min=None,y_max=None,n_ne
         return fig
 
 def pca_projected_data(data):
-    
+    """
+    Plots observed and simulated data, along with PCA representations of that data.
+
+    :param SepiaData data: SepiaData object
+    """
     # 2 dimensional y_ind will require much more consideration to make a generalized plotting routine
     if data.ragged_obs and min(np.atleast_2d(data.obs_data.y_ind[0]).shape)>1:
         pass
@@ -804,3 +814,21 @@ def pca_projected_data(data):
             plt.legend()
             plt.title('K projected: sims, obs')
             plt.show()
+            
+def cv_predicted_vs_true(model,cvpred,figsize=(10,10)):
+    """
+    Plot emulator predicted PC weight vs. true PC weights to validate
+    
+    :param SepiaModel model: SepiaModel object
+    :param SepiaXvalEmulatorPrediction cvpred: SepiaXvalEmulatorPrediction object
+    """
+    num_pc = model.data.sim_data.K.shape[0]
+    wpred=cvpred.get_w()
+    w=model.num.w.reshape((-1,num_pc),order='F')
+    nrows=int(np.ceil(np.sqrt(num_pc))); ncols=int(np.ceil(num_pc/nrows))
+    plt.figure(figsize=figsize); 
+    for ii in range(num_pc): 
+        plt.subplot(nrows,ncols,ii+1)
+        plt.plot(np.mean(wpred,axis=0)[:,ii],w[:,ii],'.')
+        plt.xticks([]); plt.yticks([])
+    plt.show()
