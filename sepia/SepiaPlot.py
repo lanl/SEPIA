@@ -756,7 +756,7 @@ def pca_projected_data(data):
             plt.subplot(2,2,1)
             n_obs_lines = data.obs_data.y.T.shape[1]
             plt.plot(data.sim_data.y_ind, data.sim_data.y.T)
-            label = ['observation']+['_']*(n_obs_lines-1) if n_obs_lines>1 else 'observation'
+            label = ['observation'] + ['_'] * (n_obs_lines-1) if n_obs_lines > 1 else 'observation'
             plt.plot(data.obs_data.y_ind, data.obs_data.y.T, 'k', linewidth=2, label=label)
             plt.legend()
             plt.title('Data: sims, obs')
