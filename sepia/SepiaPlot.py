@@ -765,8 +765,8 @@ def pca_projected_data(data):
             plt.subplot(2,2,2)
             y_obs_pca = sp.linalg.lstsq(data.obs_data.K.T,data.obs_data.y_std.T)[0].T @ data.obs_data.K
             y_obs_pca = (y_obs_pca * data.obs_data.orig_y_sd + data.obs_data.orig_y_mean).T
-            y_sim_pca = ((sp.linalg.lstsq(data.sim_data.K.T,data.sim_data.y_std.T)[0].T@data.sim_data.K)*
-                      data.sim_data.orig_y_sd + data.sim_data.orig_y_mean).T
+            y_sim_pca = sp.linalg.lstsq(data.sim_data.K.T, data.sim_data.y_std.T)[0].T @ data.sim_data.K
+            y_sim_pca = (y_sim_pca * data.sim_data.orig_y_sd + data.sim_data.orig_y_mean).T
             label = ['observation']+['_']*(n_obs_lines-1) if n_obs_lines>1 else 'observation'
             plt.plot(data.obs_data.y_ind, data.obs_data.y.T, 'k', linewidth=2, label=label)
             label = ['PCA modeled observation']+['_']*(n_obs_lines-1) if n_obs_lines>1 else 'PCA modeled observation'
