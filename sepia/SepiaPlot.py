@@ -812,7 +812,7 @@ def pca_projected_data(data):
             plt.subplot(2,2,3)
             # add the obs projected and reconstructed through the K basis
             y_sim_pca = ((sp.linalg.lstsq(data.sim_data.K.T,data.sim_data.y_std.T)[0].T@data.sim_data.K)*
-                      data.sim_data.orig_y_sd + data.sim_data.orig_y_mean).T
+                          data.sim_data.orig_y_sd + data.sim_data.orig_y_mean).T
             plt.plot(data.sim_data.y_ind, y_sim_pca)
             for i in range(n_y_obs):
                 label = 'observation' if i==1 else '_'
