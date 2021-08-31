@@ -779,7 +779,7 @@ def pca_projected_data(data):
             plt.subplot(2,2,3)
             # add the obs projected and reconstructed through the K basis
             plt.plot(data.sim_data.y_ind, y_sim_pca)
-            label = ['observation']+['_']*(n_obs_lines-1) if n_obs_lines>1 else 'observation'
+            label = ['observation'] + ['_'] * (n_obs_lines - 1) if n_obs_lines > 1 else 'observation'
             plt.plot(data.obs_data.y_ind, y_obs_pca, 'k', linewidth=2, label=label)
             plt.legend()
             plt.title('K projected: sims, obs')
