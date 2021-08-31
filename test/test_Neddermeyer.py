@@ -141,7 +141,10 @@ class SepiaNeddermeyerTestCase(unittest.TestCase):
             np.tile(phi_obs, 3).T
         ])
         # experiment 2
-        y_ind_obs_2 = np.column_stack( ( (np.ones(phi_obs.shape[0])*time_obs[1]).reshape(16,1), phi_obs.T ) )
+        y_ind_obs_2 = np.column_stack([
+            (np.ones(phi_obs.shape[0]) * time_obs[1]).reshape(16,1),
+            phi_obs.T
+        ])
         # experiment 3
         y_ind_obs_3 = np.column_stack( ( np.concatenate((np.ones(phi_obs.shape[0])*time_obs[2][0],\
                                            np.ones(phi_obs.shape[0])*time_obs[2][1])), np.tile(phi_obs,2).T ) )
