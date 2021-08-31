@@ -769,7 +769,7 @@ def pca_projected_data(data):
             y_sim_pca = (y_sim_pca * data.sim_data.orig_y_sd + data.sim_data.orig_y_mean).T
             label = ['observation']+['_']*(n_obs_lines-1) if n_obs_lines>1 else 'observation'
             plt.plot(data.obs_data.y_ind, data.obs_data.y.T, 'k', linewidth=2, label=label)
-            label = ['PCA modeled observation']+['_']*(n_obs_lines-1) if n_obs_lines>1 else 'PCA modeled observation'
+            label = ['PCA modeled observation'] + ['_'] * (n_obs_lines - 1) if n_obs_lines > 1 else 'PCA modeled observation'
             plt.plot(data.obs_data.y_ind, y_obs_pca, 'r--', linewidth=2, label=label)
             plt.legend()
             plt.title('PCA truncation effect on observation')
