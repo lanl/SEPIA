@@ -798,7 +798,7 @@ def pca_projected_data(data):
             # show obs and reconstructed obs alone
             plt.subplot(2,2,2)
             y_obs_pca = [((sp.linalg.lstsq(data.obs_data.K[i].T,data.obs_data.y_std[i].T)[0].T@data.obs_data.K[i])*
-                         data.obs_data.orig_y_sd[i]  + data.obs_data.orig_y_mean[i]).T for i in range(n_y_obs)]
+                         data.obs_data.orig_y_sd[i] + data.obs_data.orig_y_mean[i]).T for i in range(n_y_obs)]
             for i in range(n_y_obs):
                 label = 'observation' if i==1 else '_'
                 plt.plot(data.obs_data.y_ind[i], data.obs_data.y[i].T, 'k', linewidth=2, label=label)
