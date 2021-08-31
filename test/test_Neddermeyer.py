@@ -126,16 +126,25 @@ class SepiaNeddermeyerTestCase(unittest.TestCase):
             if i==1: obs_params[4]=.17
             elif i==2: obs_params[4]=.36
             r_obs[i] = np.atleast_2d(obs_params[0]*nedderimp(time_obs[i],obs_params))
-            y_obs[i] = np.tile(r_obs[i].T,phi_obs.shape[0]).reshape(n_phi_obs,n_time_obs[i]) + np.tile(datadelt,n_time_obs[i])
+            y_obs[i] = np.tile(r_obs[i].T, phi_obs.shape[0]).reshape(n_phi_obs,n_time_obs[i])
+            y_obs[i] += np.tile(datadelt, n_time_obs[i])
             y_obs[i] = (y_obs[i] + .01*np.random.normal(size=y_obs[i].shape)).flatten()
 
         # indices of observations
         x_obs = ((np.array([params10[4], .17, .36])/.32-.5)/.65).reshape(3,1)
-        y_ind_obs = [np.column_stack( ( np.concatenate((np.ones(phi_obs.shape[0])*time_obs[0][0],                                   np.ones(phi_obs.shape[0])*time_obs[0][1],                                       np.ones(phi_obs.shape[0])*time_obs[0][2])), np.tile(phi_obs,3).T ) ),
-                        np.column_stack( ( (np.ones(phi_obs.shape[0])*time_obs[1]).reshape(16,1), phi_obs.T ) ),
-                        np.column_stack( ( np.concatenate((np.ones(phi_obs.shape[0])*time_obs[2][0],\
-                                           np.ones(phi_obs.shape[0])*time_obs[2][1])), np.tile(phi_obs,2).T ) )]
-
+        # create y_ind_obs where each row is a (time, angle) pair. Pairs are grouped by time.
+        # experiment 1
+        y_ind_obs_1 = np.column_stack( ( np.concatenate((np.ones(phi_obs.shape[0])*time_obs[0][0],\
+                                           np.ones(phi_obs.shape[0])*time_obs[0][1],\
+                                               np.ones(phi_obs.shape[0])*time_obs[0][2])), np.tile(phi_obs,3).T ) )
+        # experiment 2
+        y_ind_obs_2 = np.column_stack( ( (np.ones(phi_obs.shape[0])*time_obs[1]).reshape(16,1), phi_obs.T ) )
+        # experiment 3
+        y_ind_obs_3 = np.column_stack( ( np.concatenate((np.ones(phi_obs.shape[0])*time_obs[2][0],\
+                                           np.ones(phi_obs.shape[0])*time_obs[2][1])), np.tile(phi_obs,2).T ) )
+        # Store in a list containing all 3 experiments
+        y_ind_obs = [y_ind_obs_1, y_ind_obs_2, y_ind_obs_3]
+        del y_ind_obs_1, y_ind_obs_2, y_ind_obs_3
 
         # ### Sepia Data
         data = SepiaData(x_sim = x_sim, t_sim = t_sim, y_sim = y_sim, y_ind_sim = y_sim_ind_time_phi,
