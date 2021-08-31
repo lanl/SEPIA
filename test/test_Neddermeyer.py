@@ -134,9 +134,12 @@ class SepiaNeddermeyerTestCase(unittest.TestCase):
         x_obs = ((np.array([params10[4], .17, .36])/.32-.5)/.65).reshape(3,1)
         # create y_ind_obs where each row is a (time, angle) pair. Pairs are grouped by time.
         # experiment 1
-        y_ind_obs_1 = np.column_stack( ( np.concatenate((np.ones(phi_obs.shape[0])*time_obs[0][0],\
-                                           np.ones(phi_obs.shape[0])*time_obs[0][1],\
-                                               np.ones(phi_obs.shape[0])*time_obs[0][2])), np.tile(phi_obs,3).T ) )
+        y_ind_obs_1 = np.column_stack([
+            np.concatenate((np.ones(phi_obs.shape[0])*time_obs[0][0],
+                            np.ones(phi_obs.shape[0])*time_obs[0][1],
+                            np.ones(phi_obs.shape[0])*time_obs[0][2])),
+            np.tile(phi_obs, 3).T
+        ])
         # experiment 2
         y_ind_obs_2 = np.column_stack( ( (np.ones(phi_obs.shape[0])*time_obs[1]).reshape(16,1), phi_obs.T ) )
         # experiment 3
