@@ -222,7 +222,7 @@ class SepiaHierarchicalThetaModels:
         #if 'mu' in hprm.name:
         #
         # If in bounds, evaluate draw to decide whether or not to accept; if not in bounds, nothing changes
-        if inb:
+        if hprm.mcmc.aCorr and inb:
             # Store old/current log prior and prior params for thetas in case reject, put cand into theta priors
             old_prior = []
             old_prior_params = []

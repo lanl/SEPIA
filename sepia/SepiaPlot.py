@@ -6,6 +6,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec
 import numpy as np
+import scipy as sp
 
 sns.set(style="ticks")
 
@@ -17,7 +18,7 @@ def theta_pairs(samples_dict,design_names=None,native=False,lims=None,theta_ref=
     :param list/NoneType design_names: list of string names for thetas, optional (None will use default names)
     :param bool native: put theta on native scale? (note: you likely want to pass lims in this case)
     :param list lims: list of tuples, limits for each theta value for plotting; defaults to [0, 1] if native=False
-    :param list theta_ref: scalar reference values to plot as vlines on distplots and as red dots on bivariate plots
+    :param list theta_ref: scalar reference values to plot as vlines on histplots and as red dots on bivariate plots
     :param str save: file name to save plot
     :returns: matplotlib figure
     """
@@ -42,8 +43,8 @@ def theta_pairs(samples_dict,design_names=None,native=False,lims=None,theta_ref=
     if theta_df.shape[1]>2:
         g = sns.PairGrid(theta_df.loc[:, theta_df.columns != 'idx'], diag_sharey=False);
         g.map_upper(sns.scatterplot, palette = 'coolwarm', hue=theta_df['idx'], legend=False);
-        g.map_lower(sns.kdeplot, cmap="viridis", shade=True, shade_lowest=False);
-        g.map_diag(sns.distplot, hist=True);
+        g.map_lower(sns.kdeplot, cmap="viridis", fill=True, thresh=0.05);
+        g.map_diag(sns.histplot, kde=True);
         if lims is not None:
             # Undo sharing of axes
             for i in range(n_theta):
@@ -75,7 +76,8 @@ def theta_pairs(samples_dict,design_names=None,native=False,lims=None,theta_ref=
         return g.fig
     else:
         fig,ax=plt.subplots()
-        sns.distplot(theta_df.loc[:, theta_df.columns != 'idx'],hist=True,axlabel=design_names[0],ax=ax)
+        ax.set_xlabel(design_names[0])
+        sns.histplot(theta_df.loc[:, theta_df.columns != 'idx'],kde=True,ax=ax)
         if save is not None: 
             plt.tight_layout()
             plt.savefig(save,dpi=300,bbox_inches='tight')
@@ -260,6 +262,7 @@ def plot_K_basis(data, max_plots=4, obs=True):
 
         TODO: Lamy should be 1/Sigy_std
 
+        :param SepiaData data: SepiaData object
         :param int max_plots: maximum number of principal components to plot
         :return: tuple containing matplotlib figure objects: (fig_sim, fig_obs) or just fig_sim if no observed data is present
         """
@@ -324,6 +327,7 @@ def plot_K_weights(data, max_u_plot=5):
 
         TODO: Lamy should be 1/Sigy_std
 
+        :param SepiaData data: SepiaData object
         :param int max_u_plot: max number of u's for which to plot vertical line over histogram of w's
         :return: tuple containing matplotlib figure objects: (fig_uw, fig_v) or just fig_uw if no discrepancy is specified
         """
@@ -453,6 +457,7 @@ def plot_u_w_pairs(data, max_plots=5, save=False):
         """
         Plots principal component basis weights for both sim and obs data (if applicable). Only applies to multivariate-output models.
 
+        :param SepiaData data: SepiaData object
         :param int max_plots: max number of principal components to plot
         :return: matplotlib figure fig_g: seaborn pairs figure
         """
@@ -531,7 +536,7 @@ def plot_u_w_pairs(data, max_plots=5, save=False):
             lims = max(np.maximum(np.max(np.abs(w),axis=0),np.max(np.abs(u),axis=0))*1.1)
             with sns.plotting_context("notebook", font_scale=1):
                 g = sns.PairGrid(w_df)
-                g.map_diag(sns.distplot)
+                g.map_diag(sns.histplot, kde=True)
                 g.map_offdiag(sns.scatterplot)
                 for i in range(g.axes.shape[1]): # rows
                     for j in range(g.axes.shape[0]): # columns
@@ -549,6 +554,8 @@ def plot_u_w_pairs(data, max_plots=5, save=False):
 def plot_K_residuals(data):
         """
         Plots residuals after projection to K basis. Only applies to multivariate-output models.
+        
+        :param SepiaData data: SepiaData object
         :return: tuple containing matplotlib figure objects: (fig_u, fig_v) or just fig_noD if no discrepancy is specified
         """
         # Return early if scalar out or basis not set up
@@ -621,6 +628,7 @@ def plot_data(data,which_x=None,x_min=None,x_max=None,y_min=None,y_max=None,n_ne
         Plots observed data and simulation runs on the same axis with n_neighbors nearest simulations
         in x-space. Only applies to multivariate-output models with both simulation and observed data.
         
+        :param SepiaData data: SepiaData object
         :param list/NoneType which_x: optionally sets which x_obs indices to plot
         :param float x_min: sets x lower limit on plot
         :param float x_max: sets x upper limit on plot
@@ -729,6 +737,104 @@ def plot_data(data,which_x=None,x_min=None,x_max=None,y_min=None,y_max=None,n_ne
         if save is not None: fig.savefig(save,dpi=300,bbox_inches='tight')
         return fig
 
+def pca_projected_data(data):
+    """
+    Plots observed and simulated data, along with PCA representations of that data.
 
+    :param SepiaData data: SepiaData object
+    """
+    # 2 dimensional y_ind will require much more consideration to make a generalized plotting routine
+    if data.ragged_obs and min(np.atleast_2d(data.obs_data.y_ind[0]).shape)>1:
+        pass
+    elif (not data.ragged_obs) and min(np.atleast_2d(data.obs_data.y_ind).shape)>1:
+        pass
+    # 1 dimensional y_ind
+    else:
+        plt.figure(figsize=(10,10))
+        if not data.ragged_obs: # not ragged so everything is in an array, not a list
+            # show data - observation and simulations
+            plt.subplot(2,2,1)
+            n_obs_lines = data.obs_data.y.T.shape[1]
+            plt.plot(data.sim_data.y_ind, data.sim_data.y.T)
+            label = ['observation'] + ['_'] * (n_obs_lines-1) if n_obs_lines > 1 else 'observation'
+            plt.plot(data.obs_data.y_ind, data.obs_data.y.T, 'k', linewidth=2, label=label)
+            plt.legend()
+            plt.title('Data: sims, obs')
 
+            # show obs and reconstructed obs alone
+            plt.subplot(2,2,2)
+            y_obs_pca = sp.linalg.lstsq(data.obs_data.K.T,data.obs_data.y_std.T)[0].T @ data.obs_data.K
+            y_obs_pca = (y_obs_pca * data.obs_data.orig_y_sd + data.obs_data.orig_y_mean).T
+            y_sim_pca = sp.linalg.lstsq(data.sim_data.K.T, data.sim_data.y_std.T)[0].T @ data.sim_data.K
+            y_sim_pca = (y_sim_pca * data.sim_data.orig_y_sd + data.sim_data.orig_y_mean).T
+            label = ['observation']+['_']*(n_obs_lines-1) if n_obs_lines>1 else 'observation'
+            plt.plot(data.obs_data.y_ind, data.obs_data.y.T, 'k', linewidth=2, label=label)
+            label = ['PCA modeled observation'] + ['_'] * (n_obs_lines - 1) if n_obs_lines > 1 else 'PCA modeled observation'
+            plt.plot(data.obs_data.y_ind, y_obs_pca, 'r--', linewidth=2, label=label)
+            plt.legend()
+            plt.title('PCA truncation effect on observation')
 
+            # show data projected and reconstructed through K basis
+            # (this is the problem being solved given PCA truncation)
+            plt.subplot(2,2,3)
+            # add the obs projected and reconstructed through the K basis
+            plt.plot(data.sim_data.y_ind, y_sim_pca)
+            label = ['observation'] + ['_'] * (n_obs_lines - 1) if n_obs_lines > 1 else 'observation'
+            plt.plot(data.obs_data.y_ind, y_obs_pca, 'k', linewidth=2, label=label)
+            plt.legend()
+            plt.title('K projected: sims, obs')
+            plt.show()
+        else: #ragged
+            # show data - observation and simulations
+            plt.subplot(2,2,1)
+            plt.plot(data.sim_data.y_ind, data.sim_data.y.T)
+            n_y_obs = len(data.obs_data.y)
+            for i in range(n_y_obs):
+                label = 'observation' if i==1 else '_'
+                plt.plot(data.obs_data.y_ind[i], data.obs_data.y[i].T, 'k', linewidth=2, label=label)
+            plt.legend()
+            plt.title('Data: sims, obs')
+
+            # show obs and reconstructed obs alone
+            plt.subplot(2,2,2)
+            y_obs_pca = [((sp.linalg.lstsq(data.obs_data.K[i].T,data.obs_data.y_std[i].T)[0].T@data.obs_data.K[i])*
+                         data.obs_data.orig_y_sd[i] + data.obs_data.orig_y_mean[i]).T for i in range(n_y_obs)]
+            for i in range(n_y_obs):
+                label = 'observation' if i==1 else '_'
+                plt.plot(data.obs_data.y_ind[i], data.obs_data.y[i].T, 'k', linewidth=2, label=label)
+                label = 'PCA modeled observation' if i==1 else '_'
+                plt.plot(data.obs_data.y_ind[i], y_obs_pca[i], 'r--', linewidth=2, label=label)
+            plt.legend()
+            plt.title('PCA truncation effect on observation')
+
+            # show data projected and reconstructed through K basis
+            # (this is the problem being solved given PCA truncation)
+            plt.subplot(2,2,3)
+            # add the obs projected and reconstructed through the K basis
+            y_sim_pca = ((sp.linalg.lstsq(data.sim_data.K.T,data.sim_data.y_std.T)[0].T@data.sim_data.K)*
+                          data.sim_data.orig_y_sd + data.sim_data.orig_y_mean).T
+            plt.plot(data.sim_data.y_ind, y_sim_pca)
+            for i in range(n_y_obs):
+                label = 'observation' if i==1 else '_'
+                plt.plot(data.obs_data.y_ind[i], y_obs_pca[i], 'k', linewidth=2, label=label)
+            plt.legend()
+            plt.title('K projected: sims, obs')
+            plt.show()
+            
+def cv_predicted_vs_true(model,cvpred,figsize=(10,10)):
+    """
+    Plot emulator predicted PC weight vs. true PC weights to validate
+    
+    :param SepiaModel model: SepiaModel object
+    :param SepiaXvalEmulatorPrediction cvpred: SepiaXvalEmulatorPrediction object
+    """
+    num_pc = model.data.sim_data.K.shape[0]
+    wpred=cvpred.get_w()
+    w=model.num.w.reshape((-1,num_pc),order='F')
+    nrows=int(np.ceil(np.sqrt(num_pc))); ncols=int(np.ceil(num_pc/nrows))
+    plt.figure(figsize=figsize); 
+    for ii in range(num_pc): 
+        plt.subplot(nrows,ncols,ii+1)
+        plt.plot(np.mean(wpred,axis=0)[:,ii],w[:,ii],'.')
+        plt.xticks([]); plt.yticks([])
+    plt.show()

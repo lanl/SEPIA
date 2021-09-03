@@ -200,7 +200,7 @@ class SepiaData(object):
                     res += 't index %d with %d categories\n' % (i, ci)
         return res
 
-    def transform_xt(self, x_notrans=None, t_notrans=None, x_range=None, t_range=None, x=None, t=None):
+    def transform_xt(self, x_notrans=None, t_notrans=None, x_range=None, t_range=None, x=None, t=None, native=False):
         """
         Transforms sim_data x and t and obs_data x to lie in [0, 1], columnwise, or applies
         same transformation to new x and t.
@@ -211,6 +211,7 @@ class SepiaData(object):
         :param numpy.ndarray/NoneType t: new t values to transform to [0, 1] using same rules as original t data or None
         :param numpy.ndarray/NoneType x_range: user specified data ranges, first row is min, second row is max for each variable
         :param numpy.ndarray/NoneType t_range: user specified data ranges, first row is min, second row is max for each variable
+        :param bool native: boolean for reverse transformation on x,t from [0, 1] to native scale
         :returns: tuple of x_trans, t_trans if x and t arguments provided; otherwise returns (None, None)
 
         .. note:: A column is not transformed if min/max of the column values are equal, if the column is categorical,
@@ -262,8 +263,10 @@ class SepiaData(object):
                 self.obs_data.x_trans = (self.obs_data.x - orig_x_min) / (orig_x_max - orig_x_min)
 
         # If a new x was passed in, transform it
-        if x is not None:
+        if x is not None and not native:
             x_trans = (x - self.sim_data.orig_x_min) / (self.sim_data.orig_x_max - self.sim_data.orig_x_min)
+        if x is not None and native:
+            x_trans = (x * (self.sim_data.orig_x_max - self.sim_data.orig_x_min)) + self.sim_data.orig_x_min
 
         # Transform t to unit hypercube or user-specified ranges
         if self.sim_data.t is not None:
@@ -297,8 +300,10 @@ class SepiaData(object):
                     self.obs_data.orig_t_min = orig_t_min
                     self.obs_data.orig_t_max = orig_t_max
             # If a new t was passed in, transform it
-            if t is not None:
+            if t is not None and not native:
                 t_trans = (t - self.sim_data.orig_t_min) / (self.sim_data.orig_t_max - self.sim_data.orig_t_min)
+            if t is not None and native:
+                t_trans = (t * (self.sim_data.orig_t_max - self.sim_data.orig_t_min)) + self.sim_data.orig_t_min
 
         if transform_sep:
             self.sim_data.xt_sep_design_orig = self.sim_data.xt_sep_design.copy()
@@ -316,7 +321,7 @@ class SepiaData(object):
                 tind = tind + dlen
 
         return x_trans, t_trans
-
+    
     def standardize_y(self, center=True, scale='scalar', y_mean=None, y_sd=None):
         """
         Standardizes both `sim_data` and `obs_data` outputs y based on sim_data.y mean/SD.

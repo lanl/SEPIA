@@ -3,14 +3,13 @@ import numpy as np
 
 from sepia.SepiaData import SepiaData
 
-np.random.seed(42)
-
 class SepiaDataTestCase(unittest.TestCase):
 
     def test_univariate_sim_only_x_only(self):
         """
         Tests setup for univariate sim only where we only use an x input, not t.
         """
+        np.random.seed(42)
         m = 700  # number of simulated observations
         p = 3    # dimension of x (simulation inputs)
 
@@ -46,6 +45,7 @@ class SepiaDataTestCase(unittest.TestCase):
         """
         Tests setup for univariate sim only where we only use a t input, not x; x is set up as a dummy internally.
         """
+        np.random.seed(42)
         m = 700  # number of simulated observations
         p = 3    # dimension of x (simulation inputs)
 
@@ -81,6 +81,7 @@ class SepiaDataTestCase(unittest.TestCase):
         """
         Tests setup for multivariate sim only where we only use an x input, not t.
         """
+        np.random.seed(42)
         m = 700     # number of simulated observations
         p = 3       # dimension of x (simulation inputs)
         ell = 1000  # dimension of y output
@@ -122,6 +123,7 @@ class SepiaDataTestCase(unittest.TestCase):
         """
         Tests setup for multivariate sim only where we only use a t input, not x (dummy x is set up).
         """
+        np.random.seed(42)
         m = 700  # number of simulated observations
         p = 3  # dimension of t (simulation inputs)
         ell = 1000  # dimension of y output
@@ -162,6 +164,7 @@ class SepiaDataTestCase(unittest.TestCase):
         """
         Tests univiariate sim and obs where we pass in both x and t.
         """
+        np.random.seed(42)
         m = 700  # number of simulated observations
         p = 3    # dimension of x (sim/obs inputs)
         q = 2    # dimension of t (extra sim inputs)
@@ -211,6 +214,7 @@ class SepiaDataTestCase(unittest.TestCase):
         """
         Tests univiariate sim and obs where we pass in t, but not x (it will create dummy x).
         """
+        np.random.seed(42)
         m = 1000  # number of simulated observations
         q = 2  # dimension of t (extra sim inputs)
         n = 5  # number of observed observations
@@ -255,6 +259,7 @@ class SepiaDataTestCase(unittest.TestCase):
         """
         Tests multivariate sim and obs where we pass in x and t.
         """
+        np.random.seed(42)
         m = 700         # number of simulated observations
         p = 3           # dimension of x (simulation inputs)
         ell_sim = 1000  # dimension of y output sim
@@ -316,6 +321,7 @@ class SepiaDataTestCase(unittest.TestCase):
         """
         Tests multivariate sim and obs where we pass in t but not x (x is a dummy variable).
         """
+        np.random.seed(42)
         m = 700         # number of simulated observations
         ell_sim = 1000  # dimension of y output sim
         ell_obs = 258   # dimension of y output obs
@@ -374,6 +380,7 @@ class SepiaDataTestCase(unittest.TestCase):
         """
         Tests multivariate sim and obs where we pass in x and t but obs is ragged.
         """
+        np.random.seed(42)
         m = 700         # number of simulated observations
         p = 3           # dimension of x (simulation inputs)
         ell_sim = 1000  # dimension of y output sim
@@ -434,6 +441,7 @@ class SepiaDataTestCase(unittest.TestCase):
         """
         Tests setup for univariate sim only where we only use an x input, not t, and use x_cat_ind
         """
+        np.random.seed(42)
         m = 200  # number of simulated observations
         p = 3    # dimension of x (simulation inputs)
 
@@ -455,6 +463,7 @@ class SepiaDataTestCase(unittest.TestCase):
         Tests setup for univariate sim only where we only use a t input, not x; x is set up as a dummy internally.
         Use t_cat_ind.
         """
+        np.random.seed(42)
         m = 200  # number of simulated observations
         p = 3    # dimension of x (simulation inputs)
 
@@ -471,6 +480,28 @@ class SepiaDataTestCase(unittest.TestCase):
         self.assertEqual(np.min(d.sim_data.t_trans[:, 2]), 1)
         self.assertEqual(np.max(d.sim_data.t_trans[:, 2]), 4)
 
-
-
-
+    def test_native_transform(self):
+        """
+        Test transforming x,t from standardized scale back to native scale
+        """
+        x = np.atleast_2d(np.linspace(0,10,10)).T
+        t = np.atleast_2d(np.linspace(5,15,10)).T
+        y = np.atleast_2d(np.random.normal(0,1,10)).T
+        d = SepiaData(x_sim=x,t_sim=t,y_sim=y)
+        
+        print('Testing native x,t transform SepiaData...')
+        print(d)
+        
+        d.transform_xt()
+        
+        # test that t_trans returns to native t
+        native_xt = d.transform_xt(x=d.sim_data.x_trans,t=d.sim_data.t_trans,native=True)
+        self.assertTrue(np.allclose(np.array(native_xt),np.array([x,t])))
+        # test that 0 goes to native x_min,t_min and 1 goes to x_max,t_max
+        self.assertEqual(d.transform_xt(x=0,native=True)[0].flatten(),d.sim_data.orig_x_min.flatten()) 
+        self.assertEqual(d.transform_xt(x=1,native=True)[0].flatten(),d.sim_data.orig_x_max.flatten())
+        self.assertEqual(d.transform_xt(t=0,native=True)[1].flatten(),d.sim_data.orig_t_min.flatten()) 
+        self.assertEqual(d.transform_xt(t=1,native=True)[1].flatten(),d.sim_data.orig_t_max.flatten())
+        
+        
+        
