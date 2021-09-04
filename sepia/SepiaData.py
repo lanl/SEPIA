@@ -466,6 +466,7 @@ class SepiaData(object):
         if y_std is None:
             print('WARNING: y not standardized, applying default standardization before PCA...')
             self.standardize_y()
+            y_std = self.sim_data.y_std
         U, s, V = np.linalg.svd(y_std.T, full_matrices=False)
         s2 = np.square(s)
         if n_pc < 1:
