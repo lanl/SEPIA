@@ -244,8 +244,8 @@ class SepiaData(object):
                     raise ValueError('user-specified ranges are first row min, second row max')
                 if x_range.shape[1] != nx:
                     raise ValueError('user-specified ranges must be given for every x variable')
-                orig_x_min = x_range[[0],:]
-                orig_x_max = x_range[[1],:]
+                orig_x_min = x_range[[0],:].reshape((1,-1))
+                orig_x_max = x_range[[1],:].reshape((1,-1))
             # If any xmin/xmax are equal, don't transform
             xmm = orig_x_max - orig_x_min
             x_notrans = list(set(x_notrans) | set([i for i in range(nx) if xmm[:, i] == 0]))
@@ -283,8 +283,8 @@ class SepiaData(object):
                         raise ValueError('user-specified ranges are first row min, second row max')
                     if t_range.shape[1] != nt:
                         raise ValueError('user-specified ranges must be given for every t variable')
-                    orig_t_min = t_range[0, :]
-                    orig_t_max = t_range[1, :]
+                    orig_t_min = t_range[0, :].reshape((1,-1))
+                    orig_t_max = t_range[1, :].reshape((1,-1))
                 # If any tmin/tmax are equal, don't transform
                 tmm = orig_t_max - orig_t_min
                 t_notrans = list(set(t_notrans) | set([i for i in range(nt) if tmm[:, i] == 0]))
