@@ -120,6 +120,13 @@ class SepiaEmulatorPrediction(SepiaPrediction):
         """
         super(SepiaEmulatorPrediction,self).__init__(*args,**kwrds)
         # prediction is samples x prediction points (xpreds) x pu (basis)
+        
+        if self.model.data.sep_design:
+            print('Separable Design model. Separable designs for emulator predictions are not currently implemented')
+            print('  Work around is to set this problem up as a full (calibration) model, and use SepiaFullPrediction')
+            print('  to get predictions that include those from the emulator. ')
+            raise ValueError('Separable design for emulator predictions is not currently implemented')
+
         if self.do_call:
             wPred(self)
 
