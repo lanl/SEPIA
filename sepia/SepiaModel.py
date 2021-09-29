@@ -804,9 +804,11 @@ class SepiaModel:
 
     def set_params_mean_basis(self):
         # set up the gamma parameters for the mean basis multiplier
-        self.params.gamma = SepiaParam(val=0, name='gamma', val_shape=self.data.sim_data.H.shape[1], 
+        # start the mean basis weights at the optimal linear fit for the simulations
+        gvals=np.linalg.lstsq(self.data.sim_data.H,self.num.w,rcond=None)[0]
+        self.params.gamma = SepiaParam(val=gvals, name='gamma', val_shape=(self.data.sim_data.H.shape[1],1), 
                                        dist='Uniform', params=[],bounds=[-np.inf,np.inf],
-                                       mcmcStepParam=0.1, mcmcStepType='PropMH')
+                                       mcmcStepParam=1, mcmcStepType='Uniform') #mcmcStepType='PropMH')
         self.params.mcmcList.append(self.params.gamma)
 
     def set_params_sim_only(self, lamWOs_a_corr=0, lamWOs_b_corr=0):
