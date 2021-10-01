@@ -400,21 +400,57 @@ class SepiaData(object):
             self.obs_data.y_std = ty_std
             self.obs_data.Sigy_std=tSigy_std
 
-    def set_mean_basis(self, H):
+    def set_mean_basis(self, basis_type='linear'):
         """
         Sets a mean basis (H) for a scalar respose model
 
-        :param numpy.ndarray/None mean_basis: a basis matrix on simulators
+        :param str/None basis_type: name of basis to be used
 
         """
         if not self.scalar_out:
-            raise ValueError('Cannot specify an emulator mean basis unless model is scalar output \n'+ 
+            raise RuntimeError('Cannot specify an emulator mean basis unless model is scalar output \n'+ 
                              '(which is based on y passed to SepiaData having y.shape[1]==1')
-        if (len(H.shape)!=2):
-            raise ValueError('Mean basis must have shape 2, with shape[0] the same as m '+
-                             '(where m is the number of simulations being emulated)')
-        self.mean_basis=True
-        self.sim_data.H = H
+        if basis_type not in ['constant','linear']:
+            raise ValueError('basis_type options are constant or linear (default)')
+        if self.sim_data.x_trans is None and self.sim_data.t_trans is None:
+            raise RuntimeError('Scale data i.e. transform_xt() before requesting basis')
+        self.mean_basis=basis_type
+
+        # the w -related basis
+        if self.dummy_x:
+            # living on just t's
+            sim_indeps = self.sim_data.t_trans
+        elif self.sim_only:
+            # living on just x's
+            sim_indeps = self.sim_data.x_trans 
+        else:
+            # living on x's and t's
+            sim_indeps = np.hstack((self.sim_data.x_trans,self.sim_data.t_trans))
+        self.sim_data.H=self.make_mean_basis(sim_indeps)
+
+        # the u-related basis
+        if not self.sim_only:
+            if self.dummy_x:
+                # waiting for t's
+                self.obs_data.H=self.make_mean_basis(np.array([[]]))
+            else:
+                # living on x's (t's come later)
+                obs_indeps = self.obs_data.x_trans
+                self.obs_data.H=self.make_mean_basis(x=obs_indeps)
+
+    def make_mean_basis(self,x=None):
+        # Internal helper method
+        if self.mean_basis=='constant':
+            H=np.ones((x[0],1))
+        elif self.mean_basis=='linear':
+            H = np.hstack( (np.ones((x.shape[0],1)), x) )
+        return H
+
+    def make_obs_mean_basis(self,theta=None):
+        # Internal helper method, returns the correct mean basis for obs, given a specified theta
+        Haug=np.hstack((self.obs_data.H,theta))
+        return Haug
+
 
     def create_K_basis(self, n_pc=0.995, K=None):
         """

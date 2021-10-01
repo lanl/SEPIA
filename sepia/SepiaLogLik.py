@@ -141,7 +141,6 @@ def compute_log_lik(g, cvar='all', cindex=None):
                 print('w:',w)
                 print('H:',g.data.sim_data.H)
                 print('gamma:',g.params.gamma.val)
-                print('prod:',g.data.sim_data.H @ g.params.gamma.val)
 
         for jj in jinds:
             if ztSep==False:  # not kronecker dataset
@@ -178,7 +177,7 @@ def compute_log_lik(g, cvar='all', cindex=None):
     if not num.sim_only:
 
         # Compute the likelihood of the VU|W
-        if do_theta or do_betaU or do_lamUz or do_Gamma:
+        if do_theta or do_betaU or do_lamUz:
             SigUW=[]
             betaU_val = g.params.betaU.val
             lamUz_val = g.params.lamUz.val
@@ -244,8 +243,8 @@ def compute_log_lik(g, cvar='all', cindex=None):
             w = num.w
             u = num.u
         else:
-            u = num.u - g.data.sim_data.H @ g.params.gamma.val
             w = num.w - g.data.sim_data.H @ g.params.gamma.val
+            u = num.u - g.data.make_obs_mean_basis(g.params.theta.val) @ g.params.gamma.val
         for ii in range(pu):
             if ztSep==False:
                 MuVUgW[ii*n:(ii+1)*n, 0] = W[ii] @ w[ii*m:(ii+1)*m, 0]

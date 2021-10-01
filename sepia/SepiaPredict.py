@@ -475,6 +475,8 @@ def wPred(pred):
         lamUz=samples['lamUz'][ii:ii+1,:]
         lamWs=samples['lamWs'][ii:ii+1,:]
         lamWOs=samples['lamWOs'][ii:ii+1,:]
+        if data.mean_basis is not None:
+            gamma=samples['gamma'][ii:ii+1,:].reshape((-1,1))
 
         if theta_pred is not None:
             xpredt = np.concatenate((xpred,theta_pred),axis=1)
@@ -491,6 +493,12 @@ def wPred(pred):
 
         Myhat=np.zeros((npred*pu,1))
         Syhat=np.zeros((npred*pu,npred*pu))
+        
+        if not data.mean_basis:
+            w = num.w
+        else:
+            w = num.w - data.sim_data.H @ gamma
+        
         for jj in range(pu):
 
             SigW = num.ztDist.compute_cov_mat(betaU[:, jj], lamUz[0, jj])
@@ -510,7 +518,16 @@ def wPred(pred):
 
             # Get posterior parameters
             W=scipy.linalg.solve(SigData,SigCross,sym_pos=True)
-            Myhat[jj*npred:(jj+1)*npred] = W.T @ num.w[jj*m:(jj+1)*m,0:1]
+            Myhat[jj*npred:(jj+1)*npred] = W.T @ w[jj*m:(jj+1)*m,0:1]
+            if data.mean_basis is not None:
+                if data.dummy_x or pred.xpred is None:
+                    pred_mb_dat=pred.t_pred
+                elif pred.t_pred is None:
+                    pred_mb_dat=pred.xpred
+                else:
+                    pred_mb_dat=np.hstack( (pred.xpred,pred.t_pred) )
+                H_pred=data.make_mean_basis(pred_mb_dat)
+                Myhat[jj*npred:(jj+1)*npred] += H_pred @ gamma
             Syhat[jj*npred:(jj+1)*npred,jj*npred:(jj+1)*npred] = SigPred - W.T @ SigCross
 
         if pred.storeRlz:
@@ -539,7 +556,7 @@ def wPred(pred):
 #
 def uvPred(pred):
     # some shorthand references from the pred object
-    print('Warning: uvPred should not normally be invoked; uvPredSep is the default method')
+    raise RuntimeError('uvPred should not normally be invoked; uvPredSep is the correct method')
     xpred=pred.xpred
     samples=pred.samples
     num=pred.model.num
@@ -991,6 +1008,8 @@ def uvPredSep(pred):
 
         SignoW = np.block([[SigVUo, SigVUx], [SigVUx.T, SigPred]])
 
+        #TODO: here's where the w is.
+
         SigWsb=[None]*pu
         mugWsb=[None]*pu
         for jj in range(pu):
@@ -1017,6 +1036,8 @@ def uvPredSep(pred):
         mugW1=mugWb[:n*(pv+pu)]
         mugW2=mugWb[n*(pv+pu):]
 
+        #TODO: Here's where u is (in num.vu)
+
         T=scipy.linalg.solve(SiggW11,SiggW12).T
         Syhat=SiggW22 - T@SiggW12
         Myhat=mugW2 + T @ (num.vu-mugW1)
@@ -1031,6 +1052,8 @@ def uvPredSep(pred):
             # add the distribution params to the return
             pred.mu[ii, :] = np.squeeze(Myhat)
             pred.sigma[ii, :, :] = Syhat
+
+    #TODO: Here's where it's added back into u
 
     if pred.storeRlz:
         # Reshape the pred matrix to 3D, for each component:
