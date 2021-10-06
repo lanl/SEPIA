@@ -276,6 +276,7 @@ class SepiaFullPrediction(SepiaPrediction):
         """
         super(SepiaFullPrediction,self).__init__(*args,**kwrds)
         # prediction is samples x prediction points x pu or pv (basis)
+        # TODO remove notSep option now that Sep is vetted
         if mode=='notSep':
             uvPred(self)
         else:
