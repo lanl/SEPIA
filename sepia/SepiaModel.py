@@ -125,7 +125,7 @@ class SepiaModel:
             data.x = obs_data.x_trans
             self.num.x0Dist = SepiaDistCov(data.x, cat_ind=data.x_cat_ind)
         else:
-            data.x = np.array([], dtype=np.float).reshape((0, 1))
+            data.x = np.array([], dtype=float).reshape((0, 1))
             self.num.x0Dist = SepiaDistCov(data.x)
 
         if sim_data.t_trans is not None:
@@ -199,8 +199,8 @@ class SepiaModel:
             self.num.u = u.reshape((n*pu, 1), order='F').copy()
             self.num.v = v.reshape((n*pv, 1), order='F').copy()
         else:
-            self.num.u = np.array([], dtype=np.float).reshape((0, 1))
-            self.num.v = np.array([], dtype=np.float).reshape((0, 1))
+            self.num.u = np.array([], dtype=float).reshape((0, 1))
+            self.num.v = np.array([], dtype=float).reshape((0, 1))
 
         # Transform sim data using Ksim -> w
         if data.scalar_out:
@@ -804,9 +804,11 @@ class SepiaModel:
 
     def set_params_mean_basis(self):
         # set up the gamma parameters for the mean basis multiplier
-        self.params.gamma = SepiaParam(val=0, name='gamma', val_shape=self.data.sim_data.H.shape[1], 
+        # start the mean basis weights at the optimal linear fit for the simulations
+        gvals=np.linalg.lstsq(self.data.sim_data.H,self.num.w,rcond=None)[0]
+        self.params.gamma = SepiaParam(val=gvals, name='gamma', val_shape=(self.data.sim_data.H.shape[1],1), 
                                        dist='Uniform', params=[],bounds=[-np.inf,np.inf],
-                                       mcmcStepParam=0.1, mcmcStepType='PropMH')
+                                       mcmcStepParam=1, mcmcStepType='Uniform') #mcmcStepType='PropMH')
         self.params.mcmcList.append(self.params.gamma)
 
     def set_params_sim_only(self, lamWOs_a_corr=0, lamWOs_b_corr=0):

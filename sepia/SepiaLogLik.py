@@ -1,10 +1,7 @@
-
-
 import numpy as np
 import scipy.linalg
 
 from sepia.SepiaDistCov import SepiaDistCov
-
 
 def compute_log_lik(g, cvar='all', cindex=None):
     """
@@ -28,7 +25,6 @@ def compute_log_lik(g, cvar='all', cindex=None):
             return -np.inf
         logDet = np.sum(np.log(np.diag(chCov))) # log sqrt(det)
         if g.verbose:
-            print('g.verbose')
             print('in doLogLik chCov shape ', chCov.shape, ' w shape ', w.shape)
         # cho_solve cuts time almost in half compared to lstsq method
         p1 = scipy.linalg.cho_solve((chCov, True), w)
@@ -54,8 +50,8 @@ def compute_log_lik(g, cvar='all', cindex=None):
         D=[None]*len(Sigma)
         for ii in range(len(Sigma)):
             D[ii], V[ii] = np.linalg.eigh(Sigma[ii])
-            #V[ii]=np.flip(V[ii]) # these are needed for detailed numerical comparison to gpmsa of these
-            #D[ii]=np.flip(D[ii]) #  (but doesn't lead to the correct final answer overall in python)
+            #V[ii]=np.flip(V[ii]) # these are for detailed numerical comparison to gpmsa
+            #D[ii]=np.flip(D[ii]) #  (but doesn't lead to the correct final answer  in python)
         # determinant from eigenvalues
         dkron=D[-1]
         for ii in range(len(D)-2,-1,-1):
@@ -77,9 +73,9 @@ def compute_log_lik(g, cvar='all', cindex=None):
     pv=pv # temp to get the unused var lint to stop
 
     # The precomputation steps
-    do_theta = do_betaV = do_lamVz = do_betaU = do_lamUz = do_lamWs = do_lamWOs = False
+    do_theta=do_betaV=do_lamVz=do_betaU=do_lamUz=do_lamWs=do_lamWOs=do_Gamma = False
     if cvar == 'all':
-        do_theta = do_betaV = do_lamVz = do_betaU = do_lamUz = do_lamWs = do_lamWOs = True
+        do_theta=do_betaV=do_lamVz=do_betaU=do_lamUz=do_lamWs=do_lamWOs=do_Gamma = True
     elif cvar == 'theta': do_theta = True
     elif cvar == 'betaV': do_betaV = True
     elif cvar == 'lamVz': do_lamVz = True
@@ -88,7 +84,7 @@ def compute_log_lik(g, cvar='all', cindex=None):
     elif cvar == 'lamWs': do_lamWs = True
     elif cvar == 'lamWOs': do_lamWOs = True
     elif cvar == 'lamOs': pass
-    elif cvar == 'gamma': pass
+    elif cvar == 'gamma': do_Gamma = True
     else:
         raise ValueError('Invalid computeLogLik input cvar')
 
@@ -98,7 +94,9 @@ def compute_log_lik(g, cvar='all', cindex=None):
     elif do_theta:  # calculating everything involving theta [note this includes the case 'all']
         xt_tmp = np.concatenate((g.data.x, np.tile(g.params.theta.val, (n, 1))), axis=1)
         num.xDist = SepiaDistCov(xt_tmp, cat_ind=np.concatenate([g.data.x_cat_ind, g.data.t_cat_ind]))
-        num.xzDist = SepiaDistCov(xt_tmp, g.data.zt, cat_ind=np.concatenate([g.data.x_cat_ind, g.data.t_cat_ind])) # the connection to theta variables
+        # the connection to theta variables:
+        num.xzDist = SepiaDistCov(xt_tmp, g.data.zt, 
+                                  cat_ind=np.concatenate([g.data.x_cat_ind, g.data.t_cat_ind])) 
 
     # check if we're in a kron separable data definition
     if g.data.sep_design:
@@ -121,11 +119,10 @@ def compute_log_lik(g, cvar='all', cindex=None):
     else:
         SigU = num.SigU
 
-    if (do_betaU or do_lamUz or do_lamWs or do_lamWOs):
-        if   cvar == 'all': jinds = np.arange(pu)
+    if (do_betaU or do_lamUz or do_lamWs or do_lamWOs or do_Gamma):
+        if   cvar in ['all', 'lamWOs', 'gamma']: jinds = np.arange(pu)
         elif cvar == 'betaU': jinds = [int(np.ceil( (cindex+1)/(p+q) ) - 1)]
         elif cvar in ['lamUz', 'lamWs']: jinds = [cindex]
-        elif cvar == 'lamWOs': jinds = np.arange(pu)
 
         lamUz_val = g.params.lamUz.val
         betaU_val = g.params.betaU.val
@@ -134,7 +131,17 @@ def compute_log_lik(g, cvar='all', cindex=None):
         LamSim = num.LamSim
         lamWOs_val = g.params.lamWOs.val
         lamWs_val = g.params.lamWs.val
-        w = num.w
+
+        if not g.data.mean_basis:
+            w = num.w
+        else:
+            w = num.w - g.data.sim_data.H @ g.params.gamma.val
+            if g.verbose:
+                print('num.w:',num.w)
+                print('w:',w)
+                print('H:',g.data.sim_data.H)
+                print('gamma:',g.params.gamma.val)
+
         for jj in jinds:
             if ztSep==False:  # not kronecker dataset
                 cg = ztDistCov(betaU_val[:, jj], lamUz_val[0, jj])
@@ -231,7 +238,13 @@ def compute_log_lik(g, cvar='all', cindex=None):
 
         # do this op: MuVUgW =W*model.w;
         MuVUgW = np.zeros((n*pu, 1))
-        w = num.w
+
+        if not g.data.mean_basis:
+            w = num.w
+            u = num.u
+        else:
+            w = num.w - g.data.sim_data.H @ g.params.gamma.val
+            u = num.u - g.data.make_obs_mean_basis(g.params.theta.val) @ g.params.gamma.val
         for ii in range(pu):
             if ztSep==False:
                 MuVUgW[ii*n:(ii+1)*n, 0] = W[ii] @ w[ii*m:(ii+1)*m, 0]
@@ -244,13 +257,12 @@ def compute_log_lik(g, cvar='all', cindex=None):
         # for scalar output:  MuDiff=   [u] - [MuVUgW]
         # otherwise:          MuDiff= [v;u] - [0;MuVUgW] 
         if num.scalar_out:
-            MuDiff = num.u
-            MuDiff = MuDiff - MuVUgW
+            MuDiff = u - MuVUgW
         else:
             #MuDiff=num.vu 
             #print( (MuDiff[pv*n:,0]).shape )
             #MuDiff[pv*n:,0]=MuDiff[pv*n:,0]-MuVUgW
-            MuDiff = np.concatenate((num.v, num.u - MuVUgW), axis=0)
+            MuDiff = np.concatenate((num.v, u - MuVUgW), axis=0)
             # todo: is this a better operation than add-in place to
             #    the u component of pre-concatenated vu?
 

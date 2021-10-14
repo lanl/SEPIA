@@ -276,6 +276,7 @@ class SepiaFullPrediction(SepiaPrediction):
         """
         super(SepiaFullPrediction,self).__init__(*args,**kwrds)
         # prediction is samples x prediction points x pu or pv (basis)
+        # TODO remove notSep option (from dev debug) now that Sep is vetted
         if mode=='notSep':
             uvPred(self)
         else:
@@ -475,6 +476,8 @@ def wPred(pred):
         lamUz=samples['lamUz'][ii:ii+1,:]
         lamWs=samples['lamWs'][ii:ii+1,:]
         lamWOs=samples['lamWOs'][ii:ii+1,:]
+        if data.mean_basis is not None:
+            gamma=samples['gamma'][ii:ii+1,:].reshape((-1,1))
 
         if theta_pred is not None:
             xpredt = np.concatenate((xpred,theta_pred),axis=1)
@@ -491,6 +494,12 @@ def wPred(pred):
 
         Myhat=np.zeros((npred*pu,1))
         Syhat=np.zeros((npred*pu,npred*pu))
+        
+        if not data.mean_basis:
+            w = num.w
+        else:
+            w = num.w - data.sim_data.H @ gamma
+        
         for jj in range(pu):
 
             SigW = num.ztDist.compute_cov_mat(betaU[:, jj], lamUz[0, jj])
@@ -510,7 +519,16 @@ def wPred(pred):
 
             # Get posterior parameters
             W=scipy.linalg.solve(SigData,SigCross,sym_pos=True)
-            Myhat[jj*npred:(jj+1)*npred] = W.T @ num.w[jj*m:(jj+1)*m,0:1]
+            Myhat[jj*npred:(jj+1)*npred] = W.T @ w[jj*m:(jj+1)*m,0:1]
+            if data.mean_basis is not None:
+                if data.dummy_x or pred.xpred is None:
+                    pred_mb_dat=pred.t_pred
+                elif pred.t_pred is None:
+                    pred_mb_dat=pred.xpred
+                else:
+                    pred_mb_dat=np.hstack( (pred.xpred,pred.t_pred) )
+                H_pred=data.make_mean_basis(pred_mb_dat)
+                Myhat[jj*npred:(jj+1)*npred] += H_pred @ gamma
             Syhat[jj*npred:(jj+1)*npred,jj*npred:(jj+1)*npred] = SigPred - W.T @ SigCross
 
         if pred.storeRlz:
@@ -539,7 +557,7 @@ def wPred(pred):
 #
 def uvPred(pred):
     # some shorthand references from the pred object
-    print('Warning: uvPred should not normally be invoked; uvPredSep is the default method')
+    raise RuntimeError('uvPred should not normally be invoked; uvPredSep is the correct method')
     xpred=pred.xpred
     samples=pred.samples
     num=pred.model.num
@@ -821,6 +839,8 @@ def uvPredSep(pred):
         lamWs = samples['lamWs'][ii:ii + 1, :]
         lamWOs = samples['lamWOs'][ii:ii + 1, :]
         lamOs = samples['lamOs'][ii:ii + 1, :]
+        if data.mean_basis is not None:
+            gamma=samples['gamma'][ii:ii+1,:].reshape((-1,1))
 
         if theta_pred is not None:
             xpredt = np.concatenate((xpred, theta_pred), axis=1)
@@ -991,6 +1011,11 @@ def uvPredSep(pred):
 
         SignoW = np.block([[SigVUo, SigVUx], [SigVUx.T, SigPred]])
 
+        if not data.mean_basis:
+            w = num.w
+        else:
+            w = num.w - data.sim_data.H @ gamma
+
         SigWsb=[None]*pu
         mugWsb=[None]*pu
         for jj in range(pu):
@@ -1001,9 +1026,9 @@ def uvPredSep(pred):
             if not data.sep_design:
                 Tb=scipy.linalg.solve(SigWb[jj],SigWcrossb, sym_pos=True).T
                 SigWsb[jj] = Tb @ SigWcrossb
-                mugWsb[jj] = (Tb @ num.w[jj*m:(jj+1)*m,0] ).reshape(-1,1)
+                mugWsb[jj] = (Tb @ w[jj*m:(jj+1)*m,0] ).reshape(-1,1)
             else:
-                SigWsb[jj],mugWsb[jj]=sepCalc(SigWcrossb,SigWb[jj],SigWbDiag[jj],num.w[jj*m:(jj+1)*m,:])
+                SigWsb[jj],mugWsb[jj]=sepCalc(SigWcrossb,SigWb[jj],SigWbDiag[jj],w[jj*m:(jj+1)*m,:])
 
         SiggWb=SignoW
         mugWb=np.zeros(mugWsb[0].shape)
@@ -1017,9 +1042,29 @@ def uvPredSep(pred):
         mugW1=mugWb[:n*(pv+pu)]
         mugW2=mugWb[n*(pv+pu):]
 
+        # subtract from the u part of vu 
+        # currently assumes scalar output if we got here.
+        if not data.mean_basis:
+            vu = num.vu
+        else: 
+            if data.dummy_x:
+                mb_dat=xtheta[:,1:]
+            else:
+                mb_dat=xtheta
+            H_x = data.make_mean_basis(mb_dat)
+            u = num.u - H_x @ gamma
+            vu = np.concatenate((num.v,u))
+
         T=scipy.linalg.solve(SiggW11,SiggW12).T
         Syhat=SiggW22 - T@SiggW12
-        Myhat=mugW2 + T @ (num.vu-mugW1)
+        Myhat=mugW2 + T @ (vu-mugW1)
+        if data.mean_basis is not None:
+            if data.dummy_x:
+                pred_mb_dat=xpredt[:,1:]
+            else:
+                pred_mb_dat=xpredt
+            H_pred=data.make_mean_basis(pred_mb_dat)
+            Myhat[n*pv:] += H_pred @ gamma
 
         if pred.storeRlz:
             # Record a realization
