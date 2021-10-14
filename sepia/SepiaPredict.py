@@ -839,6 +839,8 @@ def uvPredSep(pred):
         lamWs = samples['lamWs'][ii:ii + 1, :]
         lamWOs = samples['lamWOs'][ii:ii + 1, :]
         lamOs = samples['lamOs'][ii:ii + 1, :]
+        if data.mean_basis is not None:
+            gamma=samples['gamma'][ii:ii+1,:].reshape((-1,1))
 
         if theta_pred is not None:
             xpredt = np.concatenate((xpred, theta_pred), axis=1)
@@ -1009,7 +1011,10 @@ def uvPredSep(pred):
 
         SignoW = np.block([[SigVUo, SigVUx], [SigVUx.T, SigPred]])
 
-        #TODO: here's where the w is.
+        if not data.mean_basis:
+            w = num.w
+        else:
+            w = num.w - data.sim_data.H @ gamma
 
         SigWsb=[None]*pu
         mugWsb=[None]*pu
@@ -1021,9 +1026,9 @@ def uvPredSep(pred):
             if not data.sep_design:
                 Tb=scipy.linalg.solve(SigWb[jj],SigWcrossb, sym_pos=True).T
                 SigWsb[jj] = Tb @ SigWcrossb
-                mugWsb[jj] = (Tb @ num.w[jj*m:(jj+1)*m,0] ).reshape(-1,1)
+                mugWsb[jj] = (Tb @ w[jj*m:(jj+1)*m,0] ).reshape(-1,1)
             else:
-                SigWsb[jj],mugWsb[jj]=sepCalc(SigWcrossb,SigWb[jj],SigWbDiag[jj],num.w[jj*m:(jj+1)*m,:])
+                SigWsb[jj],mugWsb[jj]=sepCalc(SigWcrossb,SigWb[jj],SigWbDiag[jj],w[jj*m:(jj+1)*m,:])
 
         SiggWb=SignoW
         mugWb=np.zeros(mugWsb[0].shape)
@@ -1037,11 +1042,29 @@ def uvPredSep(pred):
         mugW1=mugWb[:n*(pv+pu)]
         mugW2=mugWb[n*(pv+pu):]
 
-        #TODO: Here's where u is (in num.vu)
+        # subtract from the u part of vu 
+        # currently assumes scalar output if we got here.
+        if not data.mean_basis:
+            vu = num.vu
+        else: 
+            if data.dummy_x:
+                mb_dat=xtheta[:,1:]
+            else:
+                mb_dat=xtheta
+            H_x = data.make_mean_basis(mb_dat)
+            u = num.u - H_x @ gamma
+            vu = np.concatenate((num.v,u))
 
         T=scipy.linalg.solve(SiggW11,SiggW12).T
         Syhat=SiggW22 - T@SiggW12
-        Myhat=mugW2 + T @ (num.vu-mugW1)
+        Myhat=mugW2 + T @ (vu-mugW1)
+        if data.mean_basis is not None:
+            if data.dummy_x:
+                pred_mb_dat=xpredt[:,1:]
+            else:
+                pred_mb_dat=xpredt
+            H_pred=data.make_mean_basis(pred_mb_dat)
+            Myhat[n*pv:] += H_pred @ gamma
 
         if pred.storeRlz:
             # Record a realization
@@ -1053,8 +1076,6 @@ def uvPredSep(pred):
             # add the distribution params to the return
             pred.mu[ii, :] = np.squeeze(Myhat)
             pred.sigma[ii, :, :] = Syhat
-
-    #TODO: Here's where it's added back into u
 
     if pred.storeRlz:
         # Reshape the pred matrix to 3D, for each component:

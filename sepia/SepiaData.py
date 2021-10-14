@@ -448,7 +448,10 @@ class SepiaData(object):
 
     def make_obs_mean_basis(self,theta=None):
         # Internal helper method, returns the correct mean basis for obs, given a specified theta
-        Haug=np.hstack((self.obs_data.H,theta))
+        if self.mean_basis=='constant':
+            pass
+        elif self.mean_basis=='linear':
+            Haug=np.hstack((self.obs_data.H,np.tile(theta,(self.obs_data.H.shape[0],1))))
         return Haug
 
 

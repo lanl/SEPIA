@@ -125,7 +125,7 @@ class SepiaModel:
             data.x = obs_data.x_trans
             self.num.x0Dist = SepiaDistCov(data.x, cat_ind=data.x_cat_ind)
         else:
-            data.x = np.array([], dtype=np.float).reshape((0, 1))
+            data.x = np.array([], dtype=float).reshape((0, 1))
             self.num.x0Dist = SepiaDistCov(data.x)
 
         if sim_data.t_trans is not None:
@@ -199,8 +199,8 @@ class SepiaModel:
             self.num.u = u.reshape((n*pu, 1), order='F').copy()
             self.num.v = v.reshape((n*pv, 1), order='F').copy()
         else:
-            self.num.u = np.array([], dtype=np.float).reshape((0, 1))
-            self.num.v = np.array([], dtype=np.float).reshape((0, 1))
+            self.num.u = np.array([], dtype=float).reshape((0, 1))
+            self.num.v = np.array([], dtype=float).reshape((0, 1))
 
         # Transform sim data using Ksim -> w
         if data.scalar_out:
