@@ -1,15 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
- 
+
 import numpy as np
-import matplotlib.pyplot as plt
-import seaborn as sns
-import pandas as pd
 
 from sepia.DataContainer import DataContainer
-
-sns.set()
-
 
 class SepiaData(object):
     """
