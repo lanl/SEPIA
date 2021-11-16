@@ -19,7 +19,7 @@ def normal_lpdf(x, loc=0, scale=1):
 class Normal(SepiaDistribution):
     def __init__(self, loc, scale):
         self.shape = np.broadcast(loc, scale).shape
-        self.lower = np.full(self.shape, np.-Inf)
+        self.lower = np.full(self.shape, np.NINF)
         self.upper = np.full(self.shape, np.inf)
         self.params = (self.loc, self.scale)
         self.loc = np.full(self.shape, loc)
