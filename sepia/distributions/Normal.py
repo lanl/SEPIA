@@ -33,5 +33,5 @@ class Normal(SepiaDistribution):
         return normal_lpdf(x, loc=self.loc, scale=self.scale)
 
     def sample(self, rng=np.random):
-        """Return a random sample from the uniform distribution."""
+        """Return a random sample from the Normal distribution."""
         return rng.normal(self.loc, self.scale)

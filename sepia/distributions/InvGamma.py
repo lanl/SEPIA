@@ -39,5 +39,5 @@ class InvGamma(SepiaDistribution):
             return -np.NINF
 
     def sample(self, rng=np.random):
-        """Return a random sample from the uniform distribution."""
+        """Return a random sample from the Inverse-Gamma distribution."""
         return 1 / rng.gamma(self.shapeparam, 1 / self.scale)

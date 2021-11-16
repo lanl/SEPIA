@@ -38,5 +38,5 @@ class Gamma(SepiaDistribution):
             return -np.NINF
 
     def sample(self, rng=np.random):
-        """Return a random sample from the uniform distribution."""
+        """Return a random sample from the Gamma distribution."""
         return rng.gamma(self.shapeparam, self.scale)
