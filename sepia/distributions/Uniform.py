@@ -27,7 +27,7 @@ class Uniform(SepiaDistribution):
         if self.in_support(x):
             return -np.log(upper - lower)
         else:
-            return -np.NINF
+            return np.NINF
 
     def sample(self, rng=np.random):
         """Return a random sample from the uniform distribution."""

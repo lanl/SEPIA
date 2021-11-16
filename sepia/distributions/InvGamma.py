@@ -36,7 +36,7 @@ class InvGamma(SepiaDistribution):
         if self.in_support(x):
             return invgamma_lpdf(x, shape=self.shapeparam, scale=self.scale)
         else:
-            return -np.NINF
+            return np.NINF
 
     def sample(self, rng=np.random):
         """Return a random sample from the Inverse-Gamma distribution."""

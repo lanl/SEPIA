@@ -29,7 +29,7 @@ class Beta(SepiaDistribution):
         if self.in_support(x):
             return beta_lpdf(x, a=self.a, b=self.b)
         else:
-            return -np.NINF
+            return np.NINF
 
     def sample(self, rng=np.random):
         """Return a random sample from the beta distribution."""

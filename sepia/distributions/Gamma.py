@@ -35,7 +35,7 @@ class Gamma(SepiaDistribution):
         if self.in_support(x):
             return gamma_lpdf(x, shape=self.shapeparam, scale=self.scale)
         else:
-            return -np.NINF
+            return np.NINF
 
     def sample(self, rng=np.random):
         """Return a random sample from the Gamma distribution."""
