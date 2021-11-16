@@ -23,13 +23,6 @@ class Uniform(SepiaDistribution):
         self.params = (self.lower, self.upper)
         self.bijector = Logit(lower=self.lower, upper=self.upper)
 
-    def support(self):
-        return self.params
-
-    def in_support(self, x):
-        out_of_support = np.any(x < self.lower) | np.any(x > self.upper)
-        return not out_of_support
-
     def logpdf(self, x):
         if self.in_support(x):
             return -np.log(upper - lower)

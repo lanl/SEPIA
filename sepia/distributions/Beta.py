@@ -25,13 +25,6 @@ class Beta(SepiaDistribution):
         self.params = (self.a, self.b)
         self.bijector = Logit(lower=self.lower, upper=self.upper)
 
-    def support(self):
-        return (self.lower, self.upper)
-
-    def in_support(self, x):
-        out_of_support = np.any(x < self.lower) | np.any(x > self.upper)
-        return not out_of_support
-
     def logpdf(self, x):
         if self.in_support(x):
             return beta_lpdf(x, a=self.a, b=self.b)

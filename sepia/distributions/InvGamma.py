@@ -28,9 +28,6 @@ class InvGamma(SepiaDistribution):
         self.scale = np.full(self.shape, scale)
         self.bijector = Log(shape=self.shape)
 
-    def support(self):
-        return self.params
-
     def in_support(self, x):
         out_of_support = np.any(x < 0)
         return not out_of_support

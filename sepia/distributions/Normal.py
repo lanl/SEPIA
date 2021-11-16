@@ -26,9 +26,6 @@ class Normal(SepiaDistribution):
         self.scale = np.full(self.shape, scale)
         self.bijector = Identity(shape=self.shape)
 
-    def support(self):
-        return self.params
-
     def in_support(self, x):
         return True
 

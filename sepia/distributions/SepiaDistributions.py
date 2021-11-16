@@ -4,6 +4,18 @@ import numpy as np
 class SepiaDistribution(ABC):
     @property
     @abstractmethod
+    def lower(self):
+        """Lower bound for random variable."""
+        pass
+
+    @property
+    @abstractmethod
+    def upper(self):
+        """Lower bound for random variable."""
+        pass
+
+    @property
+    @abstractmethod
     def bijector(self):
         """Bijector for distribution."""
         pass
@@ -16,12 +28,13 @@ class SepiaDistribution(ABC):
     @abstractmethod
     def support(self):
         """Return the support."""
-        pass
+        return (self.lower, self.upper)
 
     @abstractmethod
     def in_support(self, x):
         """Return `True` if `x` is within the support. Otherwise, return `False`."""
-        pass
+        out_of_support = np.any(x < self.lower) | np.any(x > self.upper)
+        return not out_of_support
 
     @abstractmethod
     def sample(self, rng=np.random):
