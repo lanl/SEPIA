@@ -1,4 +1,4 @@
-# import .bijectors
+from . import bijectors
 
 from .Beta import *
 from .Gamma import *
