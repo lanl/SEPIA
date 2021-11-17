@@ -1,6 +1,7 @@
 import numpy as np
 from numpy import math
 from .bijectors import Logit
+from .SepiaDistributions import SepiaDistribution
 
 def beta_lpdf(x, a, b):
     """
@@ -20,9 +21,9 @@ class Beta(SepiaDistribution):
         self.shape = np.broadcast(a, b).shape
         self.a = np.full(self.shape, a)
         self.b = np.full(self.shape, b)
+        self.params = (self.a, self.b)
         self.lower = np.full(self.shape, 0)
         self.upper = np.full(self.shape, 1)
-        self.params = (self.a, self.b)
         self.bijector = Logit(lower=self.lower, upper=self.upper)
 
     def logpdf(self, x):

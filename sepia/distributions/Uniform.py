@@ -1,5 +1,6 @@
 import numpy as np
 from .bijectors import Logit
+from .SepiaDistributions import SepiaDistribution
 
 def uniform_lpdf(x, lower, upper):
     """

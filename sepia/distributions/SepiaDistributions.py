@@ -2,35 +2,21 @@ from abc import ABC, abstractmethod
 import numpy as np
 
 class SepiaDistribution(ABC):
-    @property
-    @abstractmethod
-    def lower(self):
-        """Lower bound for random variable."""
-        pass
-
-    @property
-    @abstractmethod
-    def upper(self):
-        """Lower bound for random variable."""
-        pass
-
-    @property
-    @abstractmethod
-    def bijector(self):
-        """Bijector for distribution."""
-        pass
+    # NOTE:
+    # requires properties:
+    # - self.lower
+    # - self.upper
+    # - self.bijector
 
     @abstractmethod
     def logpdf(self, x):
         """Evaluate and return the log density at `x`."""
         pass
 
-    @abstractmethod
     def support(self):
         """Return the support."""
         return (self.lower, self.upper)
 
-    @abstractmethod
     def in_support(self, x):
         """Return `True` if `x` is within the support. Otherwise, return `False`."""
         out_of_support = np.any(x < self.lower) | np.any(x > self.upper)

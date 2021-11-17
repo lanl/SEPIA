@@ -1,5 +1,6 @@
 import numpy as np
 from .bijectors import Identity
+from .SepiaDistributions import SepiaDistribution
 
 def normal_lpdf(x, loc=0, scale=1):
     """

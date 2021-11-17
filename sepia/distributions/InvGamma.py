@@ -1,6 +1,7 @@
 import numpy as np
 from numpy import math
 from .bijectors import Log
+from .SepiaDistributions import SepiaDistribution
 
 def invgamma_lpdf(x, shape, scale):
     """
