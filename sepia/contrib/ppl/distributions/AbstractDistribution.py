@@ -43,10 +43,15 @@ class AbstractDistribution(ABC):
     # Gaussian proposal for parameters in their unconstrained space. This would involve/require
     # transforming priors so that they are unconstrained. (e.g. If X ~ Gamma(a, b), then propose a
     # new value for log(x), and add the appropriate log absolute Jacobian.)
+    def to_unconstrained_space(self, constrained_x):
+        """
+        Transform `constrained_x` to unconstrained space.
+        """
+        return self.bijector.transform(constrained_x)
 
     def to_constrained_space(self, unconstrained_x):
         """Transform `unconstrained_x` with support on the real line / ball into its support."""
-        return self.bijector.inv_transfrom(unconstrained_x)
+        return self.bijector.inv_transform(unconstrained_x)
 
     def log_abs_det_jacobian(self, unconstrained_x):
         """
@@ -55,13 +60,14 @@ class AbstractDistribution(ABC):
         """
         return self.bijector.logdetjac(unconstrained_x)
 
-    def logpdf_plus_log_abs_det_jacobian(self, unconstrained_x):
+    def logpdf_plus_log_abs_det_jacobian(self, unconstrained_x, constrained_x=None):
         """
         Compute the log density plus the log absolute value of the determinant of the jacobian
         given a parameter's constrained and unconstrained values.
         """
-        x = self.to_constrained_space(unconstrained_x)
-        return self.logpdf(x) + self.log_abs_det_jacobian(self, unconstrained_x)
+        if constrained_x is None:
+            constrained_x = self.to_constrained_space(unconstrained_x)
+        return self._logpdf(constrained_x) + self.log_abs_det_jacobian(unconstrained_x)
 
     def __call__(self, *args, **kwargs):
         return self.sample(*args, **kwargs)

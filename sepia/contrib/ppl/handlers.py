@@ -12,6 +12,8 @@ class Handler:
     # Effect handlers push themselves onto the handler stack.
     # Handlers later in the handler stack are applied first.
     def __enter__(self):
+        # NOTE: Uncomment this to see how the handlers are stacked. 
+        # print(f"pushing {self.__class__}")
         self.stack().append(self)
 
     def __exit__(self, *args, **kwargs):
@@ -66,3 +68,11 @@ class condition(Handler):
     def process_message(self, msg):
         if msg["name"] in self.state.keys():
             msg["value"] = self.state[msg["name"]]
+
+class biject(Handler):
+    def process_message(self, msg):
+        if msg["type"] == "rv" and not msg["observed"]:
+            msg["unconstrained_value"] = msg["value"]
+            msg["value"] = msg["fn"].to_constrained_space(
+                msg["unconstrained_value"]
+            )

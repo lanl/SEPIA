@@ -116,17 +116,44 @@ class AbstractModel(ABC):
         return msg["value"]
 
     # TODO: 
-    # - Add capability to compute logpdf for a subset of the states?
+    # - Add ability to compute logpdf for a subset of the states?
     #       - This requires graph of children. 
-    # - Add capability to compute loglikelihood only.
+    # - Add ability to compute loglikelihood only.
     #       - This requires graph of parents.
+    # - Add ability to add log jacobian and transform correctly.
     def logpdf(self, state, *args, **kwargs):
-        model_trace = trace(condition(self, state)).get_trace(*args, **kwargs)
+        biject_variables = kwargs.pop("biject", False)
+        
+        if biject_variables:
+            # state is now in the unconstrained space. biject will
+            # convert parameters (state) of conditioned model back into 
+            # the constrained space. msg["value"] will be the constrained 
+            # parameter, while msg["unconstrained_value"] will be 
+            # the unconstrained parameter.
+            obj = biject(condition(self, state))
+        else:
+            obj = condition(self, state)
+            
+        model_trace = trace(obj).get_trace(*args, **kwargs)
 
         lp = 0
         for param in model_trace.values():
             if param["type"] == "rv":
-                lp += np.sum(param["fn"].logpdf(param["value"]))
+                if biject_variables and not param["observed"]:
+                    # TODO: Some of the transformations are recomputed here.
+                    # So, this can be made more efficient.
+                    logpdf = param["fn"].logpdf_plus_log_abs_det_jacobian
+                    value = param["unconstrained_value"]
+                else:
+                    logpdf = param["fn"].logpdf
+                    value = param["value"]
+
+                lp += np.sum(logpdf(value))
+                
+                # Don't do the remaining computation if the log 
+                # joint density is -inf.
+                if np.isneginf(lp):
+                    return np.NINF
 
         return lp
 
@@ -150,6 +177,19 @@ class AbstractModel(ABC):
         else:
             return {name: msg["value"] for name, msg in t.items()
                     if msg["type"] == "rv" and not msg["observed"]}
+        
+    def make_bijector(self, *args, **kwargs):
+        prior_sample = self.prior_predictive(verbose=True, *args, **kwargs)
+        def bijector(state: dict, to_real=False):
+            value = dict()
+            for name, real_value in state.items():
+                if to_real:
+                    b = prior_sample[name]["fn"].to_unconstrained_space
+                else:
+                    b = prior_sample[name]["fn"].to_constrained_space
+                value[name] = b(real_value)
+            return value
+        return bijector
 
     def graph(self, *args, **kwargs):
         # TODO: 

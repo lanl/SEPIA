@@ -77,4 +77,5 @@ class Logit(Bijector):
         return expit(x) * (self.upper - self.lower) + self.lower
 
     def logdetjac(self, real_x):
-        return real_x - 2 * np.log1p(np.exp(real_x))
+        # return real_x - 2 * np.log1p(np.exp(real_x))
+        return real_x - 2 * np.logaddexp(0, real_x)

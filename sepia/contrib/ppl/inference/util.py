@@ -7,10 +7,12 @@ def symmetric(X):
     """
     return np.maximum(X, X.transpose())
 
-def beautify_samples(samples, shaper):
+def beautify_samples(samples, shaper, bijector=None):
     samples_dict = dict()
     param_names = shaper.shapes.keys()
     states = [shaper.unvec(s) for s in samples]
+    if bijector is not None:
+        states = [bijector(s) for s in states]
     for name in param_names:
         samples_dict[name] = np.stack([s[name] for s in states])
     return samples_dict
