@@ -11,4 +11,4 @@ from .SepiaPrior import SepiaPrior
 from .SepiaPredict import SepiaPrediction, SepiaFullPrediction, SepiaEmulatorPrediction, SepiaXvalEmulatorPrediction
 from .SepiaSharedThetaModels import SepiaSharedThetaModels
 from .SepiaHierarchicalThetaModels import SepiaHierarchicalThetaModels
-
+from .contrib import *
