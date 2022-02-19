@@ -590,9 +590,9 @@ class SepiaData(SepiaDataBase):
             self.num_responses = np.array([y.size for y in y_obs])
         else:
             super().__init__(
-                x_sim=None, t_sim=None, y_sim=None, y_ind_sim=None, x_obs=None,
-                y_obs=None, Sigy=None, y_ind_obs=None, x_cat_ind=None,
-                t_cat_ind=None, xt_sim_sep=None
+                x_sim=x_sim, t_sim=t_sim, y_sim=y_sim, y_ind_sim=y_ind_sim, x_obs=x_obs,
+                y_obs=y_obs, Sigy=Sigy, y_ind_obs=y_ind_obs, x_cat_ind=x_cat_ind,
+                t_cat_ind=t_cat_ind, xt_sim_sep=xt_sim_sep
             )
 
     def create_D_basis(self, *args, **kwargs):

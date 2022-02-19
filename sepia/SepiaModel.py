@@ -44,7 +44,7 @@ class SepiaModelBase:
                   creating a model without a `D` basis was not intentional.
 
         """
-    
+
         self.verbose = False
         self.data = data
         self.num = ModelContainer() # num for numeric state
@@ -1150,8 +1150,8 @@ class SepiaModel(SepiaModelBase):
             self.data = data
         else:
             super().__init__(
-                data, lamVzGroup=None, theta_fcon=None, theta_init=None,
-                LamSim=None
+                data, lamVzGroup=lamVzGroup, theta_fcon=theta_fcon, theta_init=theta_init,
+                LamSim=LamSim
             )
 
     def print_priors_for_mcmc(self, *args, **kwargs):
