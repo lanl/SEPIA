@@ -104,7 +104,7 @@ def do_mcmc(model, data, num_samples: int, burn: int, window=None, thinning: int
     shaper = Shaper(init_state)
 
     def logprob(vec):
-        return model.logprob(shaper.unvec(vec), **data, biject=True)
+        return model.logpdf(shaper.unvec(vec), **data, biject=True)
 
     if window is None:
         window = np.array([int(burn/2), burn, np.inf])

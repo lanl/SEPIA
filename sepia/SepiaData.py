@@ -5,7 +5,7 @@ import numpy as np
 
 from sepia.DataContainer import DataContainer
 
-class SepiaData(object):
+class SepiaDataBase(object):
     """
     Data object used for SepiaModel, containing potentially both `sim_data` and `obs_data` objects of type `sepia.DataContainer`.
 
@@ -571,3 +571,33 @@ class SepiaData(object):
                 else:
                     norm_scl = np.sqrt(np.max(np.dot(self.obs_data.D, self.obs_data.D.T)))
                     self.obs_data.D /= norm_scl
+
+class SepiaData(SepiaDataBase):
+    def __init__(self, x_sim=None, t_sim=None, y_sim=None, y_ind_sim=None,
+                 x_obs=None, y_obs=None, Sigy=None, y_ind_obs=None,
+                 x_cat_ind=None, t_cat_ind=None, xt_sim_sep=None, eta=None, theta_dim=None):
+        self.use_simulator = eta is not None
+
+        if self.use_simulator:
+            # NOTE: I expect y_obs to be a list of vector of responses.
+            # x_obs is a matrix, with each row being the inputs for one
+            # observation. eta(x_obs[i], t) should return a vector of responses.
+            self.x_obs = x_obs
+            self.y_obs = y_obs
+            self.eta = eta
+            self.Sigy = Sigy
+            self.theta_dim = theta_dim
+            self.num_responses = np.array([y.size for y in y_obs])
+        else:
+            super().__init__(
+                x_sim=None, t_sim=None, y_sim=None, y_ind_sim=None, x_obs=None,
+                y_obs=None, Sigy=None, y_ind_obs=None, x_cat_ind=None,
+                t_cat_ind=None, xt_sim_sep=None
+            )
+
+    def create_D_basis(self, *args, **kwargs):
+        if self.use_simulator:
+            self.D_obs = kwargs.pop("D_obs")
+            self.num_basis = kwargs.pop("num_basis")
+        else:
+            return super().create_D_basis(*args, **kwargs)

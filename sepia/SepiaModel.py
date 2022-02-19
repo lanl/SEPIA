@@ -12,8 +12,10 @@ import scipy.linalg
 import os
 import pickle
 
+from sepia.contrib import emufree_calib_model
 
-class SepiaModel:
+
+class SepiaModelBase:
     """
     SepiaModel class contains data, SepiaParam objects, and precomputed elements for the likelihood.
 
@@ -1140,3 +1142,54 @@ class ModelContainer():
                     self.xzDist.sqdist = ref[attr_name]
                 else:
                     self.__dict__[attr_name] = ref[attr_name]
+
+
+class SepiaModel(SepiaModelBase):
+    def __init__(self, data, lamVzGroup=None, theta_fcon=None, theta_init=None, LamSim=None):
+        if data.use_simulator:
+            self.data = data
+        else:
+            super().__init__(
+                data, lamVzGroup=None, theta_fcon=None, theta_init=None,
+                LamSim=None
+            )
+
+    def print_priors_for_mcmc(self, *args, **kwargs):
+        if self.data.use_simulator:
+            NotImplementedError()
+        else:
+            return super().print_prior_info(*args, **kwargs)
+
+    def tune_step_sizes(self, *args, **kwargs):
+        if self.data.use_simulator:
+            NotImplementedError()
+        else:
+            return super().tune_step_sizes(*args, **kwargs)
+
+    def do_mcmc(self, *args, **kwargs):
+        if self.data.use_simulator:
+            model = emufree_calib_model.NoEmuCalibModel()
+
+            priors = kwargs.pop("priors", None)
+
+            model_data = emufree_calib_model.make_model_data(
+                y=np.concatenate(self.data.y_obs),
+                xs=self.data.x_obs,
+                eta=self.data.eta,
+                W=self.data.Sigy,
+                theta_dim=self.data.theta_dim,
+                D=self.data.D_obs,
+                num_basis=self.data.num_basis,
+                priors=priors,
+            )
+
+            return emufree_calib_model.do_mcmc(
+                model=model, data=model_data,
+                num_samples=args[0], burn=kwargs.pop("burn", 0),
+                thinning=kwargs.pop("thinning", 1),
+                window=kwargs.pop("window", None),
+                seed=kwargs.pop("seed", None),
+                init_state=kwargs.pop("init_state", None),
+            )
+        else:
+            return super().do_mcmc(*args, **kwargs)
