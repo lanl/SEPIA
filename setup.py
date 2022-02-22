@@ -2,7 +2,7 @@ import setuptools
 from setuptools import setup
 
 setup(name='sepia',
-      version='1.1',
+      version='1.2',
       description='Gaussian process emulation and calibration',
       url='http://www.github.com/lanl/SEPIA',
       author='James Gattiker, Natalie Klein, Grant Hutchings, Earl Lawrence',
