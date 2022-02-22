@@ -1,5 +1,3 @@
-
-
 import numpy as np
 from sepia.SepiaParam import SepiaParam, SepiaParamList
 from sepia.SepiaDistCov import SepiaDistCov
@@ -15,7 +13,7 @@ import pickle
 from sepia.contrib import emufree_calib_model
 
 
-class SepiaModelBase:
+class SepiaModel:
     """
     SepiaModel class contains data, SepiaParam objects, and precomputed elements for the likelihood.
 
@@ -44,9 +42,13 @@ class SepiaModelBase:
                   creating a model without a `D` basis was not intentional.
 
         """
-
         self.verbose = False
+
         self.data = data
+        if self.data.use_simulator:
+            self.data = data
+            return
+
         self.num = ModelContainer() # num for numeric state
         self.num.scalar_out = data.scalar_out
         self.num.sim_only = data.sim_only
@@ -467,6 +469,10 @@ class SepiaModelBase:
         """
         Print some information about the parameter priors that are defined for mcmc
         """
+        if self.data.use_simulator:
+            raise NotImplementedError()
+            return
+
         for pm in self.params.mcmcList:
             print(pm.name,':')
             print('    Dist: ',pm.prior.dist)
@@ -509,7 +515,7 @@ class SepiaModelBase:
                 print('stepParam:')
                 print(p.mcmc.stepParam)
 
-    def do_mcmc(self, nsamp, prog=True, do_propMH=True, no_init=False, seed=None):
+    def do_mcmc(self, nsamp, prog=True, do_propMH=True, no_init=False, seed=None, **kwargs):
         """
         Run MCMC sampling on instantiated `SepiaModel` object.
 
@@ -521,6 +527,33 @@ class SepiaModelBase:
         .. note:: Calling multiple times on the same model appends samples to the existing samples.
 
         """
+        if self.data.use_simulator:
+            model = emufree_calib_model.NoEmuCalibModel()
+
+            priors = kwargs.pop("priors", None)
+
+            model_data = emufree_calib_model.make_model_data(
+                y=np.concatenate(self.data.y_obs),
+                xs=self.data.x_obs,
+                eta=self.data.eta,
+                W=self.data.Sigy,
+                theta_dim=self.data.theta_dim,
+                D=self.data.D_obs,
+                num_basis=self.data.num_basis,
+                priors=priors,
+            )
+
+            return emufree_calib_model.do_mcmc(
+                model=model,
+                data=model_data,
+                num_samples=nsamp,
+                burn=kwargs.pop("burn", 0),
+                thinning=kwargs.pop("thinning", 1),
+                window=kwargs.pop("window", None),
+                seed=seed,
+                init_state=kwargs.pop("init_state", None),
+            )
+
         if seed is not None:
             np.random.seed(seed)
         if self.num.auto_stepsize:
@@ -679,6 +712,10 @@ class SepiaModelBase:
         .. note:: Does not work for hierarchical or shared theta models.
 
         """
+        if self.data.use_simulator:
+            raise NotImplementedError()
+            return
+
         if verbose:
             print('Starting tune_step_sizes...')
             print('Default step sizes:')
@@ -952,7 +989,7 @@ class SepiaModelBase:
         #
         if np.ndim(x) == 1:
             x = x.reshape(1,-1)
-            
+
         m_chains, n_iters = x.shape
 
         variogram = lambda t: ((x[:, t:] - x[:, :(n_iters - t)])**2).sum() / (m_chains * (n_iters - t))
@@ -1142,54 +1179,3 @@ class ModelContainer():
                     self.xzDist.sqdist = ref[attr_name]
                 else:
                     self.__dict__[attr_name] = ref[attr_name]
-
-
-class SepiaModel(SepiaModelBase):
-    def __init__(self, data, lamVzGroup=None, theta_fcon=None, theta_init=None, LamSim=None):
-        if data.use_simulator:
-            self.data = data
-        else:
-            super().__init__(
-                data, lamVzGroup=lamVzGroup, theta_fcon=theta_fcon, theta_init=theta_init,
-                LamSim=LamSim
-            )
-
-    def print_priors_for_mcmc(self, *args, **kwargs):
-        if self.data.use_simulator:
-            NotImplementedError()
-        else:
-            return super().print_prior_info(*args, **kwargs)
-
-    def tune_step_sizes(self, *args, **kwargs):
-        if self.data.use_simulator:
-            NotImplementedError()
-        else:
-            return super().tune_step_sizes(*args, **kwargs)
-
-    def do_mcmc(self, *args, **kwargs):
-        if self.data.use_simulator:
-            model = emufree_calib_model.NoEmuCalibModel()
-
-            priors = kwargs.pop("priors", None)
-
-            model_data = emufree_calib_model.make_model_data(
-                y=np.concatenate(self.data.y_obs),
-                xs=self.data.x_obs,
-                eta=self.data.eta,
-                W=self.data.Sigy,
-                theta_dim=self.data.theta_dim,
-                D=self.data.D_obs,
-                num_basis=self.data.num_basis,
-                priors=priors,
-            )
-
-            return emufree_calib_model.do_mcmc(
-                model=model, data=model_data,
-                num_samples=args[0], burn=kwargs.pop("burn", 0),
-                thinning=kwargs.pop("thinning", 1),
-                window=kwargs.pop("window", None),
-                seed=kwargs.pop("seed", None),
-                init_state=kwargs.pop("init_state", None),
-            )
-        else:
-            return super().do_mcmc(*args, **kwargs)

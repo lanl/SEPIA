@@ -5,7 +5,7 @@ import numpy as np
 
 from sepia.DataContainer import DataContainer
 
-class SepiaDataBase(object):
+class SepiaData(object):
     """
     Data object used for SepiaModel, containing potentially both `sim_data` and `obs_data` objects of type `sepia.DataContainer`.
 
@@ -27,7 +27,7 @@ class SepiaDataBase(object):
     """
 
     def __init__(self, x_sim=None, t_sim=None, y_sim=None, y_ind_sim=None, x_obs=None, y_obs=None, Sigy=None, y_ind_obs=None,
-                 x_cat_ind=None, t_cat_ind=None, xt_sim_sep=None):
+                 x_cat_ind=None, t_cat_ind=None, xt_sim_sep=None, eta=None, theta_dim=None):
         """
         Create SepiaData object. Many arguments are optional depending on the type of model.
         Users should instantiate with all data needed for the desired model. See documentation pages for more detail.
@@ -44,6 +44,8 @@ class SepiaDataBase(object):
         :param numpy.ndarray/list/NoneType t_cat_ind: indices of t that are categorical (0 = not cat, int > 0 = how many categories), or None
         :param numpy.ndarray/list/NoneType xt_sim_sep: for separable design, list of kronecker composable matrices; it is a list of 2 or
                                                        more design components that, through Kronecker expansion, produce the full input space (`x` and `t`) for the simulations.
+        :param function: computer model of the form `y = eta(x, t)`. Applicable only if fitting model directly with simulator (w/o) emulator. TODO: elaborate!
+        :theta_dim int: The dimensions of theta. Applicable only if fitting model directly with simulator (w/o) emulator.
         :raises: TypeError if shapes not conformal or required data missing.
 
         .. note: At least one of x_sim and t_sim must be provided, and y_sim must always be provided.
@@ -53,6 +55,16 @@ class SepiaDataBase(object):
         self.dummy_x = (not self.sep_design and x_sim is None) or \
                        (self.sep_design and y_obs is not None and x_obs is None)
         self.sim_only = y_obs is None
+        self.use_simulator = eta is not None
+
+        if self.use_simulator:
+            self.x_obs = x_obs
+            self.y_obs = y_obs
+            self.eta = eta
+            self.Sigy = Sigy
+            self.theta_dim = theta_dim
+            self.num_responses = np.array([y.size for y in y_obs])
+            return
 
         # Initial Checks
         if y_sim is None:
@@ -508,7 +520,7 @@ class SepiaDataBase(object):
             pu = int(n_pc)
         self.sim_data.K = np.transpose(np.dot(U[:, :pu], np.diag(s[:pu])) / np.sqrt(y_std.shape[0]))
 
-    def create_D_basis(self, D_type='constant', D_obs=None, D_sim=None, norm=True):
+    def create_D_basis(self, D_type='constant', D_obs=None, D_sim=None, norm=True, num_basis=None):
         """
         Create `D_obs`, `D_sim` discrepancy bases. Can specify a type of default basis (constant/linear) or provide matrices.
 
@@ -520,11 +532,18 @@ class SepiaDataBase(object):
 
         .. note:: `D_type` parameter is ignored if `D_obs` and `D_sim` are provided.
         """
+
+        if self.use_simulator:
+            self.D_obs = D_obs
+            self.num_basis = num_basis
+            # Return early if using simulator directly (w/o) emulator.
+            return
+
         # Return early if sim only or univariate output
-        if self.sim_only:
+        if not self.use_simulator and self.sim_only:
             print('Model only has simulation data, skipping discrepancy...')
             return
-        if self.scalar_out:
+        if not self.use_simulator and self.scalar_out:
             print('Model has univariate output, skipping discrepancy...')
             return
         # Check if passed in D_sim/D_obs are correct shape and if so, set them into objects
@@ -572,32 +591,3 @@ class SepiaDataBase(object):
                     norm_scl = np.sqrt(np.max(np.dot(self.obs_data.D, self.obs_data.D.T)))
                     self.obs_data.D /= norm_scl
 
-class SepiaData(SepiaDataBase):
-    def __init__(self, x_sim=None, t_sim=None, y_sim=None, y_ind_sim=None,
-                 x_obs=None, y_obs=None, Sigy=None, y_ind_obs=None,
-                 x_cat_ind=None, t_cat_ind=None, xt_sim_sep=None, eta=None, theta_dim=None):
-        self.use_simulator = eta is not None
-
-        if self.use_simulator:
-            # NOTE: I expect y_obs to be a list of vector of responses.
-            # x_obs is a matrix, with each row being the inputs for one
-            # observation. eta(x_obs[i], t) should return a vector of responses.
-            self.x_obs = x_obs
-            self.y_obs = y_obs
-            self.eta = eta
-            self.Sigy = Sigy
-            self.theta_dim = theta_dim
-            self.num_responses = np.array([y.size for y in y_obs])
-        else:
-            super().__init__(
-                x_sim=x_sim, t_sim=t_sim, y_sim=y_sim, y_ind_sim=y_ind_sim, x_obs=x_obs,
-                y_obs=y_obs, Sigy=Sigy, y_ind_obs=y_ind_obs, x_cat_ind=x_cat_ind,
-                t_cat_ind=t_cat_ind, xt_sim_sep=xt_sim_sep
-            )
-
-    def create_D_basis(self, *args, **kwargs):
-        if self.use_simulator:
-            self.D_obs = kwargs.pop("D_obs")
-            self.num_basis = kwargs.pop("num_basis")
-        else:
-            return super().create_D_basis(*args, **kwargs)
