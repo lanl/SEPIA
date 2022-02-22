@@ -120,7 +120,7 @@ class SepiaEmulatorPrediction(SepiaPrediction):
         """
         super(SepiaEmulatorPrediction,self).__init__(*args,**kwrds)
         # prediction is samples x prediction points (xpreds) x pu (basis)
-        
+
         if self.model.data.sep_design:
             print('Separable Design model. Separable designs for emulator predictions are not currently implemented')
             print('  Work around is to set this problem up as a full (calibration) model, and use SepiaFullPrediction')
@@ -494,12 +494,12 @@ def wPred(pred):
 
         Myhat=np.zeros((npred*pu,1))
         Syhat=np.zeros((npred*pu,npred*pu))
-        
+
         if not data.mean_basis:
             w = num.w
         else:
             w = num.w - data.sim_data.H @ gamma
-        
+
         for jj in range(pu):
 
             SigW = num.ztDist.compute_cov_mat(betaU[:, jj], lamUz[0, jj])
@@ -532,12 +532,12 @@ def wPred(pred):
             Syhat[jj*npred:(jj+1)*npred,jj*npred:(jj+1)*npred] = SigPred - W.T @ SigCross
 
         if pred.storeRlz:
-          # Record a realization
-          tpred[ii,:]=rmultnorm(1, Myhat, Syhat)
+            # Record a realization
+            tpred[ii,:]=rmultnorm(1, Myhat, Syhat)
 
         if pred.storeMuSigma:
-          pred.mu[ii,:]=np.squeeze(Myhat)
-          pred.sigma[ii,:,:]=Syhat
+            pred.mu[ii,:]=np.squeeze(Myhat)
+            pred.sigma[ii,:,:]=Syhat
 
     if pred.storeRlz:
         #% Reshape the pred matrix to 3D:
@@ -1046,7 +1046,7 @@ def uvPredSep(pred):
         # currently assumes scalar output if we got here.
         if not data.mean_basis:
             vu = num.vu
-        else: 
+        else:
             if data.dummy_x:
                 mb_dat=xtheta[:,1:]
             else:
