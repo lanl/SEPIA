@@ -12,7 +12,7 @@ def mvnormal_lpdf(x, mean, cov):
     """
     n = cov.shape[0]
     d = x - mean
-    lpdf = -0.5 * (d @ np.linalg.inv(cov) @ d)
+    lpdf = -0.5 * (d @ np.linalg.solve(cov, d))
     lpdf += -0.5 * (n * np.log(2 * np.pi) + np.linalg.slogdet(cov)[1])
     return lpdf
 
