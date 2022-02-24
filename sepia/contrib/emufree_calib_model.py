@@ -1,10 +1,12 @@
 import numpy as np
 from scipy.spatial import distance
+from scipy.linalg import block_diag
 
 from . import ppl
 from .ppl import distributions as dist
 from .ppl.inference.diagnostics import ess
 from .ppl.inference import MCMC, MvARWM, Shaper
+from .ppl.inference.util import gaussian_kernel
 
 def sqexpkernel(X, length_scale, process_sd):
     """
@@ -92,6 +94,32 @@ def make_model_data(y, xs, eta, W, theta_dim, num_basis, priors=None, D=None):
 
     return dict(y=y, xs=xs, eta=eta, W=W, theta_dim=theta_dim,
                 num_basis=num_basis, D=D, priors=priors)
+
+def create_D_basis(S, knots=None, num_basis=None, seed=None,
+                   kernel=gaussian_kernel, **kwargs):
+    """
+    S: indexing points
+    """
+    dim = S[0].shape[1]
+    assert np.all([s.shape[1] == dim for s in S])
+
+    if num_basis is None:
+        num_basis = knots.shape[0]
+    elif knots is None:
+        if dim == 1:
+            knots = np.linspace(0, 1, num_basis)[:, None]
+        else:
+            np.random.seed(seed)
+            # NOTE: Latin hypercube?
+            knots = np.random.rand(num_basis, dim)
+
+    D = block_diag(*[
+        kernel(s, knots, **kwargs)
+        for s in S
+    ])
+
+    return D
+
 
 def do_mcmc(model, data, num_samples: int, burn: int, window=None, thinning: int=1, seed=None, init_state=None):
     if seed is not None:
