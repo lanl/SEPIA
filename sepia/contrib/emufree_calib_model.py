@@ -6,7 +6,20 @@ from . import ppl
 from .ppl import distributions as dist
 from .ppl.inference.diagnostics import ess
 from .ppl.inference import MCMC, MvARWM, Shaper
-from .ppl.inference.util import gaussian_kernel
+
+def gaussian_kernel_basis(X, knots, sd):
+    """
+    X: points to evaluate kernel (n x q)
+    knots: kernel locations (m x q)
+    sd: kernel width
+
+	Return: an nxm matrix of Gaussian density evaluations at X with centers at
+	knots and provided sd.
+    """
+    diff = X[..., None] - knots.T[None, ...]  # n x q x m
+    ss = np.sum(diff ** 2, axis=1)  # n x m
+    v = sd ** 2
+    return np.exp(-ss / (2 * v)) / np.sqrt(2 * np.pi) / sd
 
 def sqexpkernel(X, length_scale, process_sd):
     """
@@ -27,8 +40,8 @@ def sqexpkernel(X, length_scale, process_sd):
 # TODO: Think about these.
 def make_default_priors(theta_dim):
     return dict(
-        length_scale = dist.Gamma(2, 1.5),  # should be smooth
-        process_sd = dist.Gamma(0.01, 1),
+        length_scale = dist.Gamma(100, 1/100),  # small -> smooth
+        process_sd = dist.Gamma(1, 1/100),  # small -> smooth
         t = dist.Uniform(np.zeros(theta_dim), 1),
         lam = dist.Gamma(5, 1/5),
     )
@@ -96,7 +109,7 @@ def make_model_data(y, xs, eta, W, theta_dim, num_basis, priors=None, D=None):
                 num_basis=num_basis, D=D, priors=priors)
 
 def create_D_basis(S, knots=None, num_basis=None, seed=None,
-                   kernel=gaussian_kernel, **kwargs):
+                   basis=gaussian_kernel_basis, **kwargs):
     """
     S: indexing points
     """
@@ -114,12 +127,11 @@ def create_D_basis(S, knots=None, num_basis=None, seed=None,
             knots = np.random.rand(num_basis, dim)
 
     D = block_diag(*[
-        kernel(s, knots, **kwargs)
+        basis(s, knots, **kwargs)
         for s in S
     ])
 
     return D
-
 
 def do_mcmc(model, data, num_samples: int, burn: int, window=None, thinning: int=1, seed=None, init_state=None):
     if seed is not None:
