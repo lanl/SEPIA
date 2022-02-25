@@ -534,12 +534,11 @@ class SepiaModel:
 
             model_data = emufree_calib_model.make_model_data(
                 y=np.concatenate(self.data.y_obs),
-                xs=self.data.x_obs,
+                X=self.data.x_obs,
                 eta=self.data.eta,
                 W=self.data.Sigy,
                 theta_dim=self.data.theta_dim,
-                D=self.data.D_obs,
-                num_basis=self.data.num_basis,
+                Dbasis=self.data.Dbasis,
                 priors=priors,
             )
 

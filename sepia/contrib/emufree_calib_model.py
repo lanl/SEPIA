@@ -21,6 +21,52 @@ def gaussian_kernel_basis(X, knots, sd):
     v = sd ** 2
     return np.exp(-ss / (2 * v)) / np.sqrt(2 * np.pi) / sd
 
+class DBasis:
+    def __init__(self, S, knots=None, num_basis=None, seed=None,
+                 normalize=True, basis=gaussian_kernel_basis, bias=True,
+                 **kwargs):
+        """
+        S: List of indexing points represented by list of np arrays. Each array need not have same
+        length. Each element represents an observation.
+        """
+        self.S = S
+        self.dim = S[0].shape[0]
+        assert np.all([s.shape[0] == self.dim for s in self.S])
+        self.num_basis = num_basis
+        self.knots = knots
+        self.normalize = normalize
+        self.basis = basis
+        self.bias = bias
+        self.kwargs = kwargs
+        self.D = None
+
+        if self.num_basis is None:
+            self.num_basis = self.knots.shape[0]
+        elif self.knots is None:
+            if self.dim == 1:
+                self.knots = np.linspace(0, 1, self.num_basis)[:, None]
+            else:
+                np.random.seed(seed)
+                # NOTE: Latin hypercube?
+                self.knots = np.random.rand(self.num_basis, self.dim)
+
+        Bs = [self.basis(s, self.knots, **self.kwargs) for s in self.S]
+        if self.normalize:
+           Bmax = max([np.abs(B).max() for B in Bs])
+           Bs = [B / Bmax for B in Bs]
+
+        if bias:
+            Bs = [np.hstack([
+                np.ones([B.shape[0], 1]),
+                B
+            ]) for B in Bs]
+            self.num_basis += 1
+
+        self.D = block_diag(*Bs)
+
+        if self.normalize:
+            self.D /= np.abs(self.D).max()
+
 def sqexpkernel(X, length_scale, process_sd):
     """
     Squared exponential covariance kernel.
@@ -50,27 +96,29 @@ class NoEmuCalibModel(ppl.AbstractModel):
     """
     Emulator-free Calibration Model.
     """
-    def model(self, y, xs, eta, W, theta_dim, num_basis, priors, D=None):
+    def model(self, y, X, eta, W, theta_dim, priors, Dbasis=None):
         """
         :param np.ndarray y: concatenated vector of (observed) responses.
-        :param [np.ndarray xs]: list of vectors.
+        :param np.ndarray X: matrix of physics model inputs to eta.
         :param function(x, t) eta: a function (computer model) which takes
             inputs x (vector) and parameters t (vector) and returns a matrix of
             outputs, where the rows have the same index as the elements in y.
         :param W: observation coavariance, up to a constant.
         :param int theta_dim: number of phyiscal parameter to calibrate.
-        :param num_basis: Number of bases.
         :param dict priors: Priors for length_scale, process_sd, t, and lam.
         :param matrix or None D: Discrepancy basis.
         """
-        if D is not None:
+        if Dbasis is not None:
+            D = Dbasis.D
+            num_basis = Dbasis.num_basis
+
             # GP covariance for discrepancy.
             length_scale = self.rv("length_scale", priors["length_scale"])  # should be smooth.
             process_sd = self.rv("process_sd", priors["process_sd"])  # should encourage little discrepancy. 
             Sigma = self.transform(
                 "Sigma",
                 np.kron(
-                    sqexpkernel(xs, length_scale=length_scale, process_sd=process_sd),
+                    sqexpkernel(X, length_scale=length_scale, process_sd=process_sd),
                     np.eye(num_basis)
                 )
             )
@@ -95,46 +143,18 @@ class NoEmuCalibModel(ppl.AbstractModel):
         y = self.rv(
             "y",
             dist.MvNormal(
-                np.concatenate([eta(x, t) for x in xs]).flatten(),
+                np.concatenate([eta(x, t) for x in X]).flatten(),
                 marg_cov
             ),
             obs=y
         )
 
-def make_model_data(y, xs, eta, W, theta_dim, num_basis, priors=None, D=None):
+def make_model_data(y, X, eta, W, theta_dim, priors=None, Dbasis=None):
     if priors is None:
         priors = make_default_priors(theta_dim=theta_dim)
 
-    return dict(y=y, xs=xs, eta=eta, W=W, theta_dim=theta_dim,
-                num_basis=num_basis, D=D, priors=priors)
-
-def create_D_basis(S, knots=None, num_basis=None, seed=None, normalize=True,
-                   basis=gaussian_kernel_basis, **kwargs):
-    """
-    S: indexing points
-    """
-    dim = S[0].shape[1]
-    assert np.all([s.shape[1] == dim for s in S])
-
-    if num_basis is None:
-        num_basis = knots.shape[0]
-    elif knots is None:
-        if dim == 1:
-            knots = np.linspace(0, 1, num_basis)[:, None]
-        else:
-            np.random.seed(seed)
-            # NOTE: Latin hypercube?
-            knots = np.random.rand(num_basis, dim)
-
-    D = block_diag(*[
-        basis(s, knots, **kwargs)
-        for s in S
-    ])
-
-    if normalize:
-        D /= np.abs(D).max()
-
-    return D
+    return dict(y=y, X=X, eta=eta, W=W, theta_dim=theta_dim,
+                Dbasis=Dbasis, priors=priors)
 
 def do_mcmc(model, data, num_samples: int, burn: int, window=None, thinning: int=1, seed=None, init_state=None):
     if seed is not None:

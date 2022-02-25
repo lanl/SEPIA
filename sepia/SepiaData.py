@@ -520,7 +520,7 @@ class SepiaData(object):
             pu = int(n_pc)
         self.sim_data.K = np.transpose(np.dot(U[:, :pu], np.diag(s[:pu])) / np.sqrt(y_std.shape[0]))
 
-    def create_D_basis(self, D_type='constant', D_obs=None, D_sim=None, norm=True, num_basis=None):
+    def create_D_basis(self, D_type='constant', D_obs=None, D_sim=None, norm=True, Dbasis=None):
         """
         Create `D_obs`, `D_sim` discrepancy bases. Can specify a type of default basis (constant/linear) or provide matrices.
 
@@ -534,8 +534,7 @@ class SepiaData(object):
         """
 
         if self.use_simulator:
-            self.D_obs = D_obs
-            self.num_basis = num_basis
+            self.Dbasis = Dbasis
             # Return early if using simulator directly (w/o) emulator.
             return
 
