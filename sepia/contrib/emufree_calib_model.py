@@ -41,7 +41,7 @@ def sqexpkernel(X, length_scale, process_sd):
 def make_default_priors(theta_dim):
     return dict(
         length_scale = dist.Gamma(100, 1/100),  # small -> encourage smoothness
-        process_sd = dist.Gamma(1, 1/100),  # small -> encourage little discrepancy
+        process_sd = dist.Gamma(1, 1/10),  # small -> encourage little discrepancy
         t = dist.Uniform(np.zeros(theta_dim), 1),
         lam = dist.Gamma(5, 1/5),
     )
@@ -108,7 +108,7 @@ def make_model_data(y, xs, eta, W, theta_dim, num_basis, priors=None, D=None):
     return dict(y=y, xs=xs, eta=eta, W=W, theta_dim=theta_dim,
                 num_basis=num_basis, D=D, priors=priors)
 
-def create_D_basis(S, knots=None, num_basis=None, seed=None,
+def create_D_basis(S, knots=None, num_basis=None, seed=None, normalize=True,
                    basis=gaussian_kernel_basis, **kwargs):
     """
     S: indexing points
@@ -131,7 +131,10 @@ def create_D_basis(S, knots=None, num_basis=None, seed=None,
         for s in S
     ])
 
-    return D / np.abs(D).max()
+    if normalize:
+        D /= np.abs(D).max()
+
+    return D
 
 def do_mcmc(model, data, num_samples: int, burn: int, window=None, thinning: int=1, seed=None, init_state=None):
     if seed is not None:
