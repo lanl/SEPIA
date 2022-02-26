@@ -86,7 +86,7 @@ def sqexpkernel(X, length_scale, process_sd):
 # TODO: Think about these.
 def make_default_priors(theta_dim):
     return dict(
-        length_scale = dist.Gamma(100, 1/100),  # small -> encourage smoothness
+        length_scale = dist.Gamma(100, 1/100),  # large -> encourage smoothness
         process_sd = dist.Gamma(1, 1/10),  # small -> encourage little discrepancy
         t = dist.Uniform(np.zeros(theta_dim), 1),
         lam = dist.Gamma(5, 1/5),
