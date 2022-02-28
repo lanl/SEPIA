@@ -7,7 +7,7 @@ from .ppl import distributions as dist
 from .ppl.inference.diagnostics import ess
 from .ppl.inference import MCMC, MvARWM, Shaper
 
-def gaussian_kernel_basis(X, knots, sd):
+def radial_basis(X, knots, sd):
     """
     X: points to evaluate kernel (n x q)
     knots: kernel locations (m x q)
@@ -23,7 +23,7 @@ def gaussian_kernel_basis(X, knots, sd):
 
 class DBasis:
     def __init__(self, S, knots=None, num_basis=None, seed=None,
-                 normalize=True, basis=gaussian_kernel_basis, bias=True,
+                 normalize=True, basis=radial_basis, bias=True,
                  **kwargs):
         """
         S: List of indexing points represented by list of np arrays. Each array need not have same
