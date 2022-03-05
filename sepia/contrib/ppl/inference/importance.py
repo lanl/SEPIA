@@ -1,5 +1,5 @@
 import numpy as np
-from tqdm import trange
+from ..util.pbar import pbrange
 from .util import logsumexp
 
 def concat_list_dict(list_dict):
@@ -22,9 +22,9 @@ class ImportanceSampling:
 
     # TODO: Preallocate memory?
     def fit(self, num_particles, keep=None, callback=None,
-            tqdm_args=dict(), *args, **kwargs):
+            pb_args=dict(), *args, **kwargs):
 
-        with trange(num_particles, **tqdm_args) as pbar:
+        with pbrange(num_particles, **pb_args) as pbar:
             for i in pbar:
                 particle = self.model.prior_predictive(*args, **kwargs)
                 self.particles.append(particle)

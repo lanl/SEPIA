@@ -534,7 +534,11 @@ class SepiaData(object):
         """
 
         if self.use_simulator:
+            if Dbasis is None:
+                raise NotImplementedError
+            
             self.Dbasis = Dbasis
+            
             # Return early if using simulator directly (w/o) emulator.
             return
 

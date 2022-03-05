@@ -528,23 +528,23 @@ class SepiaModel:
 
         """
         if self.data.use_simulator:
-            model = emufree_calib_model.NoEmuCalibModel()
+            self.emu_free_model = emufree_calib_model.NoEmuCalibModel()
 
-            priors = kwargs.pop("priors", None)
+            self.emu_free_priors = kwargs.pop("priors", None)
 
-            model_data = emufree_calib_model.make_model_data(
+            self.emu_free_model_data = emufree_calib_model.make_model_data(
                 y=np.concatenate(self.data.y_obs),
                 X=self.data.x_obs,
                 eta=self.data.eta,
                 W=self.data.Sigy,
                 theta_dim=self.data.theta_dim,
                 Dbasis=self.data.Dbasis,
-                priors=priors,
+                priors=self.emu_free_priors,
             )
 
             return emufree_calib_model.do_mcmc(
-                model=model,
-                data=model_data,
+                model=self.emu_free_model,
+                data=self.emu_free_model_data,
                 num_samples=nsamp,
                 burn=kwargs.pop("burn", 0),
                 thinning=kwargs.pop("thinning", 1),
@@ -586,7 +586,7 @@ class SepiaModel:
         """
         return self.get_num_samples() - 1
 
-    def add_samples(self,sdict=None):
+    def add_samples(self, sdict=None):
         """
         Add samples from the samples_dict to the model.
         Will be particularly useful in parallel chains, to re-integrate samples.
@@ -594,10 +594,10 @@ class SepiaModel:
         :param dict sdict: samples dict, as obtained from get_samples()
         :return: no return value; model object will be modified
         """
-        if not isinstance(sdict,dict):
+        if not isinstance(sdict, dict):
             raise TypeError('add_samples: requires a samples dict as input')
 
-        if not ( set(sdict.keys()) - set(['theta_native']) ) == set([p.name for p in self.params.mcmcList]+['logPost']):
+        if set(sdict.keys()) - set(['theta_native']) != set([p.name for p in self.params.mcmcList]+['logPost']):
             print(( set(sdict.keys()) - set(['theta_native']) ))
             print(set([p.name for p in self.params.mcmcList]+['logPost']))
             raise ValueError('add_samples: samples dict must match fields in model')
