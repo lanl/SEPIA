@@ -5,4 +5,4 @@ serve-notebook:
 	$(ACTIVATE) && jupyter-lab --port=8004 --no-browser
 
 get-img:
-	source .secret && scp -r $$(loc)/examples/img/* examples/img
+	source .config && scp -r $$(loc)/examples/img/* examples/img
