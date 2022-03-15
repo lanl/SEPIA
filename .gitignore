@@ -16,3 +16,4 @@ dist/
 .spyproject/*
 .ipynb_checkpoints/
 venv-*/
+.config
