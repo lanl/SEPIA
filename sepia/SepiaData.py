@@ -64,6 +64,7 @@ class SepiaData(object):
             self.Sigy = Sigy
             self.theta_dim = theta_dim
             self.num_responses = np.array([y.size for y in y_obs])
+            self.Dbasis = None  # just in case, set Dbasis to None => no discrepancy.
             return
 
         # Initial Checks
@@ -534,9 +535,6 @@ class SepiaData(object):
         """
 
         if self.use_simulator:
-            if Dbasis is None:
-                raise NotImplementedError
-            
             self.Dbasis = Dbasis
             
             # Return early if using simulator directly (w/o) emulator.

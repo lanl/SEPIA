@@ -132,7 +132,7 @@ class NoEmuCalibModel(ppl.AbstractModel):
         # e.g., using Woodbury.
         lam = self.rv("lam", priors["lam"])
 
-        if D is not None:
+        if Dbasis is not None:
             marg_cov = self.transform(
                 "marg_cov",
                 D @ Sigma @ D.T + lam ** 2 * W
@@ -141,6 +141,9 @@ class NoEmuCalibModel(ppl.AbstractModel):
             marg_cov = self.transform("marg_cov", lam ** 2 * W)
 
         # Likelihood.
+        # TODO: Implement a custom likelihood which accepts D, Sigma, lam, and
+        # W, and does Sherman-Woodbury. Might be able to cache inverse of W by
+        # memoizing.
         y = self.rv(
             "y",
             dist.MvNormal(
@@ -181,11 +184,15 @@ def do_mcmc(model, data, num_samples: int, burn: int, window=None, thinning: int
                 kernel=kernel, window=window, burn=burn,
                 num_samples=num_samples, thinning=thinning)
 
-def posterior_predictive(Xnew, data, post_samples, indexing_points):
+def posterior_predictive_nodelta(Xnew, data, post_samples, indexing_points):
+    pass
+
+
+def posterior_predictive(Xnew, Wnew, data, post_samples, indexing_points):
     Dbasis = data["Dbasis"]
-    
+
     if Dbasis is None:
-        raise NotImplementedError
+        return posterior_predictive_nodelta(Xnew, data, post_samples, indexing_points)
     else:
         Dbasis = DBasis(
             S=indexing_points + Dbasis.S, # new indexing points and old indexing points.
@@ -195,12 +202,12 @@ def posterior_predictive(Xnew, data, post_samples, indexing_points):
         )
         D = Dbasis.D
         num_basis = Dbasis.num_basis
-    
+
     eta = data['eta']
     def _mean_fn(X, t):
         return np.concatenate([
             eta(x, t) for x in X
-        ])        
+        ])
 
     # NOTE: This is not used if discrepancy is not included.
     def get_post(i):
@@ -220,21 +227,25 @@ def posterior_predictive(Xnew, data, post_samples, indexing_points):
             return _mean_fn(X, post_samples['t'][i])
 
         gp = dist.GP(cov_fn=cov_fn, mean_fn=mean_fn)
-        cov_obs = post_samples['lam'][i] ** 2 * np.eye(data['y'].shape[0])
+        cov_obs = post_samples['lam'][i] ** 2 * data['W']
         post = gp.posterior(X=data['X'], y=data['y'], Xnew=Xnew, cov_obs=cov_obs)
         return np.random.normal(post.mean, np.sqrt(np.diag(post.cov)))
-    
+
     num_mcmc_samples = len(post_samples[list(post_samples.keys())[0]])
-    
+
     post_mean_fn = np.stack([get_post(i) for i in pbrange(num_mcmc_samples)])
     post_delta = np.stack([
         post_mean_fn[i] - _mean_fn(Xnew, t)
         for i, t in enumerate(post_samples['t'])
     ])
+
+    L = np.linalg.cholesky(Wnew)
     post_predictive = np.stack([
-        np.random.normal(p, post_samples['lam'][i])
-        for i, p in enumerate(post_mean_fn)
+        # Use the cholesky for this.
+        (L * post_samples['lam'][i]) @ np.random.randn(L.shape[0]) + post_mean_fn[i]
+        # NOTE: Same as.
+        # dist.MvNormal(post_mean_fn[i], post_samples['lam'][i] ** 2 * Wnew).sample()
+        for i in pbrange(post_mean_fn.shape[0])
     ])
-        
+
     return dict(mean_fn=post_mean_fn, delta=post_delta, predictive=post_predictive)
-    
