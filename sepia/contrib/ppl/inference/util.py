@@ -24,3 +24,24 @@ def normalize(probs, axis=-1):
 def logsumexp(x):
     max = np.max(x)
     return max + np.log(np.exp(x - max).sum())
+
+def get_num_samples(samples: dict):
+    first_param = list(samples.keys())[0]
+    return samples[first_param].shape[0]
+
+def tolist(samples: dict):
+    """
+    Convert a dictionary of samples (each entry being an n-d array) into a list
+    of dictionaries.
+    """
+    n = get_num_samples(samples)
+    return [
+        {k: v[i] for k, v in samples.items()}
+        for i in range(n)
+    ]
+
+def trim(samples: dict, burn=0, thin=1):
+    n = get_num_samples(samples)
+    if 0 < burn < 1:
+        burn = int(n * burn)
+    return {k: v[burn:n:thin] for k, v in samples.items()}

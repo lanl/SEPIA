@@ -184,68 +184,163 @@ def do_mcmc(model, data, num_samples: int, burn: int, window=None, thinning: int
                 kernel=kernel, window=window, burn=burn,
                 num_samples=num_samples, thinning=thinning)
 
-def posterior_predictive_nodelta(Xnew, data, post_samples, indexing_points):
-    pass
-
-
 def posterior_predictive(Xnew, Wnew, data, post_samples, indexing_points):
-    Dbasis = data["Dbasis"]
-
-    if Dbasis is None:
-        return posterior_predictive_nodelta(Xnew, data, post_samples, indexing_points)
-    else:
-        Dbasis = DBasis(
-            S=indexing_points + Dbasis.S, # new indexing points and old indexing points.
-            knots=Dbasis.knots,
-            basis=Dbasis.basis, normalize=Dbasis.normalize,
-            bias=Dbasis.bias, **Dbasis.kwargs
-        )
-        D = Dbasis.D
-        num_basis = Dbasis.num_basis
-
+    num_samples = ppl.inference.util.get_num_samples(post_samples)
     eta = data['eta']
-    def _mean_fn(X, t):
-        return np.concatenate([
-            eta(x, t) for x in X
+
+    # Cholesky (lower) of Wnew.
+    L = np.linalg.cholesky(Wnew)
+    N = L.shape[0]
+
+    # Whether or not discrepancy is modeled.
+    use_discrepancy = data['Dbasis'] is not None
+
+    def compute_eta(X, t):
+        return np.concatenate([eta(x, t) for x in X])
+
+    def post_pred_obs_at_i(lam_i, mean_fn_i):
+        return L * lam_i @ np.random.randn(N) + mean_fn_i
+
+    def post_pred_obs(mean_fn):
+        return np.stack([
+            post_pred_obs_at_i(post_samples['lam'][i], mean_fn[i])
+            for i in pbrange(num_samples)
         ])
 
-    # NOTE: This is not used if discrepancy is not included.
-    def get_post(i):
-        def cov_fn(X):
-            Sigma = np.kron(
-                sqexpkernel(
-                    X,
-                    length_scale=post_samples['length_scale'][i],
-                    process_sd=post_samples['process_sd'][i],
-                ),
-                np.eye(num_basis)
+    if use_discrepancy:
+        _Dbasis = data['Dbasis']
+        def post_mean_fn_at(i):
+            Dbasis = DBasis(
+                S=indexing_points + _Dbasis.S, # new indexing points and old indexing points.
+                knots=_Dbasis.knots,
+                basis=_Dbasis.basis, normalize=_Dbasis.normalize,
+                bias=_Dbasis.bias, **_Dbasis.kwargs
             )
-            # print((D.shape, Sigma.shape))
-            return D @ Sigma @ D.T
+            D, num_basis = Dbasis.D, Dbasis.num_basis
 
-        def mean_fn(X):
-            return _mean_fn(X, post_samples['t'][i])
+            def cov_fn(X):
+                Sigma = np.kron(
+                    sqexpkernel(
+                        X,
+                        length_scale=post_samples['length_scale'][i],
+                        process_sd=post_samples['process_sd'][i],
+                    ),
+                    np.eye(num_basis)
+                )
+                # print((D.shape, Sigma.shape))
+                return D @ Sigma @ D.T
 
-        gp = dist.GP(cov_fn=cov_fn, mean_fn=mean_fn)
-        cov_obs = post_samples['lam'][i] ** 2 * data['W']
-        post = gp.posterior(X=data['X'], y=data['y'], Xnew=Xnew, cov_obs=cov_obs)
-        return np.random.normal(post.mean, np.sqrt(np.diag(post.cov)))
+            mean_fn = lambda X: compute_eta(X, post_samples['t'][i])
 
-    num_mcmc_samples = len(post_samples[list(post_samples.keys())[0]])
+            gp = dist.GP(cov_fn=cov_fn, mean_fn=mean_fn)
+            cov_obs = post_samples['lam'][i] ** 2 * data['W']
+            post = gp.posterior(X=data['X'], y=data['y'], Xnew=Xnew, cov_obs=cov_obs)
 
-    post_mean_fn = np.stack([get_post(i) for i in pbrange(num_mcmc_samples)])
-    post_delta = np.stack([
-        post_mean_fn[i] - _mean_fn(Xnew, t)
-        for i, t in enumerate(post_samples['t'])
-    ])
+            return np.random.normal(post.mean, np.sqrt(np.diag(post.cov)))
 
-    L = np.linalg.cholesky(Wnew)
-    post_predictive = np.stack([
-        # Use the cholesky for this.
-        (L * post_samples['lam'][i]) @ np.random.randn(L.shape[0]) + post_mean_fn[i]
-        # NOTE: Same as.
-        # dist.MvNormal(post_mean_fn[i], post_samples['lam'][i] ** 2 * Wnew).sample()
-        for i in pbrange(post_mean_fn.shape[0])
-    ])
+    else:
+        def post_mean_fn_at(i):
+            return compute_eta(Xnew, post_samples['t'][i])
 
-    return dict(mean_fn=post_mean_fn, delta=post_delta, predictive=post_predictive)
+    post_mean_fn = np.stack([post_mean_fn_at(i) for i in pbrange(num_samples)])
+    obs_predictive = post_pred_obs(post_mean_fn)
+
+    out = dict(mean_fn=post_mean_fn, predictive=obs_predictive)
+
+    if use_discrepancy:
+        out['delta'] = np.stack([
+            post_mean_fn[i] - compute_eta(Xnew, t)
+            for i, t in enumerate(post_samples['t'])
+        ])
+
+    return out
+
+
+# def posterior_predictive_nodelta(Xnew, Wnew, data, post_samples, indexing_points):
+#     eta = data['eta']
+#     def mean_fn(X, t):
+#         return np.concatenate([
+#             eta(x, t) for x in X
+#         ])
+# 
+#     def get_post(i):
+#         return mean_fn(Xnew, post_samples['t'][i])
+# 
+#     num_mcmc_samples = len(post_samples[list(post_samples.keys())[0]])
+# 
+#     post_mean_fn = np.stack([get_post(i) for i in pbrange(num_mcmc_samples)])
+# 
+#     L = np.linalg.cholesky(Wnew)
+#     post_predictive = np.stack([
+#         # Use the cholesky for this.
+#         (L * post_samples['lam'][i]) @ np.random.randn(L.shape[0]) + post_mean_fn[i]
+#         # NOTE: Same as.
+#         # dist.MvNormal(post_mean_fn[i], post_samples['lam'][i] ** 2 * Wnew).sample()
+#         for i in pbrange(post_mean_fn.shape[0])
+#     ])
+# 
+#     return dict(mean_fn=post_mean_fn, predictive=post_predictive)
+# 
+# def posterior_predictive(Xnew, Wnew, data, post_samples, indexing_points):
+#     Dbasis = data["Dbasis"]
+# 
+#     if Dbasis is None:
+#         return posterior_predictive_nodelta(Xnew=Xnew, Wnew=Wnew, data=data,
+#                                             post_samples=post_samples,
+#                                             indexing_points=indexing_points)
+#     else:
+#         Dbasis = DBasis(
+#             S=indexing_points + Dbasis.S, # new indexing points and old indexing points.
+#             knots=Dbasis.knots,
+#             basis=Dbasis.basis, normalize=Dbasis.normalize,
+#             bias=Dbasis.bias, **Dbasis.kwargs
+#         )
+#         D = Dbasis.D
+#         num_basis = Dbasis.num_basis
+# 
+#     eta = data['eta']
+#     def _mean_fn(X, t):
+#         return np.concatenate([
+#             eta(x, t) for x in X
+#         ])
+# 
+#     # NOTE: This is not used if discrepancy is not included.
+#     def get_post(i):
+#         def cov_fn(X):
+#             Sigma = np.kron(
+#                 sqexpkernel(
+#                     X,
+#                     length_scale=post_samples['length_scale'][i],
+#                     process_sd=post_samples['process_sd'][i],
+#                 ),
+#                 np.eye(num_basis)
+#             )
+#             # print((D.shape, Sigma.shape))
+#             return D @ Sigma @ D.T
+# 
+#         def mean_fn(X):
+#             return _mean_fn(X, post_samples['t'][i])
+# 
+#         gp = dist.GP(cov_fn=cov_fn, mean_fn=mean_fn)
+#         cov_obs = post_samples['lam'][i] ** 2 * data['W']
+#         post = gp.posterior(X=data['X'], y=data['y'], Xnew=Xnew, cov_obs=cov_obs)
+#         return np.random.normal(post.mean, np.sqrt(np.diag(post.cov)))
+# 
+#     num_mcmc_samples = len(post_samples[list(post_samples.keys())[0]])
+# 
+#     post_mean_fn = np.stack([get_post(i) for i in pbrange(num_mcmc_samples)])
+#     post_delta = np.stack([
+#         post_mean_fn[i] - _mean_fn(Xnew, t)
+#         for i, t in enumerate(post_samples['t'])
+#     ])
+# 
+#     L = np.linalg.cholesky(Wnew)
+#     post_predictive = np.stack([
+#         # Use the cholesky for this.
+#         (L * post_samples['lam'][i]) @ np.random.randn(L.shape[0]) + post_mean_fn[i]
+#         # NOTE: Same as.
+#         # dist.MvNormal(post_mean_fn[i], post_samples['lam'][i] ** 2 * Wnew).sample()
+#         for i in pbrange(post_mean_fn.shape[0])
+#     ])
+# 
+#     return dict(mean_fn=post_mean_fn, delta=post_delta, predictive=post_predictive)
