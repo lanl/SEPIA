@@ -7,24 +7,26 @@ from .ppl import distributions as dist
 from .ppl.inference.diagnostics import ess
 from .ppl.inference import MCMC, MvARWM, Shaper
 from .ppl.util.pbar import pbrange
+from . import basis
 
-def radial_basis(X, knots, sd):
-    """
-    X: points to evaluate kernel (n x q)
-    knots: kernel locations (m x q)
-    sd: kernel width
-
-	Return: an nxm matrix of Gaussian density evaluations at X with centers at
-	knots and provided sd.
-    """
-    diff = X[..., None] - knots.T[None, ...]  # n x q x m
-    ss = np.sum(diff ** 2, axis=1)  # n x m
-    v = sd ** 2
-    return np.exp(-ss / (2 * v)) / np.sqrt(2 * np.pi) / sd
 
 class DBasis:
+    # TODO: 22 March, 2022.
+    #
+    # - [ ] We can assume that S is a fixed grid for the simulator.
+    #       So, instead of S being a list, it can be supplied as 
+    #       a single matrix.
+    # - [ ] If the observations and simulator are not on the same
+    #       grid, then we interpolate the output of the simulator (which 
+    #       usually has a denser grid) so that we get a new simulator 
+    #       output which is evaluated on the observation's grid.
+    #       So, we need a function that returns a new function for each
+    #       observation (i): 
+    #       
+    #         interpolateEta(eta, sim_grid, obs_grid) -> { (x, t) -> eta_interpolated(x, t) }
+    #
     def __init__(self, S, knots=None, num_basis=None, seed=None,
-                 normalize=True, basis=radial_basis, bias=True,
+                 normalize=True, basis=basis.radial, bias=True,
                  **kwargs):
         """
         S: List of indexing points represented by list of np arrays. Each array need not have same
@@ -48,7 +50,7 @@ class DBasis:
                 self.knots = np.linspace(0, 1, self.num_basis)[:, None]
             else:
                 np.random.seed(seed)
-                # NOTE: Latin hypercube?
+                # TODO: Latin hypercube?
                 self.knots = np.random.rand(self.num_basis, self.dim)
 
         Bs = [self.basis(s, self.knots, **self.kwargs) for s in self.S]
@@ -254,93 +256,3 @@ def posterior_predictive(Xnew, Wnew, data, post_samples, indexing_points):
         ])
 
     return out
-
-
-# def posterior_predictive_nodelta(Xnew, Wnew, data, post_samples, indexing_points):
-#     eta = data['eta']
-#     def mean_fn(X, t):
-#         return np.concatenate([
-#             eta(x, t) for x in X
-#         ])
-# 
-#     def get_post(i):
-#         return mean_fn(Xnew, post_samples['t'][i])
-# 
-#     num_mcmc_samples = len(post_samples[list(post_samples.keys())[0]])
-# 
-#     post_mean_fn = np.stack([get_post(i) for i in pbrange(num_mcmc_samples)])
-# 
-#     L = np.linalg.cholesky(Wnew)
-#     post_predictive = np.stack([
-#         # Use the cholesky for this.
-#         (L * post_samples['lam'][i]) @ np.random.randn(L.shape[0]) + post_mean_fn[i]
-#         # NOTE: Same as.
-#         # dist.MvNormal(post_mean_fn[i], post_samples['lam'][i] ** 2 * Wnew).sample()
-#         for i in pbrange(post_mean_fn.shape[0])
-#     ])
-# 
-#     return dict(mean_fn=post_mean_fn, predictive=post_predictive)
-# 
-# def posterior_predictive(Xnew, Wnew, data, post_samples, indexing_points):
-#     Dbasis = data["Dbasis"]
-# 
-#     if Dbasis is None:
-#         return posterior_predictive_nodelta(Xnew=Xnew, Wnew=Wnew, data=data,
-#                                             post_samples=post_samples,
-#                                             indexing_points=indexing_points)
-#     else:
-#         Dbasis = DBasis(
-#             S=indexing_points + Dbasis.S, # new indexing points and old indexing points.
-#             knots=Dbasis.knots,
-#             basis=Dbasis.basis, normalize=Dbasis.normalize,
-#             bias=Dbasis.bias, **Dbasis.kwargs
-#         )
-#         D = Dbasis.D
-#         num_basis = Dbasis.num_basis
-# 
-#     eta = data['eta']
-#     def _mean_fn(X, t):
-#         return np.concatenate([
-#             eta(x, t) for x in X
-#         ])
-# 
-#     # NOTE: This is not used if discrepancy is not included.
-#     def get_post(i):
-#         def cov_fn(X):
-#             Sigma = np.kron(
-#                 sqexpkernel(
-#                     X,
-#                     length_scale=post_samples['length_scale'][i],
-#                     process_sd=post_samples['process_sd'][i],
-#                 ),
-#                 np.eye(num_basis)
-#             )
-#             # print((D.shape, Sigma.shape))
-#             return D @ Sigma @ D.T
-# 
-#         def mean_fn(X):
-#             return _mean_fn(X, post_samples['t'][i])
-# 
-#         gp = dist.GP(cov_fn=cov_fn, mean_fn=mean_fn)
-#         cov_obs = post_samples['lam'][i] ** 2 * data['W']
-#         post = gp.posterior(X=data['X'], y=data['y'], Xnew=Xnew, cov_obs=cov_obs)
-#         return np.random.normal(post.mean, np.sqrt(np.diag(post.cov)))
-# 
-#     num_mcmc_samples = len(post_samples[list(post_samples.keys())[0]])
-# 
-#     post_mean_fn = np.stack([get_post(i) for i in pbrange(num_mcmc_samples)])
-#     post_delta = np.stack([
-#         post_mean_fn[i] - _mean_fn(Xnew, t)
-#         for i, t in enumerate(post_samples['t'])
-#     ])
-# 
-#     L = np.linalg.cholesky(Wnew)
-#     post_predictive = np.stack([
-#         # Use the cholesky for this.
-#         (L * post_samples['lam'][i]) @ np.random.randn(L.shape[0]) + post_mean_fn[i]
-#         # NOTE: Same as.
-#         # dist.MvNormal(post_mean_fn[i], post_samples['lam'][i] ** 2 * Wnew).sample()
-#         for i in pbrange(post_mean_fn.shape[0])
-#     ])
-# 
-#     return dict(mean_fn=post_mean_fn, delta=post_delta, predictive=post_predictive)
