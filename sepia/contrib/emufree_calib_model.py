@@ -11,20 +11,6 @@ from . import basis
 
 
 class DBasis:
-    # TODO: 22 March, 2022.
-    #
-    # - [ ] We can assume that S is a fixed grid for the simulator.
-    #       So, instead of S being a list, it can be supplied as 
-    #       a single matrix.
-    # - [ ] If the observations and simulator are not on the same
-    #       grid, then we interpolate the output of the simulator (which 
-    #       usually has a denser grid) so that we get a new simulator 
-    #       output which is evaluated on the observation's grid.
-    #       So, we need a function that returns a new function for each
-    #       observation (i): 
-    #       
-    #         interpolateEta(eta, sim_grid, obs_grid) -> { (x, t) -> eta_interpolated(x, t) }
-    #
     def __init__(self, S, knots=None, num_basis=None, seed=None,
                  normalize=True, basis=basis.radial, bias=True,
                  **kwargs):
@@ -99,6 +85,17 @@ class NoEmuCalibModel(ppl.AbstractModel):
     """
     Emulator-free Calibration Model.
     """
+    # TODO: 22 March, 2022.
+    #
+    # - [ ] If the observations and simulator are not on the same
+    #       grid, then we interpolate the output of the simulator (which 
+    #       usually has a denser grid) so that we get a new simulator 
+    #       output which is evaluated on the observation's grid.
+    #       So, we need a function that returns a new function for each
+    #       observation (i): 
+    #       
+    #         interpolateEta(eta, sim_grid, obs_grid) -> { (x, t) -> eta_interpolated(x, t) }
+    #
     def model(self, y, X, eta, W, theta_dim, priors, Dbasis=None):
         """
         :param np.ndarray y: concatenated vector of (observed) responses.
