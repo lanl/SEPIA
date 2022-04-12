@@ -1,8 +1,8 @@
 from functools import cached_property
 import numpy as np
-from numpy import math
 from .bijectors import Logit
 from .AbstractDistribution import AbstractDistribution
+from scipy.special import gammaln
 
 def beta_lpdf(x, a, b):
     """
@@ -12,7 +12,7 @@ def beta_lpdf(x, a, b):
     Usage:
     >>> beta_lpdf(0.6, a=3, b=7)
     """
-    const = math.lgamma(a + b) - math.lgamma(a) - math.lgamma(b)
+    const = gammaln(a + b) - gammaln(a) - gammaln(b)
     return const + (a - 1) * np.log(x) + (b - 1) * np.log1p(-x)
 
 class Beta(AbstractDistribution):

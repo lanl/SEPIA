@@ -1,8 +1,8 @@
 from functools import cached_property
 import numpy as np
-from numpy import math
 from .bijectors import Log
 from .AbstractDistribution import AbstractDistribution
+from scipy.special import gammaln
 
 def inversegamma_lpdf(x, shape, scale):
     """
@@ -16,7 +16,8 @@ def inversegamma_lpdf(x, shape, scale):
     Usage:
     >>> inversegamma_lpdf(3, shape=2, scale=1)
     """
-    const = np.log(scale) * shape - math.lgamma(shape)
+    const = np.log(scale) * shape - gammaln(shape)
+
     return const + (-shape - 1) * np.log(x) - scale / x
 
 

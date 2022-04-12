@@ -1,8 +1,8 @@
 from functools import cached_property
 import numpy as np
-from numpy import math
 from .bijectors import Log
 from .AbstractDistribution import AbstractDistribution
+from scipy.special import gammaln
 
 def gamma_lpdf(x, shape, scale):
     """
@@ -16,7 +16,7 @@ def gamma_lpdf(x, shape, scale):
     Usage:
     >>> gamma_lpdf(3, shape=2, scale=1)
     """
-    const = -math.lgamma(shape) - shape * np.log(scale)
+    const = -gammaln(shape) - shape * np.log(scale)
     return const + (shape - 1) * np.log(x) - x / scale
 
 class Gamma(AbstractDistribution):
