@@ -39,7 +39,7 @@ From the command line, while in the main SEPIA directory, use the following comm
         pip install -e .[sepia]
 
 The `-e` flag signals developer mode, meaning that if you update the code from Github, your installation will automatically
-take those changes into account without requiring re-installation.
+take those changes into account without requiring re-installation. Note: this command may not work properly with all shells; it has been tested with `bash`.
 Some other essential packages used in SEPIA may be installed if they do not exist in your system or environment.
 
 If you encounter problems with the above install method, you may try to install dependencies manually before installing SEPIA.
