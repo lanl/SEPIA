@@ -3,6 +3,8 @@ message: "If you use this software, please cite it as below."
 authors:
 - family-names: "Gattiker"
   given-names: "James"
+- family-names: "Lawrence"
+  given-names: "Earl"
 - family-names: "Klein"
   given-names: "Natalie"
 - family-names: "Hutchings"
