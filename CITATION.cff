@@ -1,0 +1,16 @@
+cff-version: 1.0.0
+message: "If you use this software, please cite it as below."
+authors:
+- family-names: "Gattiker"
+  given-names: "James"
+- family-names: "Klein"
+  given-names: "Natalie"
+- family-names: "Hutchings"
+  given-names: "Grant"
+- family-names: "Lui"
+  given-names: "Arthur"
+title: "SEPIA: Simulation-Enabled Prediction, Inference, and Analysis"
+version: 1.1.0
+doi: 10.5281/zenodo.4048801
+date-released: 2020-09-24
+url: "https://github.com/lanl/sepia"
